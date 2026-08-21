@@ -3,1460 +3,1789 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ハード図面配線 & マークチューブ自動集計システム</title>
+    <title>ハード図面配線 & マークチューブ自動集計系統</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
+    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- PDF.js Engine -->
+    <!-- PDF.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <!-- jsPDF Engine -->
+    <!-- jsPDF Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- JSZip: packages multiple PNG pages into one download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- SheetJS: Excel export with header filters -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            user-select: none;
-        }
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
         .canvas-container {
-            cursor: default;
-            touch-action: none;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
         }
-        .wire-card {
-            transition: all 0.2s ease-in-out;
-        }
-        .wire-card:hover {
-            transform: translateY(-1px);
-        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
     </style>
 </head>
-<body class="bg-slate-100 h-screen flex flex-col overflow-hidden">
+<body class="bg-slate-900 text-slate-100 h-screen flex flex-col overflow-hidden select-none">
 
-    <header class="bg-slate-800 text-white px-4 py-2.5 flex items-center justify-between shadow-md z-20 shrink-0">
+    <!-- Top Navigation Header -->
+    <header class="bg-slate-800 border-b border-slate-700 px-4 py-2.5 flex items-center justify-between z-20 shrink-0">
         <div class="flex items-center space-x-3">
-            <i class="fa-solid fa-microchip text-indigo-400 text-xl"></i>
+            <div class="bg-indigo-600 text-white p-2 rounded-lg shadow">
+                <i class="fa-solid fa-diagram-project text-lg"></i>
+            </div>
             <div>
-                <h1 class="font-bold text-base leading-tight tracking-wide">ハード図面配線 & マークチューブ自動集計システム</h1>
-                <p class="text-xs text-slate-400">電気ハード図面・シーケンス図専用 印字チューブ(マークチューブ)＆電線SQ自動集計補助ツール</p>
+                <h1 class="text-base font-bold text-white tracking-wide">ハード図面配線 & マークチューブ自動集計系統</h1>
+                <p class="text-xs text-slate-400">配線作図・自動ナンバリング・積算システム</p>
             </div>
         </div>
 
+        <!-- Center View Controls -->
+        <div class="flex items-center space-x-2 bg-slate-900/80 p-1.5 rounded-lg border border-slate-700">
+            <!-- PDF Page Switcher -->
+            <button id="btnPrevPage" class="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition disabled:opacity-40" title="前ページ">
+                <i class="fa-solid fa-chevron-left text-xs"></i>
+            </button>
+            <span id="pageIndicator" class="text-xs font-semibold px-2 text-slate-300 font-mono">頁: 1 / 1</span>
+            <button id="btnNextPage" class="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition disabled:opacity-40" title="次ページ">
+                <i class="fa-solid fa-chevron-right text-xs"></i>
+            </button>
+            <div class="h-4 w-[1px] bg-slate-700 mx-1"></div>
+
+            <!-- Zoom & Fit -->
+            <button id="btnZoomOut" class="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition" title="縮小">
+                <i class="fa-solid fa-minus text-xs"></i>
+            </button>
+            <span id="zoomIndicator" class="text-xs font-mono text-indigo-400 w-12 text-center">100%</span>
+            <button id="btnZoomIn" class="p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition" title="拡大">
+                <i class="fa-solid fa-plus text-xs"></i>
+            </button>
+            <button id="btnFitPage" class="px-2 py-1 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-white rounded transition" title="全体表示">
+                <i class="fa-solid fa-expand me-1"></i>整頁
+            </button>
+        </div>
+
+        <!-- Right Output Actions -->
         <div class="flex items-center space-x-2">
-            <!-- モバイル向け集計表トグルボタン -->
-            <button id="btnToggleSidebar" class="lg:hidden bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex items-center">
-                <i class="fa-solid fa-table-list mr-1 text-indigo-400"></i> 集計表切替
+            <button id="toggleLeftSidebar" class="px-2.5 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md transition border border-slate-600">
+                <i class="fa-solid fa-sliders me-1"></i>左設定
+            </button>
+            <button id="toggleRightSidebar" class="px-2.5 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md transition border border-slate-600">
+                <i class="fa-solid fa-list-check me-1"></i>右明細
             </button>
 
-            <label class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition flex items-center shadow-sm">
-                <i class="fa-solid fa-file-arrow-up mr-1.5"></i> 図面読み込み (PDF/画像)
-                <input type="file" id="fileInput" accept="application/pdf,image/*" class="hidden">
-            </label>
+            <div class="h-4 w-[1px] bg-slate-700 mx-1"></div>
 
-            <div class="h-5 w-px bg-slate-600 mx-1"></div>
+            <!-- 匯出頁面模式選擇器 -->
+            <select id="exportPageMode" class="px-2 py-1 text-xs bg-slate-700 text-slate-200 rounded border border-slate-600 focus:outline-none focus:border-indigo-500">
+                <option value="current">現在頁のみ</option>
+                <option value="all">全頁</option>
+                <option value="selected">頁を指定</option>
+            </select>
+            <input id="exportPageSelection" type="text" placeholder="例: 1,3,5-7" class="hidden w-24 px-2 py-1 text-xs bg-slate-700 text-slate-200 rounded border border-slate-600 focus:outline-none focus:border-indigo-500" title="出力するページ番号（例: 1,3,5-7）">
 
-            <button id="btnExportPng" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex items-center">
-                <i class="fa-solid fa-file-image mr-1 text-emerald-400"></i> PNG出力
+            <div class="h-4 w-[1px] bg-slate-700 mx-1"></div>
+
+            <button id="btnExportPng" class="px-3 py-1.5 text-xs font-medium bg-slate-700 hover:bg-slate-600 text-white rounded-md transition border border-slate-600 flex items-center">
+                <i class="fa-solid fa-image me-1.5 text-emerald-400"></i>PNG出力
             </button>
-            <button id="btnExportPdf" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex items-center">
-                <i class="fa-solid fa-file-pdf mr-1 text-rose-400"></i> PDF出力
-            </button>
-            <button id="btnExportCsv" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex items-center">
-                <i class="fa-solid fa-file-csv mr-1 text-amber-400"></i> CSV帳票出力
+            <button id="btnExportPdf" class="px-3 py-1.5 text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-md shadow transition flex items-center">
+                <i class="fa-solid fa-file-pdf me-1.5"></i>PDF出力
             </button>
         </div>
     </header>
 
-    <div class="bg-white border-b border-slate-200 px-3 md:px-4 py-2 flex items-center justify-between text-xs z-10 shrink-0 overflow-x-auto whitespace-nowrap">
-        <div class="flex items-center space-x-4">
-            <label class="inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="toggleContinuousMode" class="sr-only peer">
-                <div class="relative w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                <span class="ms-2 font-medium text-slate-700">連続配線モード (A➔B連続入力)</span>
-            </label>
+    <!-- Main Content Grid -->
+    <div class="flex-1 flex overflow-hidden relative">
 
-            <div class="h-4 w-px bg-slate-300"></div>
-
-            <div class="flex items-center space-x-2">
-                <span class="text-slate-500 font-medium">デフォルト印字:</span>
-                <input type="text" id="inputTubeName" value="N" list="tubeHistoryDatalist" class="w-24 px-2 py-1 border border-slate-300 rounded font-bold text-slate-800 uppercase focus:ring-1 focus:ring-indigo-500 outline-none">
-                <datalist id="tubeHistoryDatalist"></datalist>
-
-                <span class="text-slate-500 font-medium ml-2">SQ線径:</span>
-                <select id="selectSq" class="px-2 py-1 border border-slate-300 rounded font-medium text-slate-800 focus:ring-1 focus:ring-indigo-500 outline-none bg-white">
-                    <option value="0.5SQ">0.5SQ</option>
-                    <option value="0.75SQ">0.75SQ</option>
-                    <option value="1.25SQ">1.25SQ</option>
-                    <option value="2.0SQ" selected>2.0SQ</option>
-                    <option value="3.5SQ">3.5SQ</option>
-                    <option value="5.0SQ">5.0SQ</option>
-                </select>
-
-                <span class="text-slate-500 font-medium ml-2">配線色:</span>
-                <input type="color" id="inputWireColor" value="#8b5cf6" class="w-7 h-7 border border-slate-300 rounded cursor-pointer p-0">
-            </div>
-
-            <div class="flex items-center space-x-1 ml-2" id="colorPalette">
-                <button data-color="#8b5cf6" class="w-5 h-5 rounded-full bg-purple-600 ring-2 ring-purple-400 ring-offset-1" title="紫色 (標準)"></button>
-                <button data-color="#ef4444" class="w-5 h-5 rounded-full bg-red-500" title="赤色"></button>
-                <button data-color="#3b82f6" class="w-5 h-5 rounded-full bg-blue-500" title="青色"></button>
-                <button data-color="#eab308" class="w-5 h-5 rounded-full bg-yellow-500" title="黄色"></button>
-                <button data-color="#22c55e" class="w-5 h-5 rounded-full bg-green-500" title="緑色"></button>
-                <button data-color="#09090b" class="w-5 h-5 rounded-full bg-zinc-950" title="黒色"></button>
-                <button data-color="#ffffff" class="w-5 h-5 rounded-full bg-white border border-slate-400" title="白色"></button>
-            </div>
-        </div>
-
-        <div class="flex items-center space-x-3">
-            <button id="btnEditSqRules" class="text-indigo-600 hover:text-indigo-800 font-medium transition flex items-center">
-                <i class="fa-solid fa-sliders mr-1"></i> SQ判定ルール設定
-            </button>
-
-            <div class="h-4 w-px bg-slate-300"></div>
-
-            <div id="pageControls" class="hidden items-center space-x-1">
-                <button id="btnPrevPage" class="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 rounded text-slate-700 font-bold"><i class="fa-solid fa-chevron-left"></i></button>
-                <span id="pageIndicator" class="text-slate-600 font-semibold px-1">ページ: 1 / 1</span>
-                <button id="btnNextPage" class="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 rounded text-slate-700 font-bold"><i class="fa-solid fa-chevron-right"></i></button>
-            </div>
-
-            <div class="flex items-center space-x-1 bg-slate-100 rounded p-0.5">
-                <button id="btnZoomOut" class="px-2 py-0.5 text-slate-600 hover:bg-white rounded transition"><i class="fa-solid fa-minus"></i></button>
-                <span id="zoomLevel" class="w-12 text-center font-semibold text-slate-700">100%</span>
-                <button id="btnZoomIn" class="px-2 py-0.5 text-slate-600 hover:bg-white rounded transition"><i class="fa-solid fa-plus"></i></button>
-                <button id="btnZoomReset" class="px-2 py-0.5 text-slate-600 hover:bg-white rounded transition" title="表示リセット"><i class="fa-solid fa-rotate-right"></i></button>
-            </div>
-        </div>
-    </div>
-
-    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
-
-        <!-- Canvas Workspace -->
-        <div id="canvasWrapper" class="flex-1 bg-slate-200 relative overflow-hidden canvas-container">
-            <canvas id="mainCanvas" class="shadow-lg bg-white absolute top-0 left-0 transition-transform origin-top-left"></canvas>
-
-            <div id="uploadPrompt" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/90 text-slate-500 pointer-events-none">
-                <i class="fa-solid fa-cloud-arrow-up text-5xl text-indigo-400 mb-3 animate-bounce"></i>
-                <h2 class="text-lg font-bold text-slate-700">図面ファイル (PDF / 画像) を読み込んでください</h2>
-                <p class="text-xs text-slate-400 mt-1">上部の「図面読み込み」をクリックするか、ここにドラッグ＆ドロップしてください</p>
-            </div>
-
-            <div id="panBadge" class="hidden absolute top-4 left-4 bg-slate-800/80 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur shadow-md items-center space-x-2 pointer-events-none z-10">
-                <i class="fa-solid fa-hand text-amber-400"></i>
-                <span>画面移動モード (長押し中)</span>
-            </div>
-
-            <!-- Active Point A Cancellation Badge -->
-            <div id="activeABadge" class="hidden absolute top-4 right-4 bg-indigo-900/90 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur shadow-md items-center space-x-3 z-10">
-                <div class="flex items-center space-x-1.5">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                    <span class="font-bold">A点設定中 (B点をクリックしてください)</span>
-                </div>
-                <button id="btnCancelActiveA" class="bg-rose-500 hover:bg-rose-600 text-white px-2 py-0.5 rounded-full text-[10px] font-bold transition">
-                    <i class="fa-solid fa-xmark mr-0.5"></i> A点解除
-                </button>
-            </div>
-        </div>
-
-        <!-- Sidebar Data Panel -->
-        <aside id="sidebarPanel" class="w-full h-64 lg:h-auto lg:w-80 bg-white border-t lg:border-t-0 lg:border-l border-slate-200 flex flex-col shadow-lg z-10 shrink-0 transition-all duration-300">
-            <div class="flex border-b border-slate-200 bg-slate-50">
-                <button id="tabSummaryBtn" class="flex-1 py-2.5 text-xs font-bold text-indigo-600 border-b-2 border-indigo-600 bg-white">
-                    <i class="fa-solid fa-list-check mr-1"></i> マークチューブ 集計表
-                </button>
-                <button id="tabWireListBtn" class="flex-1 py-2.5 text-xs font-bold text-slate-500 border-b-2 border-transparent hover:text-slate-700">
-                    <i class="fa-solid fa-route mr-1"></i> 配線明細一覧 (<span id="wireCountBadge">0</span>)
-                </button>
-            </div>
-
-            <div id="tabSummary" class="flex-1 overflow-y-auto p-3 space-y-3">
-                <div class="grid grid-cols-2 gap-2">
-                    <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-2.5">
-                        <span class="text-[10px] uppercase font-bold text-indigo-500">配線総本数</span>
-                        <div id="statTotalWires" class="text-xl font-black text-indigo-700">0 <span class="text-xs font-normal text-slate-500">本</span></div>
-                    </div>
-                    <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-2.5">
-                        <span class="text-[10px] uppercase font-bold text-emerald-500">チューブ総数</span>
-                        <div id="statTotalTubes" class="text-xl font-black text-emerald-700">0 <span class="text-xs font-normal text-slate-500">個</span></div>
-                    </div>
+        <!-- Left Sidebar: Settings & Shortcuts -->
+        <aside id="leftSidebar" class="w-56 bg-slate-800 border-r border-slate-700 p-3 flex flex-col justify-between shrink-0 transition-all duration-200 z-10">
+            <div class="space-y-4 overflow-y-auto pr-1">
+                <!-- File Upload Box -->
+                <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-700">
+                    <label class="block text-xs font-semibold text-slate-300 mb-1.5">図面ファイルアップロード</label>
+                    <input type="file" id="fileInput" accept="image/*,.pdf" class="hidden">
+                    <button id="btnSelectFile" class="w-full py-2 px-3 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 rounded-md text-xs font-medium transition flex items-center justify-center">
+                        <i class="fa-solid fa-cloud-arrow-up me-2"></i>PDF / 画像選択
+                    </button>
                 </div>
 
-                <div class="border border-slate-200 rounded-lg overflow-hidden">
-                    <div class="bg-slate-100 px-3 py-1.5 font-bold text-xs text-slate-700 flex justify-between items-center">
-                        <span>マークチューブ 集計結果</span>
-                        <span class="text-[10px] font-normal text-slate-500">1本 = 2個(両端固定)</span>
-                    </div>
-                    <table class="w-full text-xs text-left text-slate-600">
-                        <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 text-[10px]">
-                            <tr>
-                                <th class="p-2">印字文字</th>
-                                <th class="p-2 text-center">線径</th>
-                                <th class="p-2 text-center">本数</th>
-                                <th class="p-2 text-right">チューブ数</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tubeSummaryTableBody" class="divide-y divide-slate-100">
-                            <tr>
-                                <td colspan="4" class="p-4 text-center text-slate-400 italic">配線データがありません</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                <!-- Wire Parameters -->
+                <div class="space-y-3">
+                    <h2 class="text-xs font-bold text-indigo-400 tracking-wider uppercase border-b border-slate-700 pb-1">配線パラメータ設定</h2>
 
-                <div class="border border-slate-200 rounded-lg p-3 bg-slate-50 space-y-2">
-                    <h3 class="font-bold text-xs text-slate-700"><i class="fa-solid fa-bolt text-amber-500 mr-1"></i> SQ線径別 配線集計</h3>
-                    <div id="sqBreakdownList" class="space-y-1 text-xs text-slate-600">
-                        <div class="text-slate-400 italic text-center py-1">データ待機中...</div>
+                    <!-- Wire Color Selection -->
+                    <div>
+                        <label class="block text-xs text-slate-300 mb-1">電線色 (色名)</label>
+                        <div id="colorPalette" class="grid grid-cols-4 gap-1.5">
+                            <button data-color="#dc2626" data-name="赤" class="p-1.5 rounded border-2 border-indigo-500 bg-red-600 text-white text-[10px] font-bold text-center">赤</button>
+                            <button data-color="#2563eb" data-name="青" class="p-1.5 rounded border-2 border-transparent bg-blue-600 text-white text-[10px] font-bold text-center">青</button>
+                            <button data-color="#eab308" data-name="黄" class="p-1.5 rounded border-2 border-transparent bg-yellow-500 text-slate-900 text-[10px] font-bold text-center">黄</button>
+                            <button data-color="#16a34a" data-name="緑" class="p-1.5 rounded border-2 border-transparent bg-green-600 text-white text-[10px] font-bold text-center">緑</button>
+                            <button data-color="#18181b" data-name="黒" class="p-1.5 rounded border-2 border-transparent bg-zinc-900 text-white text-[10px] font-bold text-center">黒</button>
+                            <button data-color="#f8fafc" data-name="白" class="p-1.5 rounded border-2 border-transparent bg-slate-100 text-slate-900 text-[10px] font-bold text-center">白</button>
+                            <button data-color="#9333ea" data-name="紫" class="p-1.5 rounded border-2 border-transparent bg-purple-600 text-white text-[10px] font-bold text-center">紫</button>
+                            <button data-color="#ea580c" data-name="橙" class="p-1.5 rounded border-2 border-transparent bg-orange-600 text-white text-[10px] font-bold text-center">橙</button>
+                        </div>
+                    </div>
+
+                    <!-- Wire SQ Gauge -->
+                    <div>
+                        <label class="block text-xs text-slate-300 mb-1">電線サイズ (SQ)</label>
+                        <div id="sqButtons" class="grid grid-cols-3 gap-1.5">
+                            <button data-sq="0.5" class="py-1 px-1.5 rounded bg-slate-700 text-slate-200 text-xs font-semibold text-center hover:bg-slate-600 border border-transparent">0.5</button>
+                            <button data-sq="0.75" class="py-1 px-1.5 rounded bg-slate-700 text-slate-200 text-xs font-semibold text-center hover:bg-slate-600 border border-transparent">0.75</button>
+                            <button data-sq="1.25" class="py-1 px-1.5 rounded bg-indigo-900/50 text-indigo-300 text-xs font-semibold text-center border border-indigo-500">1.25</button>
+                            <button data-sq="2.0" class="py-1 px-1.5 rounded bg-slate-700 text-slate-200 text-xs font-semibold text-center hover:bg-slate-600 border border-transparent">2.0</button>
+                            <button data-sq="3.5" class="py-1 px-1.5 rounded bg-slate-700 text-slate-200 text-xs font-semibold text-center hover:bg-slate-600 border border-transparent">3.5</button>
+                            <button data-sq="5.5" class="py-1 px-1.5 rounded bg-slate-700 text-slate-200 text-xs font-semibold text-center hover:bg-slate-600 border border-transparent">5.5</button>
+                        </div>
+                    </div>
+
+                    <!-- Default Mark Text -->
+                    <div>
+                        <label class="block text-xs text-slate-300 mb-1">印字文字 (初期値)</label>
+                        <input type="text" id="sidebarMarkText" value="101" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono">
+                    </div>
+
+                    <!-- Continuous Mode Switch -->
+                    <div class="flex items-center justify-between bg-slate-900/50 p-2 rounded border border-slate-700">
+                        <span class="text-xs text-slate-300 font-medium">連続作図モード</span>
+                        <input type="checkbox" id="chkContinuous" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer">
                     </div>
                 </div>
             </div>
 
-            <div id="tabWireList" class="flex-1 overflow-y-auto p-3 hidden space-y-2">
+            <!-- Shortcut Guide Box -->
+            <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-700/80 text-[11px] text-slate-400 space-y-1 mt-3">
+                <div class="font-bold text-slate-300 mb-1 border-b border-slate-700 pb-0.5"><i class="fa-solid fa-keyboard me-1 text-indigo-400"></i>操作ショートカット</div>
+                <div><span class="text-slate-200 font-semibold">左ドラッグ / 中クリック:</span> 画面移動</div>
+                <div><span class="text-slate-200 font-semibold">Space + 左ドラッグ:</span> パン移動</div>
+                <div><span class="text-slate-200 font-semibold">Shift + クリック:</span> 底図線上に折点を追加</div>
+                <div><span class="text-slate-200 font-semibold">右クリック / ESC:</span> A点キャンセル</div>
+            </div>
+        </aside>
+
+        <!-- Center Canvas Area -->
+        <main class="flex-1 relative bg-slate-950 overflow-hidden flex items-center justify-center">
+            <div id="canvasWrapper" class="relative w-full h-full overflow-hidden cursor-crosshair canvas-container">
+                <canvas id="mainCanvas" class="shadow-2xl rounded bg-white transition-shadow duration-300 absolute top-0 left-0"></canvas>
+                <div id="angleHint" class="hidden absolute z-20 pointer-events-none px-2 py-1 rounded bg-slate-900/95 border border-emerald-400 text-emerald-300 text-xs font-mono shadow-lg whitespace-nowrap"></div>
             </div>
 
-            <div class="p-2.5 border-t border-slate-200 bg-slate-50 text-[11px] text-slate-500 flex justify-between items-center">
-                <span><i class="fa-solid fa-circle-info mr-1 text-indigo-500"></i>右クリックまたはESCでA点解除</span>
-                <button id="btnClearAllWires" class="text-rose-500 hover:text-rose-700 font-bold transition">全配線消去</button>
+            <!-- Floating Prompt Bar -->
+            <div id="statusBar" class="absolute top-3 left-1/2 -translate-x-1/2 bg-slate-800/90 backdrop-blur border border-slate-700 px-4 py-1.5 rounded-full shadow-lg text-xs font-medium text-slate-200 flex items-center space-x-2 pointer-events-none z-10">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="statusText">始点 (A点) を導線上クリックして指定してください</span>
+            </div>
+
+            <!-- Confirmation / Editing Modal -->
+            <div id="wireModal" class="hidden absolute inset-0 bg-slate-950/60 backdrop-blur-sm z-30 flex items-center justify-center p-4">
+                <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-xs p-4 space-y-3 animate-in fade-in zoom-in duration-150">
+                    <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+                        <h3 id="modalTitle" class="text-sm font-bold text-white flex items-center">
+                            <i class="fa-solid fa-pen-to-square text-indigo-400 me-2"></i>配線パラメータ確認
+                        </h3>
+                        <button id="btnModalClose" class="text-slate-400 hover:text-white text-xs"><i class="fa-solid fa-xmark text-sm"></i></button>
+                    </div>
+
+                    <div class="space-y-2.5 text-xs">
+                        <div>
+                            <label class="block text-slate-300 mb-1 font-medium">マークチューブ印字</label>
+                            <input type="text" id="modalMarkText" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-white font-mono focus:border-indigo-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-slate-300 mb-1 font-medium">電線サイズ (SQ)</label>
+                            <div id="modalSqButtons" class="grid grid-cols-3 gap-1.5">
+                                <button type="button" data-sq="0.5" class="modal-sq-btn flex flex-col items-center justify-center gap-1 py-1.5 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[11px] font-semibold hover:border-indigo-400 transition">
+                                    <span class="block w-6 rounded-full bg-slate-400" style="height:2px"></span>0.5
+                                </button>
+                                <button type="button" data-sq="0.75" class="modal-sq-btn flex flex-col items-center justify-center gap-1 py-1.5 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[11px] font-semibold hover:border-indigo-400 transition">
+                                    <span class="block w-6 rounded-full bg-slate-400" style="height:3px"></span>0.75
+                                </button>
+                                <button type="button" data-sq="1.25" class="modal-sq-btn flex flex-col items-center justify-center gap-1 py-1.5 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[11px] font-semibold hover:border-indigo-400 transition">
+                                    <span class="block w-6 rounded-full bg-slate-400" style="height:4px"></span>1.25
+                                </button>
+                                <button type="button" data-sq="2.0" class="modal-sq-btn flex flex-col items-center justify-center gap-1 py-1.5 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[11px] font-semibold hover:border-indigo-400 transition">
+                                    <span class="block w-6 rounded-full bg-slate-400" style="height:5px"></span>2.0
+                                </button>
+                                <button type="button" data-sq="3.5" class="modal-sq-btn flex flex-col items-center justify-center gap-1 py-1.5 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[11px] font-semibold hover:border-indigo-400 transition">
+                                    <span class="block w-6 rounded-full bg-slate-400" style="height:6px"></span>3.5
+                                </button>
+                                <button type="button" data-sq="5.5" class="modal-sq-btn flex flex-col items-center justify-center gap-1 py-1.5 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[11px] font-semibold hover:border-indigo-400 transition">
+                                    <span class="block w-6 rounded-full bg-slate-400" style="height:8px"></span>5.5
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-slate-300 mb-1 font-medium">電線色</label>
+                            <div id="modalColorButtons" class="grid grid-cols-4 gap-1.5">
+                                <button type="button" data-color="#dc2626" data-name="赤" class="modal-color-btn p-1.5 rounded border-2 border-transparent bg-red-600 text-white text-[10px] font-bold text-center">赤</button>
+                                <button type="button" data-color="#2563eb" data-name="青" class="modal-color-btn p-1.5 rounded border-2 border-transparent bg-blue-600 text-white text-[10px] font-bold text-center">青</button>
+                                <button type="button" data-color="#eab308" data-name="黄" class="modal-color-btn p-1.5 rounded border-2 border-transparent bg-yellow-500 text-slate-900 text-[10px] font-bold text-center">黄</button>
+                                <button type="button" data-color="#16a34a" data-name="緑" class="modal-color-btn p-1.5 rounded border-2 border-transparent bg-green-600 text-white text-[10px] font-bold text-center">緑</button>
+                                <button type="button" data-color="#18181b" data-name="黒" class="modal-color-btn p-1.5 rounded border-2 border-transparent bg-zinc-900 text-white text-[10px] font-bold text-center">黒</button>
+                                <button type="button" data-color="#f8fafc" data-name="白" class="modal-color-btn p-1.5 rounded border-2 border-transparent bg-slate-100 text-slate-900 text-[10px] font-bold text-center">白</button>
+                                <button type="button" data-color="#9333ea" data-name="紫" class="modal-color-btn p-1.5 rounded border-2 border-transparent bg-purple-600 text-white text-[10px] font-bold text-center">紫</button>
+                                <button type="button" data-color="#ea580c" data-name="橙" class="modal-color-btn p-1.5 rounded border-2 border-transparent bg-orange-600 text-white text-[10px] font-bold text-center">橙</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-2 pt-2 border-t border-slate-700">
+                        <button id="btnModalCancel" class="flex-1 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs font-medium transition">キャンセル</button>
+                        <button id="btnModalConfirm" class="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow transition">確定保存</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Sidebar: Summary & List -->
+        <aside id="rightSidebar" class="w-60 bg-slate-800 border-l border-slate-700 p-3 flex flex-col justify-between shrink-0 transition-all duration-200 z-10">
+            <div class="flex flex-col h-full space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+                    <h2 class="text-xs font-bold text-indigo-400 uppercase tracking-wider">配線明細リスト</h2>
+                    <span id="wireCountBadge" class="bg-indigo-900/60 text-indigo-300 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-indigo-500/30">0 本</span>
+                </div>
+
+                <!-- Wire Cards Container -->
+                <div id="wireListContainer" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                    <div id="emptyListState" class="text-center py-10 text-slate-500 text-xs">
+                        <i class="fa-solid fa-diagram-next text-2xl mb-2 text-slate-600 block"></i>
+                        配線データがありません<br>図面上でA点とB点を指定してください
+                    </div>
+                </div>
+
+                <!-- Summary Totals -->
+                <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-700 text-xs space-y-1.5 shrink-0">
+                    <div class="flex justify-between text-slate-400">
+                        <span>総配線本数:</span>
+                        <span id="totalWireCount" class="font-bold text-white">0 本</span>
+                    </div>
+                    <div class="flex justify-between text-slate-400">
+                        <span>マークチューブ集計:</span>
+                        <span id="totalTubeCount" class="font-bold text-indigo-400">0 個</span>
+                    </div>
+                    <button id="btnExportExcel" class="w-full mt-2 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-medium rounded text-xs transition flex items-center justify-center">
+                        <i class="fa-solid fa-file-excel me-1.5"></i>集計Excelダウンロード
+                    </button>
+                    <button id="btnExportCsv" class="w-full mt-1 py-1 text-slate-400 hover:text-white text-[11px] transition flex items-center justify-center">
+                        <i class="fa-solid fa-file-csv me-1.5"></i>CSVでもダウンロード
+                    </button>
+                </div>
             </div>
         </aside>
     </div>
 
-    <!-- Modal for Wire Addition Confirmation -->
-    <div id="wireConfirmModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-100">
-            <div class="bg-indigo-600 px-4 py-3 text-white flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-solid fa-circle-plus mr-1.5"></i> 配線追加の確認</h3>
-                <button id="btnCloseModal" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="p-4 space-y-3 text-xs">
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">マークチューブ印字 (文字):</label>
-                    <input type="text" id="modalTubeName" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-bold text-slate-800 uppercase focus:ring-2 focus:ring-indigo-500 outline-none">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">SQ 線径:</label>
-                        <select id="modalSq" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg font-medium text-slate-800 bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
-                            <option value="0.5SQ">0.5SQ</option>
-                            <option value="0.75SQ">0.75SQ</option>
-                            <option value="1.25SQ">1.25SQ</option>
-                            <option value="2.0SQ">2.0SQ</option>
-                            <option value="3.5SQ">3.5SQ</option>
-                            <option value="5.0SQ">5.0SQ</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">チューブ数量 (固定):</label>
-                        <input type="text" value="2 個 (固定)" disabled class="w-full px-2.5 py-1.5 bg-slate-100 border border-slate-200 text-slate-500 rounded-lg font-bold text-center">
-                    </div>
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-700 mb-1">配線色:</label>
-                    <input type="color" id="modalWireColor" class="w-full h-8 border border-slate-300 rounded-lg cursor-pointer">
-                </div>
-            </div>
-            <div class="bg-slate-50 px-4 py-3 flex justify-end space-x-2 border-t border-slate-100">
-                <button id="btnCancelWire" class="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 rounded-lg text-slate-700 font-semibold transition">キャンセル</button>
-                <button id="btnConfirmWire" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold transition shadow-sm">追加確定</button>
-            </div>
-        </div>
+    <!-- Toast Notification Banner -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-slate-800 border border-indigo-500 text-white px-4 py-2.5 rounded-lg shadow-xl text-xs font-medium translate-y-10 opacity-0 transition-all duration-300 flex items-center space-x-2 z-50 pointer-events-none">
+        <i class="fa-solid fa-circle-info text-indigo-400 text-sm"></i>
+        <span id="toastMsg">通知メッセージ</span>
     </div>
-
-    <!-- Modal for SQ Rules Configuration -->
-    <div id="sqRulesModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100">
-            <div class="bg-slate-800 px-4 py-3 text-white flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-solid fa-database mr-1.5 text-amber-400"></i> SQ線径 自動判定ルール設定</h3>
-                <button id="btnCloseSqModal" class="text-white/80 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-            <div class="p-4 space-y-3 text-xs">
-                <p class="text-slate-500">印字文字列に含まれるキーワードに応じて、優先的に適用されるSQ線径ルールを設定します:</p>
-                <div id="sqRulesList" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
-                <button id="btnAddSqRule" class="w-full py-1.5 border border-dashed border-indigo-400 text-indigo-600 rounded-lg font-bold hover:bg-indigo-50 transition">
-                    + キーワードルールの追加
-                </button>
-            </div>
-            <div class="bg-slate-50 px-4 py-3 flex justify-end space-x-2 border-t border-slate-100">
-                <button id="btnSaveSqRules" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-bold transition">設定を保存</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
 
     <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        // Color Mapping Dictionary (Japanese Name -> Hex)
+        const COLOR_NAMES = {
+            '#dc2626': '赤',
+            '#2563eb': '青',
+            '#eab308': '黄',
+            '#16a34a': '緑',
+            '#18181b': '黒',
+            '#f8fafc': '白',
+            '#9333ea': '紫',
+            '#ea580c': '橙'
+        };
 
+        // Application State
         const state = {
-            image: null,
             pdfDoc: null,
-            pdfPageNum: 1,
-            pdfTotalPages: 0,
-            zoom: 1.0,
+            currentPage: 1,
+            totalPages: 1,
+            bgImage: null,
+            bgImageData: null,
+            scale: 1.0,
             panX: 0,
             panY: 0,
             isPanning: false,
-            startPanX: 0,
-            startPanY: 0,
-            
-            continuousMode: false,
-            activePointA: null,
-            pendingPointA: null,
-            pendingPointB: null,
-            currentMouseCanvasCoords: null,            
-            draggingTarget: null, // { type: 'ENDPOINT'|'WAYPOINT'|'SINGLE_BEND', wire, endpoint: 'A'|'B', index }
-            
+            panStartX: 0,
+            panStartY: 0,
+            isSpacePressed: false,
+            mouseDownPos: null,
+            pendingClickPos: null,
+            pendingClickAddWaypoint: false,
             longPressTimer: null,
-            isLongPressPan: false,
-            pendingClickTimer: null,
-            lastClickTime: 0,
-            lastClickCoords: null,
-            
+            isLongPress: false,
+            clickDelayTimer: null,
+
+            // Default Wire Parameters
+            defaultMarkText: '101',
+            defaultSq: '1.25',
+            defaultColor: '#dc2626',
+            defaultColorName: '赤',
+            isContinuous: false,
+
+            // Active Interactive Wiring
+            activePointA: null,
+            activeWaypoints: [],
+            activeMousePos: null,
+            selectedWireId: null,
+            draggingHandle: null,
+
+            // Wire Collection
             wires: [],
-            tubeHistory: new Set(['N', '0V', '24V', 'L1', 'L2', 'PE']),
-            
-            sqRules: [
-                { keyword: 'N', sq: '2.0SQ' },
-                { keyword: 'L', sq: '2.0SQ' },
-                { keyword: '24V', sq: '0.75SQ' },
-                { keyword: '0V', sq: '0.75SQ' },
-                { keyword: 'PE', sq: '2.0SQ' }
-            ]
+            editingWireId: null,
+
+            // Export Page Mode ('current', 'all', or 'selected')
+            exportPageMode: 'current'
         };
 
-        const canvasWrapper = document.getElementById('canvasWrapper');
+        let modalTempSq = '1.25';
+        let modalTempColor = '#dc2626';
+
+        // DOM Elements
         const canvas = document.getElementById('mainCanvas');
         const ctx = canvas.getContext('2d');
-        const uploadPrompt = document.getElementById('uploadPrompt');
+        const canvasWrapper = document.getElementById('canvasWrapper');
         const fileInput = document.getElementById('fileInput');
+        const wireModal = document.getElementById('wireModal');
 
-        const inputTubeName = document.getElementById('inputTubeName');
-        const selectSq = document.getElementById('selectSq');
-        const inputWireColor = document.getElementById('inputWireColor');
-        const toggleContinuousMode = document.getElementById('toggleContinuousMode');
-        const tubeHistoryDatalist = document.getElementById('tubeHistoryDatalist');
-
-        const wireConfirmModal = document.getElementById('wireConfirmModal');
-        const modalTubeName = document.getElementById('modalTubeName');
-        const modalSq = document.getElementById('modalSq');
-        const modalWireColor = document.getElementById('modalWireColor');
-
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            const bgClass = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-rose-600' : 'bg-slate-800';
-            
-            toast.className = `${bgClass} text-white text-xs font-semibold px-3.5 py-2 rounded-lg shadow-lg flex items-center space-x-2 transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto`;
-            toast.innerHTML = `<i class="fa-solid ${type === 'success' ? 'fa-circle-check' : 'fa-circle-info'}"></i><span>${message}</span>`;
-            
-            container.appendChild(toast);
-            setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
-
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-2');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+        // Configure PDF.js Worker
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
 
-        function updateTubeHistoryDatalist() {
-            tubeHistoryDatalist.innerHTML = '';
-            state.tubeHistory.forEach(tag => {
-                const opt = document.createElement('option');
-                opt.value = tag;
-                tubeHistoryDatalist.appendChild(opt);
+        window.onload = function() {
+            initEventListeners();
+            updateUIState();
+            drawDiagram();
+        };
+
+        function initEventListeners() {
+            // File Upload
+            document.getElementById('btnSelectFile').onclick = () => fileInput.click();
+            fileInput.onchange = handleFileUpload;
+
+            // Page Navigation
+            document.getElementById('btnPrevPage').onclick = () => changePdfPage(-1);
+            document.getElementById('btnNextPage').onclick = () => changePdfPage(1);
+
+            // Zoom & View
+            document.getElementById('btnZoomIn').onclick = () => adjustZoom(1.15);
+            document.getElementById('btnZoomOut').onclick = () => adjustZoom(0.85);
+            document.getElementById('btnFitPage').onclick = resetCanvasDimensions;
+
+            // Sidebars Toggle
+            document.getElementById('toggleLeftSidebar').onclick = () => {
+                document.getElementById('leftSidebar').classList.toggle('hidden');
+            };
+            document.getElementById('toggleRightSidebar').onclick = () => {
+                document.getElementById('rightSidebar').classList.toggle('hidden');
+            };
+
+            // Canvas Mouse & Touch
+            canvasWrapper.addEventListener('mousedown', handleCanvasMouseDown);
+            canvasWrapper.addEventListener('mousemove', handleCanvasMouseMove);
+            window.addEventListener('mouseup', handleCanvasMouseUp);
+            canvasWrapper.addEventListener('wheel', handleCanvasWheel, { passive: false });
+            canvasWrapper.addEventListener('dblclick', handleCanvasDblClick);
+
+            // Context menu / ESC
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') cancelActivePointA();
+                if (e.key === ' ') state.isSpacePressed = true;
             });
-        }
+            window.addEventListener('keyup', (e) => {
+                if (e.key === ' ') state.isSpacePressed = false;
+            });
+            canvasWrapper.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                cancelActivePointA();
+            });
 
-        function updateSqAutoMatch(tubeName) {
-            if (!tubeName) return;
-            const upper = tubeName.toUpperCase();
-            for (const rule of state.sqRules) {
-                if (rule.keyword && upper.includes(rule.keyword.toUpperCase())) {
-                    selectSq.value = rule.sq;
-                    break;
-                }
+            // Parameter Panel Controls
+            document.getElementById('colorPalette').onclick = (e) => {
+                const btn = e.target.closest('button');
+                if (!btn) return;
+                state.defaultColor = btn.dataset.color;
+                state.defaultColorName = btn.dataset.name;
+                document.querySelectorAll('#colorPalette button').forEach(b => {
+                    b.classList.remove('border-indigo-500');
+                    b.classList.add('border-transparent');
+                });
+                btn.classList.remove('border-transparent');
+                btn.classList.add('border-indigo-500');
+            };
+
+            document.getElementById('sqButtons').onclick = (e) => {
+                const btn = e.target.closest('button');
+                if (!btn) return;
+                state.defaultSq = btn.dataset.sq;
+                document.querySelectorAll('#sqButtons button').forEach(b => {
+                    b.className = 'py-1 px-1.5 rounded bg-slate-700 text-slate-200 text-xs font-semibold text-center hover:bg-slate-600 border border-transparent';
+                });
+                btn.className = 'py-1 px-1.5 rounded bg-indigo-900/50 text-indigo-300 text-xs font-semibold text-center border border-indigo-500';
+            };
+
+            document.getElementById('sidebarMarkText').oninput = (e) => {
+                state.defaultMarkText = e.target.value.trim();
+            };
+
+            document.getElementById('chkContinuous').onchange = (e) => {
+                state.isContinuous = e.target.checked;
+            };
+
+            // Modal SQ/Color button grids
+            document.getElementById('modalSqButtons').onclick = (e) => {
+                const btn = e.target.closest('.modal-sq-btn');
+                if (!btn) return;
+                modalTempSq = btn.dataset.sq;
+                syncModalButtonHighlights();
+            };
+            document.getElementById('modalColorButtons').onclick = (e) => {
+                const btn = e.target.closest('.modal-color-btn');
+                if (!btn) return;
+                modalTempColor = btn.dataset.color;
+                syncModalButtonHighlights();
+            };
+
+            // Modal Actions
+            document.getElementById('btnModalClose').onclick = closeModal;
+            document.getElementById('btnModalCancel').onclick = closeModal;
+            document.getElementById('btnModalConfirm').onclick = handleModalConfirm;
+
+            // Export Page Mode Selector
+            const exportModeSelect = document.getElementById('exportPageMode');
+            if (exportModeSelect) {
+                exportModeSelect.onchange = (e) => {
+                    state.exportPageMode = e.target.value;
+                    const pageSelection = document.getElementById('exportPageSelection');
+                    pageSelection.classList.toggle('hidden', state.exportPageMode !== 'selected');
+                    if (state.exportPageMode === 'selected') pageSelection.focus();
+                };
             }
+
+            // Export Actions
+            document.getElementById('btnExportPng').onclick = exportPNG;
+            document.getElementById('btnExportPdf').onclick = exportPDF;
+            document.getElementById('btnExportExcel').onclick = exportExcel;
+            document.getElementById('btnExportCsv').onclick = exportCSV;
         }
 
-        function getLineWidthForSq(sq) {
-            switch (sq) {
-                case '0.5SQ': return 2.5;
-                case '0.75SQ': return 3.5;
-                case '1.25SQ': return 4.5;
-                case '2.0SQ': return 6.0;
-                case '3.5SQ': return 7.5;
-                case '5.0SQ': return 9.5;
-                default: return 4.5;
-            }
-        }
-
-        function loadFile(file) {
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
             if (!file) return;
-            const reader = new FileReader();
 
             if (file.type === 'application/pdf') {
-                reader.onload = function(e) {
-                    const typedarray = new Uint8Array(e.target.result);
+                const fileReader = new FileReader();
+                fileReader.onload = function() {
+                    const typedarray = new Uint8Array(this.result);
                     pdfjsLib.getDocument(typedarray).promise.then(pdf => {
                         state.pdfDoc = pdf;
-                        state.pdfTotalPages = pdf.numPages;
-                        state.pdfPageNum = 1;
-
-                        document.getElementById('pageControls').classList.remove('hidden');
-                        document.getElementById('pageControls').classList.add('flex');
+                        state.totalPages = pdf.numPages;
+                        state.currentPage = 1;
                         renderPdfPage(1);
-                    }).catch(err => showToast('PDFの読み込みに失敗しました: ' + err.message, 'error'));
+                    });
                 };
-                reader.readAsArrayBuffer(file);
+                fileReader.readAsArrayBuffer(file);
             } else if (file.type.startsWith('image/')) {
-                reader.onload = function(e) {
+                state.pdfDoc = null;
+                state.totalPages = 1;
+                state.currentPage = 1;
+                const reader = new FileReader();
+                reader.onload = (evt) => {
                     const img = new Image();
-                    img.onload = function() {
-                        state.image = img;
-                        state.pdfDoc = null;
-                        document.getElementById('pageControls').classList.add('hidden');
+                    img.onload = () => {
+                        state.bgImage = img;
                         resetCanvasDimensions();
+                        showToast('画像ファイルを読み込みました');
                     };
-                    img.src = e.target.result;
+                    img.src = evt.target.result;
                 };
                 reader.readAsDataURL(file);
             }
         }
 
-        function renderPdfPage(pageNum) {
+        function renderPdfPage(pageNo) {
             if (!state.pdfDoc) return;
-            state.pdfDoc.getPage(pageNum).then(page => {
+            state.pdfDoc.getPage(pageNo).then(page => {
                 const viewport = page.getViewport({ scale: 2.0 });
                 const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
                 tempCanvas.width = viewport.width;
                 tempCanvas.height = viewport.height;
-                const tempCtx = tempCanvas.getContext('2d');
 
-                page.render({ canvasContext: tempCtx, viewport: viewport }).promise.then(() => {
+                const renderContext = { canvasContext: tempCtx, viewport: viewport };
+                page.render(renderContext).promise.then(() => {
                     const img = new Image();
-                    img.onload = function() {
-                        state.image = img;
+                    img.onload = () => {
+                        state.bgImage = img;
                         resetCanvasDimensions();
-                        updatePageIndicator();
+                        showToast(`ページ ${pageNo} を読み込みました`);
                     };
-                    img.src = tempCanvas.toDataURL('image/png');
+                    img.src = tempCanvas.toDataURL();
                 });
             });
+        }
+
+        async function renderPdfPageAsync(pageNo) {
+            if (!state.pdfDoc) return;
+            state.currentPage = pageNo;
+            const page = await state.pdfDoc.getPage(pageNo);
+            const viewport = page.getViewport({ scale: 2.0 });
+
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = viewport.width;
+            tempCanvas.height = viewport.height;
+
+            await page.render({ canvasContext: tempCtx, viewport: viewport }).promise;
+
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    state.bgImage = img;
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    resolve();
+                };
+                img.src = tempCanvas.toDataURL();
+            });
+        }
+
+        function changePdfPage(delta) {
+            if (!state.pdfDoc) return;
+            const newPage = state.currentPage + delta;
+            if (newPage >= 1 && newPage <= state.totalPages) {
+                state.currentPage = newPage;
+                renderPdfPage(newPage);
+                updateTablesAndStats(); // 讓右側配線明細跟著頁碼即時刷新
+            }
+        }
+
+        function cacheBgImageData() {
+            if (!state.bgImage) { state.bgImageData = null; return; }
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tCtx = tempCanvas.getContext('2d');
+            tCtx.drawImage(state.bgImage, 0, 0);
+            state.bgImageData = tCtx.getImageData(0, 0, canvas.width, canvas.height);
         }
 
         function resetCanvasDimensions() {
-            if (!state.image) return;
-            canvas.width = state.image.width;
-            canvas.height = state.image.height;
-            uploadPrompt.classList.add('hidden');
-            
-            const containerWidth = canvasWrapper.clientWidth;
-            const containerHeight = canvasWrapper.clientHeight;
-            if (containerWidth <= 0 || containerHeight <= 0) return;
+            if (!state.bgImage) return;
 
-            const scaleX = (containerWidth * 0.92) / canvas.width;
-            const scaleY = (containerHeight * 0.92) / canvas.height;
-            state.zoom = Math.min(scaleX, scaleY, 1.0);
-            state.panX = (containerWidth - canvas.width * state.zoom) / 2;
-            state.panY = (containerHeight - canvas.height * state.zoom) / 2;
+            canvas.width = state.bgImage.width;
+            canvas.height = state.bgImage.height;
 
-            document.getElementById('zoomLevel').innerText = `${Math.round(state.zoom * 100)}%`;
+            cacheBgImageData();
+
+            const rect = canvasWrapper.getBoundingClientRect();
+            const scaleX = (rect.width - 40) / canvas.width;
+            const scaleY = (rect.height - 40) / canvas.height;
+            state.scale = Math.min(scaleX, scaleY, 1.0);
+
+            state.panX = (rect.width - canvas.width * state.scale) / 2;
+            state.panY = (rect.height - canvas.height * state.scale) / 2;
+
             drawDiagram();
+            updateUIState();
+            updateTablesAndStats(); // ★ 背景圖面重置/載入完成後同步刷新右側配線明細
         }
 
-        function updatePageIndicator() {
-            document.getElementById('pageIndicator').innerText = `ページ: ${state.pdfPageNum} / ${state.pdfTotalPages}`;
-        }
+        function snapToDarkLine(pos) {
+            if (!state.bgImageData) return null;
 
-        function snapToDarkLine(coords, isSettingPointB = false) {
-            if (!state.image || !ctx) return isSettingPointB ? coords : null;
+            const { data, width: fullW, height: fullH } = state.bgImageData;
+            const R = 12;
+            const startX = Math.max(0, Math.floor(pos.x - R));
+            const startY = Math.max(0, Math.floor(pos.y - R));
+            const endX = Math.min(fullW, startX + R * 2);
+            const endY = Math.min(fullH, startY + R * 2);
 
-            const radius = 30;
-            const startX = Math.max(0, Math.floor(coords.x - radius));
-            const startY = Math.max(0, Math.floor(coords.y - radius));
-            const width = Math.min(canvas.width - startX, radius * 2);
-            const height = Math.min(canvas.height - startY, radius * 2);
+            if (endX <= startX || endY <= startY) return pos;
 
-            if (width <= 0 || height <= 0) return isSettingPointB ? coords : null;
+            let minDistance = Infinity;
+            let bestX = pos.x;
+            let bestY = pos.y;
 
-            const imgData = ctx.getImageData(startX, startY, width, height);
-            const data = imgData.data;
-
-            let totalWeight = 0;
-            let weightedX = 0;
-            let weightedY = 0;
-            let darkPixelCount = 0;
-
-            for (let y = 0; y < height; y++) {
-                for (let x = 0; x < width; x++) {
-                    const idx = (y * width + x) * 4;
+            for (let y = startY; y < endY; y++) {
+                for (let x = startX; x < endX; x++) {
+                    const idx = (y * fullW + x) * 4;
                     const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
 
-                    if (brightness < 200) {
-                        const canvasX = startX + x;
-                        const canvasY = startY + y;
-                        const dist = Math.hypot(canvasX - coords.x, canvasY - coords.y);
-                        
-                        if (dist <= radius) {
-                            const weight = (radius - dist) * (255 - brightness);
-                            totalWeight += weight;
-                            weightedX += canvasX * weight;
-                            weightedY += canvasY * weight;
-                            darkPixelCount++;
+                    if (brightness < 120) {
+                        const dist = Math.hypot(x - pos.x, y - pos.y);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            bestX = x;
+                            bestY = y;
                         }
                     }
                 }
             }
 
-            if (totalWeight > 0 && darkPixelCount >= 2) {
-                return {
-                    x: Math.round(weightedX / totalWeight),
-                    y: Math.round(weightedY / totalWeight)
-                };
-            }
-
-            return isSettingPointB ? coords : null;
+            return minDistance <= R ? { x: bestX, y: bestY } : null;
         }
 
-        function calculateSmartPath(pt1, pt2) {
-            let ptA = pt1.x <= pt2.x ? { ...pt1 } : { ...pt2 };
-            let ptB = pt1.x <= pt2.x ? { ...pt2 } : { ...pt1 };
+        function isDarkNear(x, y, radius = 2) {
+            if (!state.bgImageData) return false;
+            const { data, width, height } = state.bgImageData;
+            for (let offsetY = -radius; offsetY <= radius; offsetY++) {
+                for (let offsetX = -radius; offsetX <= radius; offsetX++) {
+                    const px = Math.round(x + offsetX);
+                    const py = Math.round(y + offsetY);
+                    if (px < 0 || py < 0 || px >= width || py >= height) continue;
+                    const index = (py * width + px) * 4;
+                    const brightness = (data[index] + data[index + 1] + data[index + 2]) / 3;
+                    if (brightness < 150) return true;
+                }
+            }
+            return false;
+        }
 
-            const dx = Math.abs(ptB.x - ptA.x);
-            const dy = Math.abs(ptB.y - ptA.y);
+        // Prefer pixels that are part of a sufficiently long straight drawing line,
+        // avoiding text, component symbols, and the page frame where possible.
+        function lineSupportScore(x, y) {
+            let best = 0;
+            for (const angle of ENDPOINT_SNAP_ANGLES) {
+                const radians = angle * Math.PI / 180;
+                const dx = Math.cos(radians);
+                const dy = Math.sin(radians);
+                let score = 0;
+                for (const distance of [3, 6, 9, 12]) {
+                    if (isDarkNear(x + dx * distance, y + dy * distance, 1)) score++;
+                    if (isDarkNear(x - dx * distance, y - dy * distance, 1)) score++;
+                }
+                best = Math.max(best, score);
+            }
+            return best;
+        }
 
-            if (dx < 14 || dy < 14) {
-                return {
-                    path: [ptA, ptB],
-                    type: 'STRAIGHT',
-                    ptA, ptB
-                };
+        function snapToCircuitLine(pos) {
+            if (!state.bgImageData) return null;
+            const R = 12;
+            let best = null;
+            for (let y = Math.floor(pos.y - R); y <= Math.ceil(pos.y + R); y++) {
+                for (let x = Math.floor(pos.x - R); x <= Math.ceil(pos.x + R); x++) {
+                    if (!isDarkNear(x, y, 0)) continue;
+                    const support = lineSupportScore(x, y);
+                    if (support < 4) continue;
+                    const distance = Math.hypot(x - pos.x, y - pos.y);
+                    const score = distance - support * 1.5;
+                    if (!best || score < best.score) best = { x, y, score };
+                }
+            }
+            return best ? { x: best.x, y: best.y } : null;
+        }
+
+        function isAngleAllowed(from, to, allowedAngles, tolerance = 3) {
+            const angle = Math.atan2(Math.abs(to.y - from.y), Math.abs(to.x - from.x)) * 180 / Math.PI;
+            return allowedAngles.some(allowed => Math.abs(angle - allowed) <= tolerance);
+        }
+
+        function getNearestAllowedAngle(from, to, allowedAngles) {
+            const actual = Math.atan2(Math.abs(to.y - from.y), Math.abs(to.x - from.x)) * 180 / Math.PI;
+            const snapped = allowedAngles.reduce((closest, angle) =>
+                Math.abs(angle - actual) < Math.abs(closest - actual) ? angle : closest
+            );
+            return { actual, snapped, isAllowed: Math.abs(actual - snapped) <= 3 };
+        }
+
+        function showAngleHint(e, text, isValid) {
+            const hint = document.getElementById('angleHint');
+            hint.textContent = text;
+            hint.classList.toggle('border-emerald-400', isValid);
+            hint.classList.toggle('text-emerald-300', isValid);
+            hint.classList.toggle('border-red-400', !isValid);
+            hint.classList.toggle('text-red-300', !isValid);
+
+            const rect = canvasWrapper.getBoundingClientRect();
+            hint.style.left = `${Math.min(e.clientX - rect.left + 14, rect.width - 125)}px`;
+            hint.style.top = `${Math.min(e.clientY - rect.top + 14, rect.height - 30)}px`;
+            hint.classList.remove('hidden');
+        }
+
+        function updateAngleHint(e) {
+            const hint = document.getElementById('angleHint');
+            if (!state.activePointA || state.isPanning) {
+                hint.classList.add('hidden');
+                return;
             }
 
-            const midX = ptA.x + dx * 0.5;
-            const bendPt1 = { x: midX, y: ptA.y };
-            const bendPt2 = { x: midX, y: ptB.y };
+            const rawPos = getCanvasCoords(e);
+            const target = getClearanceBPoint(state.activePointA, rawPos) || rawPos;
+            const previous = state.activeWaypoints[state.activeWaypoints.length - 1] || state.activePointA;
+            const allowedAngles = e.shiftKey && state.activeWaypoints.length > 0 ? [0, 90] : ENDPOINT_SNAP_ANGLES;
+            const angle = getNearestAllowedAngle(previous, target, allowedAngles);
+            const followsBaseLine = isSegmentOnBaseLine(previous, target);
+            showAngleHint(e, `∠ ${Math.round(angle.actual)}° → ${angle.snapped}°`, angle.isAllowed && followsBaseLine);
+        }
 
+        function updateWaypointAngleHint(e, wire, handle, point) {
+            if (handle.handleType === 'A') {
+                const next = wire.waypoints[0] || wire.pointB;
+                const angle = getNearestAllowedAngle(point, next, ENDPOINT_SNAP_ANGLES);
+                showAngleHint(e, `A点: ${Math.round(angle.actual)}° → ${angle.snapped}°`, angle.isAllowed);
+                return;
+            }
+            if (handle.handleType === 'B') {
+                const previous = wire.waypoints[wire.waypoints.length - 1] || wire.pointA;
+                const angle = getNearestAllowedAngle(previous, point, ENDPOINT_SNAP_ANGLES);
+                showAngleHint(e, `B点: ${Math.round(angle.actual)}° → ${angle.snapped}°`, angle.isAllowed);
+                return;
+            }
+
+            const index = handle.index;
+            const previous = index === 0 ? wire.pointA : wire.waypoints[index - 1];
+            const next = index === wire.waypoints.length - 1 ? wire.pointB : wire.waypoints[index + 1];
+            const previousAllowed = index === 0 ? ENDPOINT_SNAP_ANGLES : [0, 90];
+            const nextAllowed = index === wire.waypoints.length - 1 ? ENDPOINT_SNAP_ANGLES : [0, 90];
+            const before = getNearestAllowedAngle(previous, point, previousAllowed);
+            const after = getNearestAllowedAngle(point, next, nextAllowed);
+            const text = `折点 前:${Math.round(before.actual)}°→${before.snapped}° / 後:${Math.round(after.actual)}°→${after.snapped}°`;
+            showAngleHint(e, text, before.isAllowed && after.isAllowed);
+        }
+
+        function isSegmentOnBaseLine(from, to) {
+            const length = Math.hypot(to.x - from.x, to.y - from.y);
+            if (length < 2) return false;
+            const steps = Math.max(2, Math.ceil(length / 2));
+            let matched = 0;
+            let longestGap = 0;
+            let currentGap = 0;
+            for (let step = 0; step <= steps; step++) {
+                const ratio = step / steps;
+                const x = from.x + (to.x - from.x) * ratio;
+                const y = from.y + (to.y - from.y) * ratio;
+                if (isDarkNear(x, y, 2)) {
+                    matched++;
+                    currentGap = 0;
+                } else {
+                    currentGap++;
+                    longestGap = Math.max(longestGap, currentGap);
+                }
+            }
+            return matched / (steps + 1) >= 0.55 && longestGap <= 12;
+        }
+
+        function isValidBaseSegment(from, to, allowedAngles) {
+            return isAngleAllowed(from, to, allowedAngles) && isSegmentOnBaseLine(from, to);
+        }
+
+        function snapWaypointAxis(pos, waypointIdx, waypoints) {
+            if (!state.bgImageData) return pos;
+
+            const { data, width: fullW, height: fullH } = state.bgImageData;
+            const R = 16;
+            const startX = Math.max(0, Math.floor(pos.x - R));
+            const startY = Math.max(0, Math.floor(pos.y - R));
+            const endX = Math.min(fullW, startX + R * 2);
+            const endY = Math.min(fullH, startY + R * 2);
+
+            let snapped = { ...pos };
+
+            if (endX > startX && endY > startY) {
+                let bestX = pos.x, bestY = pos.y, minD = Infinity;
+
+                for (let y = startY; y < endY; y++) {
+                    for (let x = startX; x < endX; x++) {
+                        const idx = (y * fullW + x) * 4;
+                        const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+                        if (brightness < 110) {
+                            const dist = Math.hypot(x - pos.x, y - pos.y);
+                            if (dist < minD) {
+                                minD = dist;
+                                bestX = x;
+                                bestY = y;
+                            }
+                        }
+                    }
+                }
+                if (minD <= R) {
+                    snapped = { x: bestX, y: bestY };
+                }
+            }
+
+            return snapped;
+        }
+
+        // The first and final leg may use these practical wiring angles.
+        // Every leg between waypoints remains horizontal or vertical.
+        const ENDPOINT_SNAP_ANGLES = [0, 15, 30, 35, 50, 75, 90];
+
+        function getAngledEndpointWaypoint(endpoint, otherEndpoint, length) {
+            const dx = otherEndpoint.x - endpoint.x;
+            const dy = otherEndpoint.y - endpoint.y;
+            const absoluteAngle = Math.atan2(Math.abs(dy), Math.abs(dx)) * 180 / Math.PI;
+            const snappedAngle = ENDPOINT_SNAP_ANGLES.reduce((closest, angle) =>
+                Math.abs(angle - absoluteAngle) < Math.abs(closest - absoluteAngle) ? angle : closest
+            );
+            const radians = snappedAngle * Math.PI / 180;
+            const signX = dx === 0 ? 0 : Math.sign(dx);
+            const signY = dy === 0 ? 0 : Math.sign(dy);
             return {
-                path: [ptA, bendPt1, bendPt2, ptB],
-                type: 'HVH',
-                ptA, ptB
+                x: Math.round(endpoint.x + signX * Math.cos(radians) * length),
+                y: Math.round(endpoint.y + signY * Math.sin(radians) * length)
             };
         }
 
-        function drawDiagram() {
-            if (!state.image) return;
+        function removeDuplicateWaypoints(points) {
+            return points.filter((point, index) => {
+                const previous = points[index - 1];
+                return !previous || Math.hypot(point.x - previous.x, point.y - previous.y) > 1;
+            });
+        }
 
+        function calculateOrthogonalRoute(pointA, pointB) {
+            const distance = Math.hypot(pointB.x - pointA.x, pointB.y - pointA.y);
+            if (distance < 2) return [];
+
+            // A short angled lead is created at both endpoints. The section between
+            // those leads is made only from horizontal / vertical (90-degree) legs.
+            const leadLength = Math.max(12, Math.min(70, distance * 0.28));
+            const startWaypoint = getAngledEndpointWaypoint(pointA, pointB, leadLength);
+            const endWaypoint = getAngledEndpointWaypoint(pointB, pointA, leadLength);
+            const cornerWaypoint = { x: endWaypoint.x, y: startWaypoint.y };
+            return removeDuplicateWaypoints([startWaypoint, cornerWaypoint, endWaypoint]);
+        }
+
+        function snapToExistingWire(pos) {
+            const wireId = findWireAt(pos);
+            if (!wireId) return null;
+            const wire = state.wires.find(w => w.id === wireId && w.page === state.currentPage);
+            if (!wire) return null;
+
+            let closest = null;
+            const points = [wire.pointA, ...wire.waypoints, wire.pointB];
+            for (let i = 0; i < points.length - 1; i++) {
+                const result = distToSegment(pos.x, pos.y, points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
+                if (!closest || result.dist < closest.dist) {
+                    closest = {
+                        dist: result.dist,
+                        x: points[i].x + (points[i + 1].x - points[i].x) * result.t,
+                        y: points[i].y + (points[i + 1].y - points[i].y) * result.t
+                    };
+                }
+            }
+            return closest ? { x: Math.round(closest.x), y: Math.round(closest.y) } : null;
+        }
+
+        // Keep B just clear of an existing coloured wire instead of covering it.
+        function getClearanceBPoint(pointA, pos) {
+            const existingWirePoint = snapToExistingWire(pos);
+            if (!existingWirePoint) return snapToCircuitLine(pos);
+
+            const dx = pointA.x - existingWirePoint.x;
+            const dy = pointA.y - existingWirePoint.y;
+            const distance = Math.hypot(dx, dy);
+            if (distance < 1) return existingWirePoint;
+
+            // Keep a 2px gap where possible; use the midpoint when the span is shorter.
+            const clearance = Math.min(2, distance / 2);
+            return {
+                x: Math.round(existingWirePoint.x + dx / distance * clearance),
+                y: Math.round(existingWirePoint.y + dy / distance * clearance)
+            };
+        }
+
+        function drawDiagram(isExport = false) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(state.image, 0, 0);
 
-            const currentPage = state.pdfDoc ? state.pdfPageNum : 1;
-            const currentWires = state.wires.filter(w => (w.pageNum || 1) === currentPage);
+            // 1. Background
+            if (state.bgImage) {
+                ctx.drawImage(state.bgImage, 0, 0);
+            } else {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
 
-            currentWires.forEach(wire => {
-                const route = calculateSmartPath(wire.pointA, wire.pointB);
-                const hasCustomWaypoints = wire.waypoints && wire.waypoints.length > 0;
-                
-                const points = hasCustomWaypoints 
-                    ? [wire.pointA, ...wire.waypoints, wire.pointB]
-                    : route.path;
+            // 2. Existing Wires
+            state.wires.forEach(wire => {
+                if (wire.page !== state.currentPage) return;
 
-                ctx.save();
-                ctx.strokeStyle = wire.color || '#8b5cf6';
-                ctx.lineWidth = getLineWidthForSq(wire.sq);
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
+                const isSelected = wire.id === state.selectedWireId;
 
                 ctx.beginPath();
-                ctx.moveTo(points[0].x, points[0].y);
-                for (let i = 1; i < points.length; i++) {
-                    ctx.lineTo(points[i].x, points[i].y);
+                ctx.moveTo(wire.pointA.x, wire.pointA.y);
+                wire.waypoints.forEach(wp => ctx.lineTo(wp.x, wp.y));
+                ctx.lineTo(wire.pointB.x, wire.pointB.y);
+
+                if (isSelected && !isExport) {
+                    ctx.strokeStyle = '#fde047';
+                    ctx.lineWidth = parseFloat(wire.sq) * 3 + 6;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.stroke();
                 }
+
+                if (wire.color === '#f8fafc') {
+                    ctx.strokeStyle = '#a855f7';
+                    ctx.lineWidth = Math.max(2, parseFloat(wire.sq) * 2) + 3;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.stroke();
+                }
+
+                ctx.strokeStyle = wire.color;
+                ctx.lineWidth = Math.max(2, parseFloat(wire.sq) * 2);
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
                 ctx.stroke();
 
-                // Draw Endpoints A and B
-                drawPointMarker(wire.pointA, '#ef4444', 'A');
-                drawPointMarker(wire.pointB, '#3b82f6', 'B');
-
-                // Draw Waypoints & Bend handles (Always visible and interactive!)
-                if (hasCustomWaypoints) {
-                    wire.waypoints.forEach((wp, idx) => {
-                        ctx.beginPath();
-                        ctx.arc(wp.x, wp.y, 6, 0, Math.PI * 2);
-                        ctx.fillStyle = '#a855f7';
-                        ctx.fill();
-                        ctx.strokeStyle = '#ffffff';
-                        ctx.lineWidth = 1.8;
-                        ctx.stroke();
-
-                        ctx.font = 'bold 8px sans-serif';
-                        ctx.fillStyle = '#ffffff';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText((idx + 1).toString(), wp.x, wp.y);
-                    });
-                } else if (route.path.length > 2) {
-                    // Default bend handles rendering so they are clearly visible and draggable
-                    const b1 = route.path[1];
-                    const b2 = route.path[2];
-                    [b1, b2].forEach(bp => {
-                        ctx.beginPath();
-                        ctx.arc(bp.x, bp.y, 5, 0, Math.PI * 2);
-                        ctx.fillStyle = '#8b5cf6';
-                        ctx.fill();
-                        ctx.strokeStyle = '#ffffff';
-                        ctx.lineWidth = 1.5;
-                        ctx.stroke();
-                    });
+                if (wire.waypoints.length > 0) {
+                    const midWp = wire.waypoints[Math.floor(wire.waypoints.length / 2)];
+                    drawMarkTubeTag(midWp.x, midWp.y, wire.markText, isSelected && !isExport);
+                } else {
+                    const midX = (wire.pointA.x + wire.pointB.x) / 2;
+                    const midY = (wire.pointA.y + wire.pointB.y) / 2;
+                    drawMarkTubeTag(midX, midY, wire.markText, isSelected && !isExport);
                 }
 
-                drawMarkTubeTag(points, wire.markTube);
-                ctx.restore();
+                if (!isExport && isSelected) {
+                    drawHandleNode(wire.pointA.x, wire.pointA.y, 'A', isSelected);
+                    drawHandleNode(wire.pointB.x, wire.pointB.y, 'B', isSelected);
+                    wire.waypoints.forEach((wp) => {
+                        drawHandleNode(wp.x, wp.y, 'WP', isSelected);
+                    });
+                }
             });
 
-            if (state.activePointA) {
-                drawPointMarker(state.activePointA, '#10b981', 'A', true);
+            // 3. Active Preview
+            if (state.activePointA && state.activeMousePos && !isExport) {
+                const tempB = getClearanceBPoint(state.activePointA, state.activeMousePos)
+                    || state.activeMousePos;
 
-                if (state.currentMouseCanvasCoords) {
-                    ctx.save();
-                    ctx.strokeStyle = state.continuousMode ? '#10b981' : '#8b5cf6';
-                    ctx.lineWidth = getLineWidthForSq(selectSq.value);
-                    ctx.setLineDash([5, 5]);
-                    ctx.beginPath();
-                    ctx.moveTo(state.activePointA.x, state.activePointA.y);
-                    ctx.lineTo(state.currentMouseCanvasCoords.x, state.currentMouseCanvasCoords.y);
-                    ctx.stroke();
-                    ctx.restore();
-                }
+                ctx.beginPath();
+                ctx.moveTo(state.activePointA.x, state.activePointA.y);
+                state.activeWaypoints.forEach(wp => ctx.lineTo(wp.x, wp.y));
+                ctx.lineTo(tempB.x, tempB.y);
+
+                const previewStart = state.activeWaypoints[state.activeWaypoints.length - 1] || state.activePointA;
+                const previewAngles = state.activeWaypoints.length ? ENDPOINT_SNAP_ANGLES : ENDPOINT_SNAP_ANGLES;
+                ctx.strokeStyle = isValidBaseSegment(previewStart, tempB, previewAngles) ? state.defaultColor : '#ef4444';
+                ctx.lineWidth = Math.max(2, parseFloat(state.defaultSq) * 2);
+                ctx.setLineDash([5, 5]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                drawHandleNode(state.activePointA.x, state.activePointA.y, 'A', true);
+                drawHandleNode(tempB.x, tempB.y, 'B', true);
             }
-
-            canvas.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
         }
 
-        function drawPointMarker(pt, color, label, isActive = false) {
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, isActive ? 6 : 4, 0, Math.PI * 2);
-            ctx.fillStyle = color;
-            ctx.fill();
-            ctx.strokeStyle = '#ffffff';
+        function drawMarkTubeTag(x, y, text, isSelected) {
+            ctx.font = 'bold 11px monospace';
+            const metrics = ctx.measureText(text);
+            const w = metrics.width + 12;
+            const h = 18;
+
+            ctx.fillStyle = isSelected ? '#fef08a' : '#ffffff';
+            ctx.strokeStyle = '#1e293b';
             ctx.lineWidth = 1.5;
+
+            ctx.beginPath();
+            ctx.roundRect(x - w/2, y - h/2, w, h, 4);
+            ctx.fill();
             ctx.stroke();
 
-            ctx.font = 'bold 9px sans-serif';
-            ctx.fillStyle = color;
-            ctx.fillText(label, pt.x + 6, pt.y + 3);
-            ctx.restore();
-        }
-
-        function drawMarkTubeTag(points, tubeName) {
-            let totalLen = 0;
-            const segLens = [];
-            for (let i = 0; i < points.length - 1; i++) {
-                const len = Math.hypot(points[i+1].x - points[i].x, points[i+1].y - points[i].y);
-                segLens.push(len);
-                totalLen += len;
-            }
-
-            if (totalLen === 0) return;
-
-            let targetLen = totalLen * 0.5;
-            let midPt = points[0];
-
-            for (let i = 0; i < segLens.length; i++) {
-                if (targetLen <= segLens[i]) {
-                    const ratio = targetLen / segLens[i];
-                    midPt = {
-                        x: points[i].x + (points[i+1].x - points[i].x) * ratio,
-                        y: points[i].y + (points[i+1].y - points[i].y) * ratio
-                    };
-                    break;
-                }
-                targetLen -= segLens[i];
-            }
-
-            ctx.save();
-            ctx.font = 'bold 11px sans-serif';
-            const metrics = ctx.measureText(tubeName);
-            const w = metrics.width + 12;
-            const h = 16;
-
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
-            ctx.beginPath();
-            ctx.roundRect(midPt.x - w / 2, midPt.y - h / 2, w, h, 4);
-            ctx.fill();
-
-            ctx.fillStyle = '#ffffff';
+            ctx.fillStyle = '#0f172a';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(tubeName, midPt.x, midPt.y);
-            ctx.restore();
+            ctx.fillText(text, x, y);
         }
 
-        function createWireConnection(ptA, ptB) {
-            let tubeName = inputTubeName.value.trim();
-            if (!tubeName) {
-                tubeName = 'N';
-                inputTubeName.value = 'N';
-            }
-
-            const sq = selectSq.value;
-            const color = inputWireColor.value;
-            const currentPage = state.pdfDoc ? state.pdfPageNum : 1;
-            const routeResult = calculateSmartPath(ptA, ptB);
-
-            const newWire = {
-                id: 'wire_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
-                markTube: tubeName,
-                sq: sq,
-                color: color,
-                tubeQty: 2,
-                pointA: routeResult.ptA,
-                pointB: routeResult.ptB,
-                waypoints: [],
-                pageNum: currentPage
-            };
-
-            state.wires.push(newWire);
-            state.tubeHistory.add(tubeName);
-            updateTubeHistoryDatalist();
-
-            showToast(`配線 [${tubeName}] を追加しました (チューブ数: 2個)`, 'success');
-            updateTablesAndStats();
-        }
-
-        function updateTablesAndStats() {
-            const currentPage = state.pdfDoc ? state.pdfPageNum : 1;
-            const currentWires = state.wires.filter(w => (w.pageNum || 1) === currentPage);
-
-            document.getElementById('wireCountBadge').innerText = currentWires.length;
-            document.getElementById('statTotalWires').innerHTML = `${currentWires.length} <span class="text-xs font-normal text-slate-500">本</span>`;
-            document.getElementById('statTotalTubes').innerHTML = `${currentWires.length * 2} <span class="text-xs font-normal text-slate-500">個</span>`;
-
-            const summaryMap = {};
-            currentWires.forEach(w => {
-                const key = `${w.markTube}_${w.sq}`;
-                if (!summaryMap[key]) {
-                    summaryMap[key] = { markTube: w.markTube, sq: w.sq, wireCount: 0, tubeQty: 0 };
-                }
-                summaryMap[key].wireCount += 1;
-                summaryMap[key].tubeQty += 2;
-            });
-
-            const summaryTableBody = document.getElementById('tubeSummaryTableBody');
-            summaryTableBody.innerHTML = '';
-            const keys = Object.keys(summaryMap);
-
-            if (keys.length === 0) {
-                summaryTableBody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400 italic">配線データがありません</td></tr>`;
-            } else {
-                keys.forEach(k => {
-                    const item = summaryMap[k];
-                    const tr = document.createElement('tr');
-                    tr.className = 'hover:bg-slate-50';
-                    tr.innerHTML = `
-                        <td class="p-2 font-bold text-slate-800">${item.markTube}</td>
-                        <td class="p-2 text-center font-medium text-slate-600">${item.sq}</td>
-                        <td class="p-2 text-center font-bold text-indigo-600">${item.wireCount}</td>
-                        <td class="p-2 text-right font-black text-emerald-600">${item.tubeQty}</td>
-                    `;
-                    summaryTableBody.appendChild(tr);
-                });
-            }
-
-            const sqMap = {};
-            currentWires.forEach(w => { sqMap[w.sq] = (sqMap[w.sq] || 0) + 1; });
-
-            const sqBreakdownList = document.getElementById('sqBreakdownList');
-            sqBreakdownList.innerHTML = '';
-            const sqKeys = Object.keys(sqMap);
-
-            if (sqKeys.length === 0) {
-                sqBreakdownList.innerHTML = `<div class="text-slate-400 italic text-center py-1">データ待機中...</div>`;
-            } else {
-                sqKeys.forEach(sq => {
-                    const count = sqMap[sq];
-                    const div = document.createElement('div');
-                    div.className = 'flex justify-between items-center py-0.5 border-b border-slate-100 last:border-none';
-                    div.innerHTML = `<span class="font-semibold text-slate-700">${sq}</span><span class="font-bold text-indigo-600">${count} 本 (${count * 2} 個)</span>`;
-                    sqBreakdownList.appendChild(div);
-                });
-            }
-
-            const wireCardContainer = document.getElementById('tabWireList');
-            wireCardContainer.innerHTML = '';
-
-            currentWires.forEach((wire, idx) => {
-                const card = document.createElement('div');
-                card.className = 'wire-card bg-slate-50 border border-slate-200 rounded-lg p-2.5 space-y-2';
-                card.dataset.id = wire.id;
-                card.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center space-x-2">
-                            <span class="w-3 h-3 rounded-full border border-white shadow-sm" style="background-color: ${wire.color};"></span>
-                            <span class="font-bold text-slate-800 text-xs">${wire.markTube}</span>
-                            <span class="bg-slate-200 text-slate-600 font-semibold text-[10px] px-1.5 py-0.5 rounded">${wire.sq}</span>
-                        </div>
-                        <span class="text-[10px] text-slate-400 font-mono">#${idx + 1}</span>
-                    </div>
-                    <div class="flex items-center justify-between pt-1 border-t border-slate-200 text-[11px]">
-                        <span class="text-slate-500">チューブ: <strong class="text-emerald-600">2 個</strong></span>
-                        <div class="space-x-1">
-                            <button onclick="addWaypointToWire('${wire.id}')" class="px-2 py-0.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded font-bold transition">+ 中継点</button>
-                            <button onclick="deleteWire('${wire.id}')" class="px-2 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-600 rounded font-bold transition">削除</button>
-                        </div>
-                    </div>
-                `;
-                wireCardContainer.appendChild(card);
-            });
-
-            drawDiagram();
+        function drawHandleNode(x, y, type, isSelected) {
+            ctx.beginPath();
+            ctx.arc(x, y, type === 'WP' ? 5 : 6, 0, Math.PI * 2);
+            ctx.fillStyle = type === 'A' ? '#22c55e' : (type === 'B' ? '#ef4444' : '#a855f7');
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
         }
 
         function getCanvasCoords(e) {
-            const rect = canvas.getBoundingClientRect();
+            const rect = canvasWrapper.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left - state.panX;
+            const mouseY = e.clientY - rect.top - state.panY;
             return {
-                x: (e.clientX - rect.left) / state.zoom,
-                y: (e.clientY - rect.top) / state.zoom
+                x: Math.round(mouseX / state.scale),
+                y: Math.round(mouseY / state.scale)
             };
         }
 
-        function findInteractiveElementAt(coords) {
-            const currentPage = state.pdfDoc ? state.pdfPageNum : 1;
-            const currentWires = state.wires.filter(w => (w.pageNum || 1) === currentPage);
-            // タッチ操作時でも選択しやすいよう判定領域を最適化
-            const hitRadius = Math.max(20, 18 / state.zoom);
+        function handleCanvasMouseDown(e) {
+            if (!state.bgImage) return;
 
-            for (const wire of currentWires) {
-                if (Math.hypot(wire.pointA.x - coords.x, wire.pointA.y - coords.y) <= hitRadius) {
-                    return { type: 'ENDPOINT', wire, endpoint: 'A' };
-                }
-                if (Math.hypot(wire.pointB.x - coords.x, wire.pointB.y - coords.y) <= hitRadius) {
-                    return { type: 'ENDPOINT', wire, endpoint: 'B' };
-                }
-                
-                if (wire.waypoints && wire.waypoints.length > 0) {
-                    for (let i = 0; i < wire.waypoints.length; i++) {
-                        const wp = wire.waypoints[i];
-                        if (Math.hypot(wp.x - coords.x, wp.y - coords.y) <= hitRadius) {
-                            return { type: 'WAYPOINT', wire, index: i };
-                        }
-                    }
-                } else {
-                    // Instantly convert default smart path bend points into interactive waypoints when clicked!
-                    const route = calculateSmartPath(wire.pointA, wire.pointB);
-                    if (route.path.length > 2) {
-                        const b1 = route.path[1];
-                        const b2 = route.path[2];
-                        if (Math.hypot(b1.x - coords.x, b1.y - coords.y) <= hitRadius) {
-                            wire.waypoints = [{ ...b1 }, { ...b2 }];
-                            return { type: 'WAYPOINT', wire, index: 0 };
-                        }
-                        if (Math.hypot(b2.x - coords.x, b2.y - coords.y) <= hitRadius) {
-                            wire.waypoints = [{ ...b1 }, { ...b2 }];
-                            return { type: 'WAYPOINT', wire, index: 1 };
-                        }
-                    }
-                }
-            }
-            return null;
-        }
-
-        canvasWrapper.addEventListener('mousedown', (e) => {
-            if (!state.image) return;
-
-            // マウスホイール（中央ボタン e.button === 1）または長押し左クリックでパン移動
-            if (e.button === 1) {
-                e.preventDefault();
+            if (e.button === 1 || (e.button === 0 && state.isSpacePressed)) {
                 state.isPanning = true;
-                state.startPanX = e.clientX - state.panX;
-                state.startPanY = e.clientY - state.panY;
-                canvasWrapper.classList.add('panning');
-                document.getElementById('panBadge').classList.remove('hidden');
-                document.getElementById('panBadge').classList.add('flex');
+                state.panStartX = e.clientX - state.panX;
+                state.panStartY = e.clientY - state.panY;
+                canvasWrapper.classList.add('cursor-grabbing');
                 return;
             }
 
             if (e.button !== 0) return;
 
-            const coords = getCanvasCoords(e);
-            const hitTarget = findInteractiveElementAt(coords);
+            const pos = getCanvasCoords(e);
+            state.mouseDownPos = { x: e.clientX, y: e.clientY };
+            state.pendingClickPos = pos;
+            state.pendingClickAddWaypoint = e.shiftKey;
+            state.isLongPress = false;
 
-            if (hitTarget) {
-                state.draggingTarget = hitTarget;
+            const handleHit = findHandleAt(pos);
+            if (!state.activePointA && handleHit) {
+                state.draggingHandle = handleHit;
+                state.selectedWireId = handleHit.wireId;
+                drawDiagram();
                 return;
             }
 
+            clearTimeout(state.longPressTimer);
             state.longPressTimer = setTimeout(() => {
-                state.isPanning = true;
-                state.startPanX = e.clientX - state.panX;
-                state.startPanY = e.clientY - state.panY;
-                canvasWrapper.classList.add('panning');
-                document.getElementById('panBadge').classList.remove('hidden');
-                document.getElementById('panBadge').classList.add('flex');
-            }, 180);
-        });
-
-        canvasWrapper.addEventListener('mousemove', (e) => {
-            const rawCoords = getCanvasCoords(e);
-            state.currentMouseCanvasCoords = rawCoords;
-
-            if (state.isPanning) {
-                state.panX = e.clientX - state.startPanX;
-                state.panY = e.clientY - state.startPanY;
-                drawDiagram();
-                return;
-            }
-
-            if (state.draggingTarget) {
-                const snapped = snapToDarkLine(rawCoords, true) || rawCoords;
-
-                if (state.draggingTarget.type === 'SINGLE_BEND') {
-                    state.draggingTarget.wire.bendX = Math.round(snapped.x);
-                } else if (state.draggingTarget.type === 'WAYPOINT') {
-                    state.draggingTarget.wire.waypoints[state.draggingTarget.index] = {
-                        x: Math.round(snapped.x),
-                        y: Math.round(snapped.y)
-                    };
-                } else if (state.draggingTarget.type === 'ENDPOINT') {
-                    if (state.draggingTarget.endpoint === 'A') {
-                        state.draggingTarget.wire.pointA = { x: Math.round(snapped.x), y: Math.round(snapped.y) };
-                    } else {
-                        state.draggingTarget.wire.pointB = { x: Math.round(snapped.x), y: Math.round(snapped.y) };
-                    }
+                if (e.buttons === 1) {
+                    state.isLongPress = true;
+                    state.isPanning = true;
+                    state.panStartX = e.clientX - state.panX;
+                    state.panStartY = e.clientY - state.panY;
+                    canvasWrapper.classList.add('cursor-grabbing');
                 }
-                drawDiagram();
+            }, 280);
+        }
+
+        function handleCanvasMouseMove(e) {
+            if (state.isPanning) {
+                state.panX = e.clientX - state.panStartX;
+                state.panY = e.clientY - state.panStartY;
+                applyCanvasTransform();
                 return;
             }
+
+            if (state.mouseDownPos && !state.draggingHandle && !state.isPanning && e.buttons === 1) {
+                const dist = Math.hypot(e.clientX - state.mouseDownPos.x, e.clientY - state.mouseDownPos.y);
+                if (dist > 10) {
+                    clearTimeout(state.longPressTimer);
+                    state.isLongPress = true;
+                    state.isPanning = true;
+                    state.panStartX = e.clientX - state.panX;
+                    state.panStartY = e.clientY - state.panY;
+                    canvasWrapper.classList.add('cursor-grabbing');
+                    return;
+                }
+            }
+
+            const pos = getCanvasCoords(e);
+            state.activeMousePos = pos;
+
+            if (state.draggingHandle) {
+                const wire = state.wires.find(w => w.id === state.draggingHandle.wireId);
+                if (wire) {
+                    // Handles may only be placed on a detected base-diagram wire.
+                    const snapped = snapToCircuitLine(pos);
+                    if (!snapped) return;
+                    updateWaypointAngleHint(e, wire, state.draggingHandle, snapped);
+                    if (state.draggingHandle.handleType === 'A') {
+                        wire.pointA = snapped;
+                    } else if (state.draggingHandle.handleType === 'B') {
+                        wire.pointB = snapped;
+                    } else if (state.draggingHandle.handleType === 'WP') {
+                        wire.waypoints[state.draggingHandle.index] = snapped;
+                    }
+                    drawDiagram();
+                }
+                return;
+            }
+
+            updateAngleHint(e);
 
             if (state.activePointA) {
                 drawDiagram();
             }
-        });
-
-        function clearActivePointA() {
-            state.activePointA = null;
-            state.currentMouseCanvasCoords = null;
-            document.getElementById('activeABadge').classList.add('hidden');
-            document.getElementById('activeABadge').classList.remove('flex');
-            drawDiagram();
         }
 
-        function handleCanvasClick(coords) {
-            if (state.isPanning || state.draggingTarget) return;
-
-            const isSettingB = !!state.activePointA;
-            const snappedCoords = snapToDarkLine(coords, isSettingB);
-
-            if (!snappedCoords && !isSettingB) {
-                showToast('図面上の線を選択してください (空白部分には設定できません)', 'info');
-                return;
-            }
-
-            if (!state.activePointA) {
-                state.activePointA = snappedCoords;
-                document.getElementById('activeABadge').classList.remove('hidden');
-                document.getElementById('activeABadge').classList.add('flex');
-                showToast('A点を設定しました。B点をクリックしてください', 'info');
-                drawDiagram();
-            } else {
-                const ptB = snappedCoords || coords;
-                const ptA = state.activePointA;
-                
-                clearActivePointA();
-
-                if (state.continuousMode) {
-                    createWireConnection(ptA, ptB);
-                } else {
-                    state.pendingPointA = ptA;
-                    state.pendingPointB = ptB;
-                    modalTubeName.value = inputTubeName.value;
-                    modalSq.value = selectSq.value;
-                    modalWireColor.value = inputWireColor.value;
-                    wireConfirmModal.classList.remove('hidden');
-                }
-            }
-        }
-
-        canvasWrapper.addEventListener('mouseup', (e) => {
+        function handleCanvasMouseUp(e) {
             clearTimeout(state.longPressTimer);
 
-            if (state.draggingTarget) {
-                state.draggingTarget = null;
-                updateTablesAndStats();
-                return;
-            }
+            const wasPanning = state.isPanning || state.isLongPress;
 
             if (state.isPanning) {
                 state.isPanning = false;
-                canvasWrapper.classList.remove('panning');
-                document.getElementById('panBadge').classList.add('hidden');
-                return;
+                state.isLongPress = false;
+                canvasWrapper.classList.remove('cursor-grabbing');
             }
 
-            if (!state.image || e.button !== 0) return;
-
-            const rawCoords = getCanvasCoords(e);
-            const now = Date.now();
-
-            // ダブルクリック（微小位置偏差かつ短時間での2回連打）判定
-            const isDoubleTap = state.lastClickCoords && 
-                                (now - state.lastClickTime < 350) && 
-                                (Math.hypot(rawCoords.x - state.lastClickCoords.x, rawCoords.y - state.lastClickCoords.y) < 25);
-
-            if (isDoubleTap) {
-                // ダブルクリック検出時は単一クリックタイマーと仮A点を即座に破棄
-                if (state.pendingClickTimer) {
-                    clearTimeout(state.pendingClickTimer);
-                    state.pendingClickTimer = null;
-                }
-                clearActivePointA();
-                state.lastClickTime = 0;
-                state.lastClickCoords = null;
-                return;
-            }
-
-            state.lastClickTime = now;
-            state.lastClickCoords = rawCoords;
-
-            if (state.pendingClickTimer) clearTimeout(state.pendingClickTimer);
-
-            state.pendingClickTimer = setTimeout(() => {
-                state.pendingClickTimer = null;
-                handleCanvasClick(rawCoords);
-            }, 250);
-        });
-
-        canvasWrapper.addEventListener('dblclick', (e) => {
-            e.preventDefault();
-
-            // ダブルクリック時には保留中の単一クリックおよび誤って設定されたA点を完全にクリア
-            if (state.pendingClickTimer) {
-                clearTimeout(state.pendingClickTimer);
-                state.pendingClickTimer = null;
-            }
-            clearActivePointA();
-
-            if (!state.image) return;
-            const coords = getCanvasCoords(e);
-
-            const hitTarget = findInteractiveElementAt(coords);
-            if (hitTarget && hitTarget.type === 'WAYPOINT') {
-                hitTarget.wire.waypoints.splice(hitTarget.index, 1);
-                showToast('中継点を削除し、配線を結合しました', 'info');
+            if (state.draggingHandle) {
+                state.draggingHandle = null;
+                state.mouseDownPos = null;
+                document.getElementById('angleHint').classList.add('hidden');
+                drawDiagram();
                 updateTablesAndStats();
                 return;
             }
 
-            const currentPage = state.pdfDoc ? state.pdfPageNum : 1;
-            const currentWires = state.wires.filter(w => (w.pageNum || 1) === currentPage);
+            if (e.button === 0 && state.pendingClickPos && !wasPanning) {
+                const clickPos = state.pendingClickPos;
+                const addWaypoint = state.pendingClickAddWaypoint;
+                clearTimeout(state.clickDelayTimer);
+                state.clickDelayTimer = setTimeout(() => {
+                    processCanvasClick(clickPos, addWaypoint);
+                }, 280);
+            }
 
-            for (const wire of currentWires) {
-                const route = calculateSmartPath(wire.pointA, wire.pointB, wire.bendX);
-                const points = wire.waypoints && wire.waypoints.length > 0 ? [wire.pointA, ...wire.waypoints, wire.pointB] : route.path;
+            state.mouseDownPos = null;
+            state.pendingClickPos = null;
+            state.pendingClickAddWaypoint = false;
+            state.isLongPress = false;
+        }
 
-                for (let i = 0; i < points.length - 1; i++) {
-                    const p1 = points[i];
-                    const p2 = points[i+1];
-                    if (distToSegment(coords, p1, p2) < 12) {
-                        if (!wire.waypoints) wire.waypoints = [];
-                        wire.waypoints.push({ x: Math.round(coords.x), y: Math.round(coords.y) });
-                        
-                        showToast(`配線 [${wire.markTube}] に中継点を追加しました`, 'success');
-                        
-                        const card = document.querySelector(`.wire-card[data-id="${wire.id}"]`);
-                        if (card) {
-                            card.scrollIntoView({ behavior: 'smooth' });
-                            card.classList.add('ring-2', 'ring-indigo-500');
-                            setTimeout(() => card.classList.remove('ring-2', 'ring-indigo-500'), 1500);
-                        }
+        function handleCanvasWheel(e) {
+            e.preventDefault();
+            const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+            const rect = canvasWrapper.getBoundingClientRect();
+            adjustZoom(zoomFactor, {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            });
+        }
 
+        function handleCanvasDblClick(e) {
+            clearTimeout(state.clickDelayTimer);
+            const pos = getCanvasCoords(e);
+
+            for (let wire of state.wires) {
+                if (wire.page !== state.currentPage) continue;
+                for (let i = 0; i < wire.waypoints.length; i++) {
+                    const wp = wire.waypoints[i];
+                    if (Math.hypot(wp.x - pos.x, wp.y - pos.y) < 12) {
+                        wire.waypoints.splice(i, 1);
+                        drawDiagram();
                         updateTablesAndStats();
+                        showToast('折点を削除しました');
                         return;
                     }
                 }
             }
-        });
 
-        function distToSegment(p, v, w) {
-            const l2 = (v.x - w.x)**2 + (v.y - w.y)**2;
-            if (l2 === 0) return Math.hypot(p.x - v.x, p.y - v.y);
-            let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
-            t = Math.max(0, Math.min(1, t));
-            return Math.hypot(p.x - (v.x + t * (w.x - v.x)), p.y - (v.y + t * (w.y - v.y)));
+            let closest = null;
+            for (let wire of state.wires) {
+                if (wire.page !== state.currentPage) continue;
+                const fullPoints = [wire.pointA, ...wire.waypoints, wire.pointB];
+                for (let i = 0; i < fullPoints.length - 1; i++) {
+                    const { dist } = distToSegment(pos.x, pos.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
+                    if (dist < 10 && (!closest || dist < closest.dist)) {
+                        closest = { wire, segIndex: i, dist };
+                    }
+                }
+            }
+
+            if (closest) {
+                const snappedWaypoint = snapToCircuitLine(pos);
+                if (!snappedWaypoint) {
+                    showToast('折点は底図の導線上にのみ追加できます');
+                    return;
+                }
+                closest.wire.waypoints.splice(closest.segIndex, 0, snappedWaypoint);
+                state.selectedWireId = closest.wire.id;
+                drawDiagram();
+                updateTablesAndStats();
+                showToast('折点を追加しました');
+            }
         }
 
-        window.addWaypointToWire = function(wireId) {
-            const wire = state.wires.find(w => w.id === wireId);
-            if (!wire) return;
-            if (!wire.waypoints) wire.waypoints = [];
+        function distToSegment(px, py, x1, y1, x2, y2) {
+            const dx = x2 - x1, dy = y2 - y1;
+            const lengthSq = dx * dx + dy * dy;
+            let t = lengthSq === 0 ? 0 : ((px - x1) * dx + (py - y1) * dy) / lengthSq;
+            t = Math.max(0, Math.min(1, t));
+            const projX = x1 + t * dx, projY = y1 + t * dy;
+            return { dist: Math.hypot(px - projX, py - projY), t };
+        }
 
-            const midX = (wire.pointA.x + wire.pointB.x) / 2;
-            const midY = (wire.pointA.y + wire.pointB.y) / 2;
-            wire.waypoints.push({ x: Math.round(midX), y: Math.round(midY) });
+        function processCanvasClick(pos, addWaypoint = false) {
+            if (state.activePointA) {
+                // For B, an existing coloured wire is the most precise target: use
+                // its nearest centreline point before falling back to the base drawing.
+                const snappedPos = !addWaypoint
+                    ? getClearanceBPoint(state.activePointA, pos)
+                    : snapToCircuitLine(pos);
+                if (!snappedPos) {
+                    showToast('底図の導線上をクリックしてください（空白位置は設定できません）');
+                    return;
+                }
 
-            showToast('中継点を追加しました。画面上のノブを直接ドラッグしてください', 'info');
-            updateTablesAndStats();
-        };
+                if (addWaypoint) {
+                    state.activeWaypoints.push(snappedPos);
+                    document.getElementById('statusText').innerText = '折点を追加しました。角度表示を確認しながら調整してください';
+                    drawDiagram();
+                    showToast('底図導線上に折点を追加しました');
+                    return;
+                }
 
-        window.deleteWire = function(wireId) {
-            state.wires = state.wires.filter(w => w.id !== wireId);
-            showToast('配線を削除しました', 'info');
-            updateTablesAndStats();
-        };
-
-        document.getElementById('btnExportCsv').addEventListener('click', () => {
-            if (state.wires.length === 0) {
-                showToast('出力する配線データがありません', 'error');
+                // A/B can be chosen first even if the final angle has not yet been
+                // adjusted. The angle badge is advisory; it never blocks placement.
+                const pointB = snappedPos;
+                // Create provisional bend handles after A/B selection so the route
+                // can be refined afterwards. Explicit Shift-clicked bends take priority.
+                const waypoints = state.activeWaypoints.length > 0
+                    ? [...state.activeWaypoints]
+                    : calculateOrthogonalRoute(state.activePointA, pointB);
+                if (state.isContinuous) {
+                    const newWire = {
+                        id: 'wire_' + Date.now(), page: state.currentPage,
+                        pointA: state.activePointA, pointB, waypoints,
+                        markText: state.defaultMarkText, sq: state.defaultSq, color: state.defaultColor
+                    };
+                    state.wires.push(newWire);
+                    state.selectedWireId = newWire.id;
+                    state.activePointA = null;
+                    state.activeWaypoints = [];
+                    document.getElementById('angleHint').classList.add('hidden');
+                    document.getElementById('statusText').innerText = '始点 (A点) を導線上クリックして指定してください';
+                    drawDiagram();
+                    updateTablesAndStats();
+                    showToast('配線を追加しました');
+                } else {
+                    openWireModalForAdd(state.activePointA, pointB, waypoints);
+                }
                 return;
             }
 
-            let csvContent = '\uFEFF';
-            csvContent += 'ページ,印字文字,SQ線径,配線色,配線本数,チューブ個数\n';
+            const clickedHandle = findHandleAt(pos);
+            if (clickedHandle) {
+                state.selectedWireId = clickedHandle.wireId;
+                drawDiagram();
+                return;
+            }
 
-            state.wires.forEach((w) => {
-                csvContent += `${w.pageNum || 1},"${w.markTube}","${w.sq}","${w.color}",1,2\n`;
+            const hitWireId = findWireAt(pos);
+            if (hitWireId) {
+                state.selectedWireId = hitWireId;
+                drawDiagram();
+                return;
+            }
+
+            const snappedPos = snapToCircuitLine(pos);
+            if (!snappedPos) {
+                showToast('導線(線)の上をクリックしてください');
+                return;
+            }
+
+            state.activePointA = snappedPos;
+            state.activeWaypoints = [];
+            document.getElementById('statusText').innerText = '終点 (B点) を指定してください';
+            showToast('A点を設定しました');
+        }
+
+        function findHandleAt(pos) {
+            if (!state.selectedWireId) return null;
+            const wire = state.wires.find(w => w.id === state.selectedWireId && w.page === state.currentPage);
+            if (!wire) return null;
+
+            if (Math.hypot(wire.pointA.x - pos.x, wire.pointA.y - pos.y) < 10) {
+                return { wireId: wire.id, handleType: 'A', index: -1 };
+            }
+            if (Math.hypot(wire.pointB.x - pos.x, wire.pointB.y - pos.y) < 10) {
+                return { wireId: wire.id, handleType: 'B', index: -1 };
+            }
+            for (let i = 0; i < wire.waypoints.length; i++) {
+                if (Math.hypot(wire.waypoints[i].x - pos.x, wire.waypoints[i].y - pos.y) < 10) {
+                    return { wireId: wire.id, handleType: 'WP', index: i };
+                }
+            }
+            return null;
+        }
+
+        function findWireAt(pos) {
+            let closestWireId = null;
+            let minDist = Infinity;
+            for (let wire of state.wires) {
+                if (wire.page !== state.currentPage) continue;
+                const fullPoints = [wire.pointA, ...wire.waypoints, wire.pointB];
+                for (let i = 0; i < fullPoints.length - 1; i++) {
+                    const { dist } = distToSegment(pos.x, pos.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
+                    if (dist < 8 && dist < minDist) {
+                        minDist = dist;
+                        closestWireId = wire.id;
+                    }
+                }
+            }
+            return closestWireId;
+        }
+
+        function cancelActivePointA() {
+            state.activePointA = null;
+            state.activeWaypoints = [];
+            document.getElementById('angleHint').classList.add('hidden');
+            document.getElementById('statusText').innerText = '始点 (A点) を導線上クリックして指定してください';
+            drawDiagram();
+            showToast('A点を解除しました');
+        }
+
+        function openWireModalForAdd(pointA, pointB, waypoints) {
+            state.editingWireId = null;
+            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-indigo-400 me-2"></i>配線パラメータ確認';
+            document.getElementById('modalMarkText').value = state.defaultMarkText;
+            modalTempSq = state.defaultSq;
+            modalTempColor = state.defaultColor;
+            syncModalButtonHighlights();
+
+            state.pendingWireData = { pointA, pointB, waypoints };
+            wireModal.classList.remove('hidden');
+        }
+
+        function syncModalButtonHighlights() {
+            document.querySelectorAll('.modal-sq-btn').forEach(b => {
+                const match = b.dataset.sq === modalTempSq;
+                b.classList.toggle('border-indigo-500', match);
+                b.classList.toggle('bg-indigo-900/50', match);
+                b.classList.toggle('text-indigo-300', match);
+            });
+            document.querySelectorAll('.modal-color-btn').forEach(b => {
+                const match = b.dataset.color === modalTempColor;
+                b.classList.toggle('border-indigo-500', match);
+                b.classList.toggle('border-transparent', !match);
+            });
+        }
+
+        function handleModalConfirm() {
+            const markText = document.getElementById('modalMarkText').value.trim() || '101';
+            const sq = modalTempSq;
+            const color = modalTempColor;
+
+            state.defaultMarkText = markText;
+            state.defaultSq = sq;
+            state.defaultColor = color;
+            state.defaultColorName = COLOR_NAMES[color] || '電線';
+
+            document.getElementById('sidebarMarkText').value = markText;
+
+            if (state.editingWireId) {
+                const wire = state.wires.find(w => w.id === state.editingWireId);
+                if (wire) {
+                    wire.markText = markText;
+                    wire.sq = sq;
+                    wire.color = color;
+                    showToast('配線パラメータを更新しました');
+                }
+            } else if (state.pendingWireData) {
+                const newWire = {
+                    id: 'wire_' + Date.now(),
+                    page: state.currentPage,
+                    pointA: state.pendingWireData.pointA,
+                    pointB: state.pendingWireData.pointB,
+                    waypoints: state.pendingWireData.waypoints,
+                    markText: markText,
+                    sq: sq,
+                    color: color
+                };
+                state.wires.push(newWire);
+                state.selectedWireId = newWire.id;
+                state.activePointA = null;
+                state.activeWaypoints = [];
+                document.getElementById('angleHint').classList.add('hidden');
+                document.getElementById('statusText').innerText = '始点 (A点) を導線上クリックして指定してください';
+                showToast('配線を追加しました');
+            }
+
+            closeModal();
+            drawDiagram();
+            updateTablesAndStats();
+        }
+
+        function openWireModalForEdit(wireId) {
+            const wire = state.wires.find(w => w.id === wireId);
+            if (!wire) return;
+
+            state.editingWireId = wireId;
+            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-indigo-400 me-2"></i>配線パラメータ編集';
+            document.getElementById('modalMarkText').value = wire.markText;
+            modalTempSq = wire.sq;
+            modalTempColor = wire.color;
+            syncModalButtonHighlights();
+
+            wireModal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            wireModal.classList.add('hidden');
+            state.editingWireId = null;
+            state.pendingWireData = null;
+        }
+
+        function deleteWire(wireId) {
+            state.wires = state.wires.filter(w => w.id !== wireId);
+            if (state.selectedWireId === wireId) state.selectedWireId = null;
+            drawDiagram();
+            updateTablesAndStats();
+            showToast('配線を削除しました');
+        }
+
+        function updateTablesAndStats() {
+            const container = document.getElementById('wireListContainer');
+            container.innerHTML = '';
+
+            const pageWires = state.wires.filter(w => w.page === state.currentPage);
+
+            if (pageWires.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-10 text-slate-500 text-xs">
+                        <i class="fa-solid fa-diagram-next text-2xl mb-2 text-slate-600 block"></i>
+                        配線データがありません<br>図面上でA点とB点を指定してください
+                    </div>
+                `;
+            } else {
+                pageWires.forEach((wire) => {
+                    const card = document.createElement('div');
+                    card.className = `p-2.5 rounded-lg border text-xs flex items-center justify-between transition ${wire.id === state.selectedWireId ? 'bg-slate-700/80 border-indigo-500 shadow' : 'bg-slate-900/60 border-slate-700/80'}`;
+                    
+                    const colorName = COLOR_NAMES[wire.color] || '色名';
+
+                    card.innerHTML = `
+                        <div class="space-y-0.5">
+                            <div class="flex items-center space-x-2">
+                                <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${wire.color}"></span>
+                                <span class="font-bold text-white font-mono">${wire.markText}</span>
+                            </div>
+                            <div class="text-[10px] text-slate-400">
+                                <span>${wire.sq} SQ</span> | <span>${colorName}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <button onclick="openWireModalForEdit('${wire.id}')" class="p-1 text-slate-400 hover:text-indigo-400 transition" title="編集">
+                                <i class="fa-solid fa-pen text-xs"></i>
+                            </button>
+                            <button onclick="deleteWire('${wire.id}')" class="p-1 text-slate-400 hover:text-red-400 transition" title="削除">
+                                <i class="fa-solid fa-trash text-xs"></i>
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+
+            document.getElementById('wireCountBadge').innerText = `${pageWires.length} 本`;
+            document.getElementById('totalWireCount').innerText = `${state.wires.length} 本`;
+            document.getElementById('totalTubeCount').innerText = `${state.wires.length * 2} 個`;
+        }
+
+        function adjustZoom(factor, anchor = null) {
+            const oldScale = state.scale;
+            const newScale = Math.max(0.2, Math.min(5.0, oldScale * factor));
+            if (newScale === oldScale) return;
+
+            // Preserve the diagram point underneath the cursor while zooming.
+            // Toolbar buttons omit an anchor, so they zoom around the viewport centre.
+            const rect = canvasWrapper.getBoundingClientRect();
+            const anchorX = anchor ? anchor.x : rect.width / 2;
+            const anchorY = anchor ? anchor.y : rect.height / 2;
+            const diagramX = (anchorX - state.panX) / oldScale;
+            const diagramY = (anchorY - state.panY) / oldScale;
+
+            state.scale = newScale;
+            state.panX = anchorX - diagramX * newScale;
+            state.panY = anchorY - diagramY * newScale;
+            applyCanvasTransform();
+            updateUIState();
+        }
+
+        function applyCanvasTransform() {
+            canvas.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.scale})`;
+            canvas.style.transformOrigin = '0 0';
+        }
+
+        function updateUIState() {
+            document.getElementById('zoomIndicator').innerText = `${Math.round(state.scale * 100)}%`;
+            document.getElementById('pageIndicator').innerText = `頁: ${state.currentPage} / ${state.totalPages}`;
+            applyCanvasTransform();
+        }
+
+        // Supports page lists such as "1,3,5-7". Invalid pages are rejected
+        // rather than silently exporting a different set of pages.
+        function getTargetPages() {
+            if (state.exportPageMode === 'current') return [state.currentPage];
+            if (state.exportPageMode === 'all') {
+                return Array.from({ length: state.totalPages }, (_, i) => i + 1);
+            }
+
+            const input = document.getElementById('exportPageSelection').value.trim();
+            if (!input) {
+                showToast('出力するページを指定してください（例: 1,3,5-7）');
+                return null;
+            }
+
+            const pages = new Set();
+            for (const part of input.split(',').map(value => value.trim()).filter(Boolean)) {
+                const range = part.match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+                if (!range) {
+                    showToast('ページ指定の形式が正しくありません（例: 1,3,5-7）');
+                    return null;
+                }
+                const start = Number(range[1]);
+                const end = Number(range[2] || range[1]);
+                if (start < 1 || end < start || end > state.totalPages) {
+                    showToast(`ページは 1 ～ ${state.totalPages} の範囲で指定してください`);
+                    return null;
+                }
+                for (let page = start; page <= end; page++) pages.add(page);
+            }
+            return [...pages].sort((a, b) => a - b);
+        }
+
+        async function exportPNG() {
+            if (!state.bgImage && state.wires.length === 0) {
+                showToast('出力対象の図面がありません');
+                return;
+            }
+
+            const originalPage = state.currentPage;
+            const targetPages = getTargetPages();
+            if (!targetPages) return;
+            const exportMultiplePages = state.pdfDoc && targetPages.length > 1;
+
+            try {
+                if (!exportMultiplePages) {
+                    if (state.pdfDoc) await renderPdfPageAsync(targetPages[0]);
+                    drawDiagram(true);
+                    const link = document.createElement('a');
+                    link.download = `HARD_Wiring_Diagram_Page${targetPages[0]}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    showToast('PNG画像を出力しました');
+                    return;
+                }
+
+                if (!window.JSZip) {
+                    showToast('複数PNG出力ライブラリが読み込まれていません');
+                    return;
+                }
+
+                showToast('指定ページのPNGを作成中...');
+                const zip = new JSZip();
+
+                for (const pageNo of targetPages) {
+                    await renderPdfPageAsync(pageNo);
+                    drawDiagram(true);
+                    zip.file(
+                        `HARD_Wiring_Diagram_Page${pageNo}.png`,
+                        canvas.toDataURL('image/png').split(',')[1],
+                        { base64: true }
+                    );
+                }
+
+                const blob = await zip.generateAsync({ type: 'blob' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.href = url;
+                link.download = 'HARD_Wiring_Diagram_SelectedPages_PNG.zip';
+                link.click();
+                URL.revokeObjectURL(url);
+                showToast('指定ページPNG（ZIP）を出力しました');
+            } catch (err) {
+                console.error('PNG 出力エラー:', err);
+                showToast('PNG 出力中にエラーが発生しました');
+            } finally {
+                if (state.pdfDoc) {
+                    await renderPdfPageAsync(originalPage);
+                    resetCanvasDimensions();
+                } else {
+                    drawDiagram(false);
+                }
+                updateTablesAndStats();
+            }
+        }
+
+        async function exportPDF() {
+            if (!state.bgImage && state.wires.length === 0) {
+                showToast('出力対象の図面がありません');
+                return;
+            }
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                showToast('PDF 出力ライブラリが読み込まれていません');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const originalPage = state.currentPage;
+            showToast('PDF 出力処理中...');
+
+            try {
+                const targetPages = getTargetPages();
+                if (!targetPages) return;
+
+                let pdf = null;
+
+                for (let i = 0; i < targetPages.length; i++) {
+                    const pageNo = targetPages[i];
+                    
+                    if (state.pdfDoc) {
+                        await renderPdfPageAsync(pageNo);
+                    }
+                    
+                    drawDiagram(true);
+
+                    const orientation = canvas.width >= canvas.height ? 'landscape' : 'portrait';
+                    if (i === 0) {
+                        pdf = new jsPDF({
+                            orientation: orientation,
+                            unit: 'pt',
+                            format: [canvas.width, canvas.height]
+                        });
+                    } else {
+                        pdf.addPage([canvas.width, canvas.height], orientation);
+                    }
+
+                    const imgData = canvas.toDataURL('image/png');
+                    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+                }
+
+                const fileName = targetPages.length > 1
+                    ? `HARD_Wiring_Diagram_SelectedPages.pdf`
+                    : `HARD_Wiring_Diagram_Page${targetPages[0]}.pdf`;
+                    
+                pdf.save(fileName);
+                showToast('PDFファイルを出力しました');
+            } catch (err) {
+                console.error('PDF 出力エラー:', err);
+                showToast('PDF 出力中にエラーが発生しました');
+            } finally {
+                if (state.pdfDoc) {
+                    await renderPdfPageAsync(originalPage);
+                    resetCanvasDimensions();
+                } else {
+                    drawDiagram(false);
+                }
+                updateTablesAndStats();
+            }
+        }
+
+        // 5.5 SQ and larger wires do not require mark tubes.
+        const MARK_TUBE_SIZE_BY_SQ = {
+            '0.5': '3.2Φ',
+            '0.75': '3.2Φ',
+            '1.25': '3.2Φ',
+            '2.0': '3.6Φ',
+            '3.5': '4.2Φ'
+        };
+
+        function escapeCSV(value) {
+            return `"${String(value).replace(/"/g, '""')}"`;
+        }
+
+        function createMarkTubeSummary(targetPages) {
+            const pageSet = new Set(targetPages);
+            const summaryByKey = new Map();
+            let excludedWireCount = 0;
+
+            state.wires
+                .filter(w => pageSet.has(w.page))
+                .forEach(wire => {
+                    const tubeSize = MARK_TUBE_SIZE_BY_SQ[wire.sq];
+                    if (!tubeSize) {
+                        excludedWireCount++;
+                        return;
+                    }
+
+                    // Separate rows are kept when the same print text needs a different tube diameter.
+                    const key = `${wire.markText}\u0000${tubeSize}`;
+                    if (!summaryByKey.has(key)) {
+                        summaryByKey.set(key, {
+                            markText: wire.markText,
+                            tubeSize,
+                            sqs: new Set(),
+                            quantity: 0,
+                            pages: new Set()
+                        });
+                    }
+                    const item = summaryByKey.get(key);
+                    item.sqs.add(wire.sq);
+                    item.quantity += 2; // one tube at each end of a wire
+                    item.pages.add(wire.page);
+                });
+
+            const items = [...summaryByKey.values()]
+                .sort((a, b) => a.markText.localeCompare(b.markText, 'ja') || a.tubeSize.localeCompare(b.tubeSize))
+                .map(item => ({
+                    markText: item.markText,
+                    tubeSize: item.tubeSize,
+                    sqs: [...item.sqs].sort((a, b) => Number(a) - Number(b)).join(' / '),
+                    quantity: item.quantity,
+                    pages: [...item.pages].sort((a, b) => a - b).join(', ')
+                }));
+            return { items, excludedWireCount };
+        }
+
+        function getMarkTubeExportData() {
+            if (state.wires.length === 0) {
+                showToast('集計対象の配線データがありません');
+                return null;
+            }
+            const targetPages = getTargetPages();
+            return targetPages ? createMarkTubeSummary(targetPages) : null;
+        }
+
+        function exportExcel() {
+            if (!window.XLSX) {
+                showToast('Excel 出力ライブラリが読み込まれていません');
+                return;
+            }
+            const data = getMarkTubeExportData();
+            if (!data) return;
+
+            const rows = [
+                ['マークチューブ印字', 'マークチューブ尺寸', '対象電線サイズ(SQ)', '必要数(個)', '対象頁'],
+                ...data.items.map(item => [item.markText, item.tubeSize, item.sqs, item.quantity, item.pages])
+            ];
+            const worksheet = XLSX.utils.aoa_to_sheet(rows);
+            worksheet['!autofilter'] = { ref: `A1:E${Math.max(rows.length, 2)}` };
+            worksheet['!cols'] = [
+                { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 12 }, { wch: 16 }
+            ];
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'マークチューブ集計');
+            XLSX.writeFile(workbook, `MarkTube_Summary_${new Date().toISOString().slice(0,10)}.xlsx`);
+            showToast(data.excludedWireCount > 0
+                ? `集計Excelを出力しました（5.5 SQ以上 ${data.excludedWireCount} 本を除外）`
+                : '集計Excelを出力しました');
+        }
+
+        function exportCSV() {
+            const data = getMarkTubeExportData();
+            if (!data) return;
+
+            let csvContent = "\uFEFFマークチューブ印字,マークチューブ尺寸,対象電線サイズ(SQ),必要数(個),対象頁\n";
+            data.items.forEach(item => {
+                    csvContent += [
+                        escapeCSV(item.markText),
+                        item.tubeSize,
+                        escapeCSV(item.sqs),
+                        item.quantity,
+                        escapeCSV(item.pages)
+                    ].join(',') + '\n';
             });
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `マークチューブ_集計帳票_${Date.now()}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showToast('CSV帳票を出力しました！', 'success');
-        });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `MarkTube_Summary_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+            showToast(data.excludedWireCount > 0
+                ? `集計CSVを出力しました（5.5 SQ以上 ${data.excludedWireCount} 本を除外）`
+                : '集計CSVを出力しました');
+        }
 
-        document.getElementById('btnExportPng').addEventListener('click', () => {
-            if (!state.image) return;
-            const url = canvas.toDataURL('image/png');
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `図面配線マーク_${Date.now()}.png`;
-            a.click();
-            showToast('高解像度PNG画像を出力しました！', 'success');
-        });
-
-        document.getElementById('btnExportPdf').addEventListener('click', () => {
-            if (!state.image) return;
-            const { jsPDF } = window.jspdf;
-            const orientation = canvas.width > canvas.height ? 'l' : 'p';
-            const pdf = new jsPDF(orientation, 'pt', [canvas.width, canvas.height]);
-            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width, canvas.height);
-            pdf.save(`ハード図面マーク_${Date.now()}.pdf`);
-            showToast('PDF図面を出力しました！', 'success');
-        });
-
-        canvasWrapper.addEventListener('wheel', (e) => {
-            if (!state.image) return;
-            e.preventDefault();
-
-            const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-            const newZoom = Math.min(Math.max(0.2, state.zoom * zoomFactor), 5.0);
-
-            const rect = canvasWrapper.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-
-            state.panX = mouseX - (mouseX - state.panX) * (newZoom / state.zoom);
-            state.panY = mouseY - (mouseY - state.panY) * (newZoom / state.zoom);
-            state.zoom = newZoom;
-
-            document.getElementById('zoomLevel').innerText = `${Math.round(state.zoom * 100)}%`;
-            drawDiagram();
-        });
-
-        window.onload = function() {
-            updateTubeHistoryDatalist();
-
-            // iPhone / iPad 向け サイドバー表示切替ボタン
-            const btnToggleSidebar = document.getElementById('btnToggleSidebar');
-            if (btnToggleSidebar) {
-                btnToggleSidebar.addEventListener('click', () => {
-                    const sidebar = document.getElementById('sidebarPanel');
-                    sidebar.classList.toggle('hidden');
-                });
-            }
-
-            // タッチ（iPhone / iPad）ジェスチャー対応
-            let touchStartDist = 0;
-            let isPinching = false;
-            let lastTouchTapTime = 0;
-            let lastTouchTapCoords = null;
-
-            canvasWrapper.addEventListener('touchstart', (e) => {
-                if (!state.image) return;
-
-                // 2本指 ピンチズーム開始
-                if (e.touches.length === 2) {
-                    e.preventDefault();
-                    isPinching = true;
-                    touchStartDist = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                    return;
-                }
-
-                // 1本指 タッチ操作
-                if (e.touches.length === 1) {
-                    const touch = e.touches[0];
-                    const coords = getCanvasCoords(touch);
-                    const hitTarget = findInteractiveElementAt(coords);
-
-                    if (hitTarget) {
-                        state.draggingTarget = hitTarget;
-                        return;
-                    }
-
-                    state.longPressTimer = setTimeout(() => {
-                        state.isPanning = true;
-                        state.startPanX = touch.clientX - state.panX;
-                        state.startPanY = touch.clientY - state.startPanY;
-                        canvasWrapper.classList.add('panning');
-                        document.getElementById('panBadge').classList.remove('hidden');
-                        document.getElementById('panBadge').classList.add('flex');
-                    }, 220);
-                }
-            }, { passive: false });
-
-            canvasWrapper.addEventListener('touchmove', (e) => {
-                if (!state.image) return;
-
-                // 2本指 ピンチズーム処理
-                if (isPinching && e.touches.length === 2) {
-                    e.preventDefault();
-                    const currentDist = Math.hypot(
-                        e.touches[0].clientX - e.touches[1].clientX,
-                        e.touches[0].clientY - e.touches[1].clientY
-                    );
-                    if (touchStartDist > 0) {
-                        const factor = currentDist / touchStartDist;
-                        const newZoom = Math.min(Math.max(0.2, state.zoom * (factor > 1 ? 1.02 : 0.98)), 5.0);
-                        state.zoom = newZoom;
-                        document.getElementById('zoomLevel').innerText = `${Math.round(state.zoom * 100)}%`;
-                        drawDiagram();
-                    }
-                    return;
-                }
-
-                // 1本指 ドラッグ・平移処理
-                if (e.touches.length === 1) {
-                    const touch = e.touches[0];
-                    const rawCoords = getCanvasCoords(touch);
-                    state.currentMouseCanvasCoords = rawCoords;
-
-                    if (state.isPanning) {
-                        e.preventDefault();
-                        state.panX = touch.clientX - state.startPanX;
-                        state.panY = touch.clientY - state.startPanY;
-                        drawDiagram();
-                        return;
-                    }
-
-                    if (state.draggingTarget) {
-                        e.preventDefault();
-                        const snapped = snapToDarkLine(rawCoords, true) || rawCoords;
-                        if (state.draggingTarget.type === 'SINGLE_BEND') {
-                            state.draggingTarget.wire.bendX = Math.round(snapped.x);
-                        } else if (state.draggingTarget.type === 'WAYPOINT') {
-                            state.draggingTarget.wire.waypoints[state.draggingTarget.index] = {
-                                x: Math.round(snapped.x),
-                                y: Math.round(snapped.y)
-                            };
-                        } else if (state.draggingTarget.type === 'ENDPOINT') {
-                            if (state.draggingTarget.endpoint === 'A') {
-                                state.draggingTarget.wire.pointA = { x: Math.round(snapped.x), y: Math.round(snapped.y) };
-                            } else {
-                                state.draggingTarget.wire.pointB = { x: Math.round(snapped.x), y: Math.round(snapped.y) };
-                            }
-                        }
-                        drawDiagram();
-                        return;
-                    }
-
-                    if (state.activePointA) {
-                        drawDiagram();
-                    }
-                }
-            }, { passive: false });
-
-            canvasWrapper.addEventListener('touchend', (e) => {
-                clearTimeout(state.longPressTimer);
-
-                if (isPinching) {
-                    if (e.touches.length < 2) isPinching = false;
-                    return;
-                }
-
-                if (state.draggingTarget) {
-                    state.draggingTarget = null;
-                    updateTablesAndStats();
-                    return;
-                }
-
-                if (state.isPanning) {
-                    state.isPanning = false;
-                    canvasWrapper.classList.remove('panning');
-                    document.getElementById('panBadge').classList.add('hidden');
-                    return;
-                }
-
-                if (!state.image) return;
-
-                // タッチでのタップ・ダブルタップ処理
-                if (e.changedTouches.length > 0) {
-                    const touch = e.changedTouches[0];
-                    const rawCoords = getCanvasCoords(touch);
-                    const now = Date.now();
-
-                    const isDoubleTap = lastTouchTapCoords &&
-                        (now - lastTouchTapTime < 350) &&
-                        (Math.hypot(rawCoords.x - lastTouchTapCoords.x, rawCoords.y - lastTouchTapCoords.y) < 30);
-
-                    if (isDoubleTap) {
-                        if (state.pendingClickTimer) {
-                            clearTimeout(state.pendingClickTimer);
-                            state.pendingClickTimer = null;
-                        }
-                        clearActivePointA();
-                        lastTouchTapTime = 0;
-                        lastTouchTapCoords = null;
-
-                        // 中継点削除／追加のダブルタップ
-                        const hitTarget = findInteractiveElementAt(rawCoords);
-                        if (hitTarget && hitTarget.type === 'WAYPOINT') {
-                            hitTarget.wire.waypoints.splice(hitTarget.index, 1);
-                            showToast('中継点を削除し、配線を結合しました', 'info');
-                            updateTablesAndStats();
-                            return;
-                        }
-
-                        const currentPage = state.pdfDoc ? state.pdfPageNum : 1;
-                        const currentWires = state.wires.filter(w => (w.pageNum || 1) === currentPage);
-                        for (const wire of currentWires) {
-                            const route = calculateSmartPath(wire.pointA, wire.pointB, wire.bendX);
-                            const points = wire.waypoints && wire.waypoints.length > 0 ? [wire.pointA, ...wire.waypoints, wire.pointB] : route.path;
-                            for (let i = 0; i < points.length - 1; i++) {
-                                if (distToSegment(rawCoords, points[i], points[i+1]) < 14) {
-                                    if (!wire.waypoints) wire.waypoints = [];
-                                    wire.waypoints.push({ x: Math.round(rawCoords.x), y: Math.round(rawCoords.y) });
-                                    showToast(`配線 [${wire.markTube}] に中継点を追加しました`, 'success');
-                                    updateTablesAndStats();
-                                    return;
-                                }
-                            }
-                        }
-                        return;
-                    }
-
-                    lastTouchTapTime = now;
-                    lastTouchTapCoords = rawCoords;
-
-                    if (state.pendingClickTimer) clearTimeout(state.pendingClickTimer);
-                    state.pendingClickTimer = setTimeout(() => {
-                        state.pendingClickTimer = null;
-                        processSingleClick(rawCoords);
-                    }, 220);
-                }
-            });
-
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) loadFile(e.target.files[0]);
-            });
-
-            window.addEventListener('dragover', (e) => e.preventDefault());
-            window.addEventListener('drop', (e) => {
-                e.preventDefault();
-                if (e.dataTransfer.files.length > 0) loadFile(e.dataTransfer.files[0]);
-            });
-
-            toggleContinuousMode.addEventListener('change', (e) => {
-                state.continuousMode = e.target.checked;
-                showToast(state.continuousMode ? '連続配線モードを有効にしました' : '単線入力モードに変更しました', 'info');
-            });
-
-            inputTubeName.addEventListener('input', (e) => updateSqAutoMatch(e.target.value));
-
-            document.querySelectorAll('#colorPalette button').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    inputWireColor.value = btn.dataset.color;
-                });
-            });
-
-            document.getElementById('btnZoomIn').addEventListener('click', () => {
-                state.zoom = Math.min(5.0, state.zoom * 1.2);
-                document.getElementById('zoomLevel').innerText = `${Math.round(state.zoom * 100)}%`;
-                drawDiagram();
-            });
-            document.getElementById('btnZoomOut').addEventListener('click', () => {
-                state.zoom = Math.max(0.2, state.zoom / 1.2);
-                document.getElementById('zoomLevel').innerText = `${Math.round(state.zoom * 100)}%`;
-                drawDiagram();
-            });
-            document.getElementById('btnZoomReset').addEventListener('click', () => resetCanvasDimensions());
-
-            document.getElementById('btnPrevPage').addEventListener('click', () => {
-                if (state.pdfPageNum > 1) {
-                    state.pdfPageNum--;
-                    renderPdfPage(state.pdfPageNum);
-                }
-            });
-            document.getElementById('btnNextPage').addEventListener('click', () => {
-                if (state.pdfPageNum < state.pdfTotalPages) {
-                    state.pdfPageNum++;
-                    renderPdfPage(state.pdfPageNum);
-                }
-            });
-
-            document.getElementById('btnConfirmWire').addEventListener('click', () => {
-                inputTubeName.value = modalTubeName.value.toUpperCase();
-                selectSq.value = modalSq.value;
-                inputWireColor.value = modalWireColor.value;
-
-                createWireConnection(state.pendingPointA, state.pendingPointB);
-                wireConfirmModal.classList.add('hidden');
-            });
-            document.getElementById('btnCancelWire').addEventListener('click', () => wireConfirmModal.classList.add('hidden'));
-            document.getElementById('btnCloseModal').addEventListener('click', () => wireConfirmModal.classList.add('hidden'));
-
-            document.getElementById('tabSummaryBtn').addEventListener('click', () => {
-                document.getElementById('tabSummary').classList.remove('hidden');
-                document.getElementById('tabWireList').classList.add('hidden');
-                document.getElementById('tabSummaryBtn').className = 'flex-1 py-2.5 text-xs font-bold text-indigo-600 border-b-2 border-indigo-600 bg-white';
-                document.getElementById('tabWireListBtn').className = 'flex-1 py-2.5 text-xs font-bold text-slate-500 border-b-2 border-transparent hover:text-slate-700';
-            });
-            document.getElementById('tabWireListBtn').addEventListener('click', () => {
-                document.getElementById('tabWireList').classList.remove('hidden');
-                document.getElementById('tabSummary').classList.add('hidden');
-                document.getElementById('tabWireListBtn').className = 'flex-1 py-2.5 text-xs font-bold text-indigo-600 border-b-2 border-indigo-600 bg-white';
-                document.getElementById('tabSummaryBtn').className = 'flex-1 py-2.5 text-xs font-bold text-slate-500 border-b-2 border-transparent hover:text-slate-700';
-            });
-
-            document.getElementById('btnClearAllWires').addEventListener('click', () => {
-                if (state.wires.length === 0) return;
-                state.wires = [];
-                showToast('現在のページの配線記録をすべて消去しました', 'info');
-                updateTablesAndStats();
-            });
-
-            window.addEventListener('resize', () => {
-                if (state.image) resetCanvasDimensions();
-            });
-        };
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('translate-y-10', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+            }, 2500);
+        }
     </script>
 </body>
 </html>
