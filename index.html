@@ -166,6 +166,7 @@
                 <div><span class="text-slate-200 font-semibold">左ドラッグ / 中クリック:</span> 画面移動</div>
                 <div><span class="text-slate-200 font-semibold">Space + 左ドラッグ:</span> パン移動</div>
                 <div><span class="text-slate-200 font-semibold">Shift + クリック:</span> 底図線上に折点を追加</div>
+                <div><span class="text-slate-200 font-semibold">選取線條 + 雙擊黑線:</span> 插入折點</div>
                 <div><span class="text-slate-200 font-semibold">右クリック / ESC:</span> A点キャンセル</div>
             </div>
         </aside>
@@ -196,7 +197,9 @@
                     <div class="space-y-2.5 text-xs">
                         <div>
                             <label class="block text-slate-300 mb-1 font-medium">マークチューブ印字</label>
-                            <input type="text" id="modalMarkText" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-white font-mono focus:border-indigo-500 focus:outline-none">
+                            <input type="text" id="modalMarkText" list="markTextSuggestions" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-white font-mono focus:border-indigo-500 focus:outline-none">
+                            <datalist id="markTextSuggestions"></datalist>
+                            <div id="markTextHistory" class="flex flex-wrap gap-1 mt-1.5"></div>
                         </div>
                         <div>
                             <label class="block text-slate-300 mb-1 font-medium">電線サイズ (SQ)</label>
@@ -221,6 +224,14 @@
                                 </button>
                             </div>
                         </div>
+
+                        <!-- 端子台接続 標記選項 -->
+                        <label class="flex items-center gap-2 bg-slate-900/60 p-2 rounded border border-slate-700 cursor-pointer">
+                            <input type="checkbox" id="modalTerminalConnection" class="w-4 h-4 accent-indigo-600 cursor-pointer" checked>
+                            <span class="text-slate-200 font-medium">端子台接続</span>
+                            <span class="text-[10px] text-slate-400">端子必要數に加算 (+1點)</span>
+                        </label>
+
                         <div>
                             <label class="block text-slate-300 mb-1 font-medium">電線色</label>
                             <div id="modalColorButtons" class="grid grid-cols-4 gap-1.5">
@@ -238,7 +249,7 @@
 
                     <div class="flex items-center space-x-2 pt-2 border-t border-slate-700">
                         <button id="btnModalCancel" class="flex-1 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs font-medium transition">キャンセル</button>
-                        <button id="btnModalConfirm" class="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow transition">確定保存</button>
+                        <button id="btnModalConfirm" class="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow transition">確定保存 (Enter)</button>
                     </div>
                 </div>
             </div>
@@ -269,6 +280,10 @@
                     <div class="flex justify-between text-slate-400">
                         <span>マークチューブ集計:</span>
                         <span id="totalTubeCount" class="font-bold text-indigo-400">0 個</span>
+                    </div>
+                    <div class="flex justify-between text-slate-400">
+                        <span>端子必要点:</span>
+                        <span id="totalTerminalCount" class="font-bold text-amber-400">0 点</span>
                     </div>
                     <button id="btnExportExcel" class="w-full mt-2 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-medium rounded text-xs transition flex items-center justify-center">
                         <i class="fa-solid fa-file-excel me-1.5"></i>集計Excelダウンロード
@@ -328,6 +343,9 @@
             defaultColorName: '赤',
             isContinuous: false,
 
+            // Input History Chips
+            markTextHistory: ['101', '102', '103', '201', 'COM', 'PE'],
+
             // Active Interactive Wiring
             activePointA: null,
             activeWaypoints: [],
@@ -373,9 +391,9 @@
             document.getElementById('btnPrevPage').onclick = () => changePdfPage(-1);
             document.getElementById('btnNextPage').onclick = () => changePdfPage(1);
 
-            // Zoom & View
-            document.getElementById('btnZoomIn').onclick = () => adjustZoom(1.15);
-            document.getElementById('btnZoomOut').onclick = () => adjustZoom(0.85);
+            // Zoom & View (Gentle zoom steps)
+            document.getElementById('btnZoomIn').onclick = () => adjustZoom(1.08);
+            document.getElementById('btnZoomOut').onclick = () => adjustZoom(0.92);
             document.getElementById('btnFitPage').onclick = resetCanvasDimensions;
 
             // Sidebars Toggle
@@ -436,6 +454,14 @@
 
             document.getElementById('chkContinuous').onchange = (e) => {
                 state.isContinuous = e.target.checked;
+            };
+
+            // Modal Enter Key Confirm
+            document.getElementById('modalMarkText').onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleModalConfirm();
+                }
             };
 
             // Modal SQ/Color button grids
@@ -562,7 +588,7 @@
             if (newPage >= 1 && newPage <= state.totalPages) {
                 state.currentPage = newPage;
                 renderPdfPage(newPage);
-                updateTablesAndStats(); // 讓右側配線明細跟著頁碼即時刷新
+                updateTablesAndStats();
             }
         }
 
@@ -594,42 +620,7 @@
 
             drawDiagram();
             updateUIState();
-            updateTablesAndStats(); // ★ 背景圖面重置/載入完成後同步刷新右側配線明細
-        }
-
-        function snapToDarkLine(pos) {
-            if (!state.bgImageData) return null;
-
-            const { data, width: fullW, height: fullH } = state.bgImageData;
-            const R = 12;
-            const startX = Math.max(0, Math.floor(pos.x - R));
-            const startY = Math.max(0, Math.floor(pos.y - R));
-            const endX = Math.min(fullW, startX + R * 2);
-            const endY = Math.min(fullH, startY + R * 2);
-
-            if (endX <= startX || endY <= startY) return pos;
-
-            let minDistance = Infinity;
-            let bestX = pos.x;
-            let bestY = pos.y;
-
-            for (let y = startY; y < endY; y++) {
-                for (let x = startX; x < endX; x++) {
-                    const idx = (y * fullW + x) * 4;
-                    const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-
-                    if (brightness < 120) {
-                        const dist = Math.hypot(x - pos.x, y - pos.y);
-                        if (dist < minDistance) {
-                            minDistance = dist;
-                            bestX = x;
-                            bestY = y;
-                        }
-                    }
-                }
-            }
-
-            return minDistance <= R ? { x: bestX, y: bestY } : null;
+            updateTablesAndStats();
         }
 
         function isDarkNear(x, y, radius = 2) {
@@ -648,8 +639,8 @@
             return false;
         }
 
-        // Prefer pixels that are part of a sufficiently long straight drawing line,
-        // avoiding text, component symbols, and the page frame where possible.
+        const ENDPOINT_SNAP_ANGLES = [0, 15, 30, 35, 50, 75, 90];
+
         function lineSupportScore(x, y) {
             let best = 0;
             for (const angle of ENDPOINT_SNAP_ANGLES) {
@@ -777,81 +768,70 @@
             return isAngleAllowed(from, to, allowedAngles) && isSegmentOnBaseLine(from, to);
         }
 
-        function snapWaypointAxis(pos, waypointIdx, waypoints) {
-            if (!state.bgImageData) return pos;
+        function segmentsIntersect(a, b, c, d) {
+            const cross = (p1, p2, p3) =>
+                (p2.x - p1.x) * (p3.y - p1.y) - (p2.y - p1.y) * (p3.x - p1.x);
+            const c1 = cross(a, b, c), c2 = cross(a, b, d);
+            const c3 = cross(c, d, a), c4 = cross(c, d, b);
+            return ((c1 > 0 && c2 < 0) || (c1 < 0 && c2 > 0))
+                && ((c3 > 0 && c4 < 0) || (c3 < 0 && c4 > 0));
+        }
 
-            const { data, width: fullW, height: fullH } = state.bgImageData;
-            const R = 16;
-            const startX = Math.max(0, Math.floor(pos.x - R));
-            const startY = Math.max(0, Math.floor(pos.y - R));
-            const endX = Math.min(fullW, startX + R * 2);
-            const endY = Math.min(fullH, startY + R * 2);
+        function segmentDistance(a, b, c, d) {
+            if (segmentsIntersect(a, b, c, d)) return 0;
+            return Math.min(
+                distToSegment(a.x, a.y, c.x, c.y, d.x, d.y).dist,
+                distToSegment(b.x, b.y, c.x, c.y, d.x, d.y).dist,
+                distToSegment(c.x, c.y, a.x, a.y, b.x, b.y).dist,
+                distToSegment(d.x, d.y, a.x, a.y, b.x, b.y).dist
+            );
+        }
 
-            let snapped = { ...pos };
+        function routeCollisionScore(pointA, pointB, waypoints) {
+            const routePoints = [pointA, ...waypoints, pointB];
+            let score = 0;
+            const safeDistance = Math.max(8, parseFloat(state.defaultSq) * 4);
 
-            if (endX > startX && endY > startY) {
-                let bestX = pos.x, bestY = pos.y, minD = Infinity;
-
-                for (let y = startY; y < endY; y++) {
-                    for (let x = startX; x < endX; x++) {
-                        const idx = (y * fullW + x) * 4;
-                        const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-                        if (brightness < 110) {
-                            const dist = Math.hypot(x - pos.x, y - pos.y);
-                            if (dist < minD) {
-                                minD = dist;
-                                bestX = x;
-                                bestY = y;
-                            }
-                        }
+            for (const wire of state.wires) {
+                if (wire.page !== state.currentPage) continue;
+                const existingPoints = [wire.pointA, ...wire.waypoints, wire.pointB];
+                for (let i = 0; i < routePoints.length - 1; i++) {
+                    for (let j = 0; j < existingPoints.length - 1; j++) {
+                        const distance = segmentDistance(routePoints[i], routePoints[i + 1], existingPoints[j], existingPoints[j + 1]);
+                        if (distance < safeDistance) score += (safeDistance - distance) ** 2;
                     }
                 }
-                if (minD <= R) {
-                    snapped = { x: bestX, y: bestY };
-                }
             }
-
-            return snapped;
-        }
-
-        // The first and final leg may use these practical wiring angles.
-        // Every leg between waypoints remains horizontal or vertical.
-        const ENDPOINT_SNAP_ANGLES = [0, 15, 30, 35, 50, 75, 90];
-
-        function getAngledEndpointWaypoint(endpoint, otherEndpoint, length) {
-            const dx = otherEndpoint.x - endpoint.x;
-            const dy = otherEndpoint.y - endpoint.y;
-            const absoluteAngle = Math.atan2(Math.abs(dy), Math.abs(dx)) * 180 / Math.PI;
-            const snappedAngle = ENDPOINT_SNAP_ANGLES.reduce((closest, angle) =>
-                Math.abs(angle - absoluteAngle) < Math.abs(closest - absoluteAngle) ? angle : closest
-            );
-            const radians = snappedAngle * Math.PI / 180;
-            const signX = dx === 0 ? 0 : Math.sign(dx);
-            const signY = dy === 0 ? 0 : Math.sign(dy);
-            return {
-                x: Math.round(endpoint.x + signX * Math.cos(radians) * length),
-                y: Math.round(endpoint.y + signY * Math.sin(radians) * length)
-            };
-        }
-
-        function removeDuplicateWaypoints(points) {
-            return points.filter((point, index) => {
-                const previous = points[index - 1];
-                return !previous || Math.hypot(point.x - previous.x, point.y - previous.y) > 1;
-            });
+            return score;
         }
 
         function calculateOrthogonalRoute(pointA, pointB) {
-            const distance = Math.hypot(pointB.x - pointA.x, pointB.y - pointA.y);
-            if (distance < 2) return [];
+            const dx = Math.abs(pointB.x - pointA.x);
+            const dy = Math.abs(pointB.y - pointA.y);
 
-            // A short angled lead is created at both endpoints. The section between
-            // those leads is made only from horizontal / vertical (90-degree) legs.
-            const leadLength = Math.max(12, Math.min(70, distance * 0.28));
-            const startWaypoint = getAngledEndpointWaypoint(pointA, pointB, leadLength);
-            const endWaypoint = getAngledEndpointWaypoint(pointB, pointA, leadLength);
-            const cornerWaypoint = { x: endWaypoint.x, y: startWaypoint.y };
-            return removeDuplicateWaypoints([startWaypoint, cornerWaypoint, endWaypoint]);
+            if (dx < 3 || dy < 3) return [];
+
+            const midX = Math.round((pointA.x + pointB.x) / 2);
+            const midY = Math.round((pointA.y + pointB.y) / 2);
+            const offsets = [0, -25, 25, -50, 50, -90, 90, -140, 140];
+            const candidates = [];
+            for (const offset of offsets) {
+                const x = midX + offset;
+                candidates.push([{ x, y: pointA.y }, { x, y: pointB.y }]);
+                const y = midY + offset;
+                candidates.push([{ x: pointA.x, y }, { x: pointB.x, y }]);
+            }
+
+            let bestRoute = candidates[0];
+            let bestScore = Infinity;
+            for (const candidate of candidates) {
+                const score = routeCollisionScore(pointA, pointB, candidate);
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestRoute = candidate;
+                }
+            }
+            return bestRoute;
         }
 
         function snapToExistingWire(pos) {
@@ -875,7 +855,6 @@
             return closest ? { x: Math.round(closest.x), y: Math.round(closest.y) } : null;
         }
 
-        // Keep B just clear of an existing coloured wire instead of covering it.
         function getClearanceBPoint(pointA, pos) {
             const existingWirePoint = snapToExistingWire(pos);
             if (!existingWirePoint) return snapToCircuitLine(pos);
@@ -885,7 +864,6 @@
             const distance = Math.hypot(dx, dy);
             if (distance < 1) return existingWirePoint;
 
-            // Keep a 2px gap where possible; use the midpoint when the span is shorter.
             const clearance = Math.min(2, distance / 2);
             return {
                 x: Math.round(existingWirePoint.x + dx / distance * clearance),
@@ -896,7 +874,6 @@
         function drawDiagram(isExport = false) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 1. Background
             if (state.bgImage) {
                 ctx.drawImage(state.bgImage, 0, 0);
             } else {
@@ -904,7 +881,6 @@
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
 
-            // 2. Existing Wires
             state.wires.forEach(wire => {
                 if (wire.page !== state.currentPage) return;
 
@@ -955,7 +931,6 @@
                 }
             });
 
-            // 3. Active Preview
             if (state.activePointA && state.activeMousePos && !isExport) {
                 const tempB = getClearanceBPoint(state.activePointA, state.activeMousePos)
                     || state.activeMousePos;
@@ -1085,7 +1060,6 @@
             if (state.draggingHandle) {
                 const wire = state.wires.find(w => w.id === state.draggingHandle.wireId);
                 if (wire) {
-                    // Handles may only be placed on a detected base-diagram wire.
                     const snapped = snapToCircuitLine(pos);
                     if (!snapped) return;
                     updateWaypointAngleHint(e, wire, state.draggingHandle, snapped);
@@ -1143,9 +1117,10 @@
             state.isLongPress = false;
         }
 
+        // Gentle, smooth mouse wheel zooming
         function handleCanvasWheel(e) {
             e.preventDefault();
-            const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+            const zoomFactor = e.deltaY < 0 ? 1.04 : 0.96;
             const rect = canvasWrapper.getBoundingClientRect();
             adjustZoom(zoomFactor, {
                 x: e.clientX - rect.left,
@@ -1157,6 +1132,7 @@
             clearTimeout(state.clickDelayTimer);
             const pos = getCanvasCoords(e);
 
+            // 1. Delete waypoint if double clicking existing handle node
             for (let wire of state.wires) {
                 if (wire.page !== state.currentPage) continue;
                 for (let i = 0; i < wire.waypoints.length; i++) {
@@ -1171,6 +1147,7 @@
                 }
             }
 
+            // 2. Insert waypoint if double clicking directly on an existing wire segment
             let closest = null;
             for (let wire of state.wires) {
                 if (wire.page !== state.currentPage) continue;
@@ -1184,16 +1161,39 @@
             }
 
             if (closest) {
-                const snappedWaypoint = snapToCircuitLine(pos);
-                if (!snappedWaypoint) {
-                    showToast('折点は底図の導線上にのみ追加できます');
-                    return;
-                }
+                const snappedWaypoint = snapToCircuitLine(pos) || pos;
                 closest.wire.waypoints.splice(closest.segIndex, 0, snappedWaypoint);
                 state.selectedWireId = closest.wire.id;
                 drawDiagram();
                 updateTablesAndStats();
                 showToast('折点を追加しました');
+                return;
+            }
+
+            // 3. NEW: If a wire is selected AND double-clicking over a dark circuit line, insert waypoint into selected wire
+            if (state.selectedWireId) {
+                const selectedWire = state.wires.find(w => w.id === state.selectedWireId && w.page === state.currentPage);
+                if (selectedWire) {
+                    const snappedWaypoint = snapToCircuitLine(pos);
+                    if (snappedWaypoint || isDarkNear(pos.x, pos.y, 4)) {
+                        const newPoint = snappedWaypoint || pos;
+                        const fullPoints = [selectedWire.pointA, ...selectedWire.waypoints, selectedWire.pointB];
+                        let bestSegIndex = 0;
+                        let minDist = Infinity;
+                        for (let i = 0; i < fullPoints.length - 1; i++) {
+                            const { dist } = distToSegment(newPoint.x, newPoint.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                bestSegIndex = i;
+                            }
+                        }
+                        selectedWire.waypoints.splice(bestSegIndex, 0, newPoint);
+                        drawDiagram();
+                        updateTablesAndStats();
+                        showToast('選擇中の配線に底図導線の折点を追加しました');
+                        return;
+                    }
+                }
             }
         }
 
@@ -1208,8 +1208,6 @@
 
         function processCanvasClick(pos, addWaypoint = false) {
             if (state.activePointA) {
-                // For B, an existing coloured wire is the most precise target: use
-                // its nearest centreline point before falling back to the base drawing.
                 const snappedPos = !addWaypoint
                     ? getClearanceBPoint(state.activePointA, pos)
                     : snapToCircuitLine(pos);
@@ -1226,11 +1224,7 @@
                     return;
                 }
 
-                // A/B can be chosen first even if the final angle has not yet been
-                // adjusted. The angle badge is advisory; it never blocks placement.
                 const pointB = snappedPos;
-                // Create provisional bend handles after A/B selection so the route
-                // can be refined afterwards. Explicit Shift-clicked bends take priority.
                 const waypoints = state.activeWaypoints.length > 0
                     ? [...state.activeWaypoints]
                     : calculateOrthogonalRoute(state.activePointA, pointB);
@@ -1238,7 +1232,8 @@
                     const newWire = {
                         id: 'wire_' + Date.now(), page: state.currentPage,
                         pointA: state.activePointA, pointB, waypoints,
-                        markText: state.defaultMarkText, sq: state.defaultSq, color: state.defaultColor
+                        markText: state.defaultMarkText, sq: state.defaultSq, color: state.defaultColor,
+                        isTerminal: true
                     };
                     state.wires.push(newWire);
                     state.selectedWireId = newWire.id;
@@ -1326,16 +1321,71 @@
             showToast('A点を解除しました');
         }
 
+        function addMarkTextToHistory(text) {
+            if (!text) return;
+            state.markTextHistory = state.markTextHistory.filter(t => t !== text);
+            state.markTextHistory.push(text);
+            if (state.markTextHistory.length > 15) {
+                state.markTextHistory.shift();
+            }
+            renderMarkTextHistory();
+            updateMarkTextSuggestions();
+        }
+
+        function renderMarkTextHistory() {
+            const container = document.getElementById('markTextHistory');
+            if (!container) return;
+            container.innerHTML = '';
+            const recent = [...state.markTextHistory].reverse().slice(0, 6);
+            recent.forEach(text => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'px-1.5 py-0.5 rounded bg-slate-700 hover:bg-indigo-600 text-slate-200 hover:text-white text-[10px] font-mono transition';
+                btn.textContent = text;
+                btn.onclick = () => {
+                    const input = document.getElementById('modalMarkText');
+                    input.value = text;
+                    input.focus();
+                    input.select();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function updateMarkTextSuggestions() {
+            const datalist = document.getElementById('markTextSuggestions');
+            if (!datalist) return;
+            datalist.innerHTML = '';
+            const unique = new Set([...state.markTextHistory, ...state.wires.map(w => w.markText)]);
+            unique.forEach(text => {
+                const option = document.createElement('option');
+                option.value = text;
+                datalist.appendChild(option);
+            });
+        }
+
         function openWireModalForAdd(pointA, pointB, waypoints) {
             state.editingWireId = null;
             document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-indigo-400 me-2"></i>配線パラメータ確認';
             document.getElementById('modalMarkText').value = state.defaultMarkText;
+            document.getElementById('modalTerminalConnection').checked = true;
             modalTempSq = state.defaultSq;
             modalTempColor = state.defaultColor;
             syncModalButtonHighlights();
 
+            renderMarkTextHistory();
+            updateMarkTextSuggestions();
+
             state.pendingWireData = { pointA, pointB, waypoints };
             wireModal.classList.remove('hidden');
+
+            setTimeout(() => {
+                const input = document.getElementById('modalMarkText');
+                if (input) {
+                    input.focus();
+                    input.select();
+                }
+            }, 50);
         }
 
         function syncModalButtonHighlights() {
@@ -1356,6 +1406,7 @@
             const markText = document.getElementById('modalMarkText').value.trim() || '101';
             const sq = modalTempSq;
             const color = modalTempColor;
+            const isTerminal = document.getElementById('modalTerminalConnection').checked;
 
             state.defaultMarkText = markText;
             state.defaultSq = sq;
@@ -1363,6 +1414,7 @@
             state.defaultColorName = COLOR_NAMES[color] || '電線';
 
             document.getElementById('sidebarMarkText').value = markText;
+            addMarkTextToHistory(markText);
 
             if (state.editingWireId) {
                 const wire = state.wires.find(w => w.id === state.editingWireId);
@@ -1370,6 +1422,7 @@
                     wire.markText = markText;
                     wire.sq = sq;
                     wire.color = color;
+                    wire.isTerminal = isTerminal;
                     showToast('配線パラメータを更新しました');
                 }
             } else if (state.pendingWireData) {
@@ -1381,7 +1434,8 @@
                     waypoints: state.pendingWireData.waypoints,
                     markText: markText,
                     sq: sq,
-                    color: color
+                    color: color,
+                    isTerminal: isTerminal
                 };
                 state.wires.push(newWire);
                 state.selectedWireId = newWire.id;
@@ -1404,11 +1458,23 @@
             state.editingWireId = wireId;
             document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-indigo-400 me-2"></i>配線パラメータ編集';
             document.getElementById('modalMarkText').value = wire.markText;
+            document.getElementById('modalTerminalConnection').checked = wire.isTerminal !== false;
             modalTempSq = wire.sq;
             modalTempColor = wire.color;
             syncModalButtonHighlights();
 
+            renderMarkTextHistory();
+            updateMarkTextSuggestions();
+
             wireModal.classList.remove('hidden');
+
+            setTimeout(() => {
+                const input = document.getElementById('modalMarkText');
+                if (input) {
+                    input.focus();
+                    input.select();
+                }
+            }, 50);
         }
 
         function closeModal() {
@@ -1468,9 +1534,12 @@
                 });
             }
 
+            const totalTerminalPoints = state.wires.filter(w => w.isTerminal !== false).length;
+
             document.getElementById('wireCountBadge').innerText = `${pageWires.length} 本`;
             document.getElementById('totalWireCount').innerText = `${state.wires.length} 本`;
             document.getElementById('totalTubeCount').innerText = `${state.wires.length * 2} 個`;
+            document.getElementById('totalTerminalCount').innerText = `${totalTerminalPoints} 点`;
         }
 
         function adjustZoom(factor, anchor = null) {
@@ -1478,8 +1547,6 @@
             const newScale = Math.max(0.2, Math.min(5.0, oldScale * factor));
             if (newScale === oldScale) return;
 
-            // Preserve the diagram point underneath the cursor while zooming.
-            // Toolbar buttons omit an anchor, so they zoom around the viewport centre.
             const rect = canvasWrapper.getBoundingClientRect();
             const anchorX = anchor ? anchor.x : rect.width / 2;
             const anchorY = anchor ? anchor.y : rect.height / 2;
@@ -1504,8 +1571,6 @@
             applyCanvasTransform();
         }
 
-        // Supports page lists such as "1,3,5-7". Invalid pages are rejected
-        // rather than silently exporting a different set of pages.
         function getTargetPages() {
             if (state.exportPageMode === 'current') return [state.currentPage];
             if (state.exportPageMode === 'all') {
@@ -1663,7 +1728,6 @@
             }
         }
 
-        // 5.5 SQ and larger wires do not require mark tubes.
         const MARK_TUBE_SIZE_BY_SQ = {
             '0.5': '3.2Φ',
             '0.75': '3.2Φ',
@@ -1690,20 +1754,26 @@
                         return;
                     }
 
-                    // Separate rows are kept when the same print text needs a different tube diameter.
-                    const key = `${wire.markText}\u0000${tubeSize}`;
+                    const isTerminalText = wire.isTerminal !== false ? 'あり' : 'なし';
+                    const key = `${wire.markText}\u0000${tubeSize}\u0000${isTerminalText}`;
+                    
                     if (!summaryByKey.has(key)) {
                         summaryByKey.set(key, {
                             markText: wire.markText,
+                            isTerminalText,
                             tubeSize,
                             sqs: new Set(),
                             quantity: 0,
+                            terminalPoints: 0,
                             pages: new Set()
                         });
                     }
                     const item = summaryByKey.get(key);
                     item.sqs.add(wire.sq);
-                    item.quantity += 2; // one tube at each end of a wire
+                    item.quantity += 2;
+                    if (wire.isTerminal !== false) {
+                        item.terminalPoints += 1;
+                    }
                     item.pages.add(wire.page);
                 });
 
@@ -1711,9 +1781,11 @@
                 .sort((a, b) => a.markText.localeCompare(b.markText, 'ja') || a.tubeSize.localeCompare(b.tubeSize))
                 .map(item => ({
                     markText: item.markText,
+                    isTerminalText: item.isTerminalText,
                     tubeSize: item.tubeSize,
                     sqs: [...item.sqs].sort((a, b) => Number(a) - Number(b)).join(' / '),
                     quantity: item.quantity,
+                    terminalPoints: item.terminalPoints,
                     pages: [...item.pages].sort((a, b) => a - b).join(', ')
                 }));
             return { items, excludedWireCount };
@@ -1736,14 +1808,17 @@
             const data = getMarkTubeExportData();
             if (!data) return;
 
+            const totalTermPoints = data.items.reduce((sum, item) => sum + item.terminalPoints, 0);
+
             const rows = [
-                ['マークチューブ印字', 'マークチューブ尺寸', '対象電線サイズ(SQ)', '必要数(個)', '対象頁'],
-                ...data.items.map(item => [item.markText, item.tubeSize, item.sqs, item.quantity, item.pages])
+                ['マークチューブ印字', '端子台接続', 'マークチューブ尺寸', '対象電線サイズ(SQ)', '必要数(個)', '端子必要数(点)', '対象頁'],
+                ...data.items.map(item => [item.markText, item.isTerminalText, item.tubeSize, item.sqs, item.quantity, item.terminalPoints, item.pages]),
+                ['合計', '', '', '', '', totalTermPoints, '']
             ];
             const worksheet = XLSX.utils.aoa_to_sheet(rows);
-            worksheet['!autofilter'] = { ref: `A1:E${Math.max(rows.length, 2)}` };
+            worksheet['!autofilter'] = { ref: `A1:G${Math.max(rows.length - 1, 2)}` };
             worksheet['!cols'] = [
-                { wch: 22 }, { wch: 22 }, { wch: 22 }, { wch: 12 }, { wch: 16 }
+                { wch: 22 }, { wch: 14 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 16 }, { wch: 16 }
             ];
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, 'マークチューブ集計');
@@ -1757,16 +1832,21 @@
             const data = getMarkTubeExportData();
             if (!data) return;
 
-            let csvContent = "\uFEFFマークチューブ印字,マークチューブ尺寸,対象電線サイズ(SQ),必要数(個),対象頁\n";
+            const totalTermPoints = data.items.reduce((sum, item) => sum + item.terminalPoints, 0);
+
+            let csvContent = "\uFEFFマークチューブ印字,端子台接続,マークチューブ尺寸,対象電線サイズ(SQ),必要数(個),端子必要数(点),対象頁\n";
             data.items.forEach(item => {
                     csvContent += [
                         escapeCSV(item.markText),
+                        escapeCSV(item.isTerminalText),
                         item.tubeSize,
                         escapeCSV(item.sqs),
                         item.quantity,
+                        item.terminalPoints,
                         escapeCSV(item.pages)
                     ].join(',') + '\n';
             });
+            csvContent += `合計,,,,,"${totalTermPoints}",\n`;
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
