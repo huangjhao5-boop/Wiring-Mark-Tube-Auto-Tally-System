@@ -152,6 +152,12 @@
                         <input type="text" id="sidebarMarkText" value="101" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono">
                     </div>
 
+                    <!-- Default Terminal Block Switch -->
+                    <div class="flex items-center justify-between bg-slate-900/50 p-2 rounded border border-slate-700">
+                        <span class="text-xs text-slate-300 font-medium">端子台接続 (初期値)</span>
+                        <input type="checkbox" id="chkDefaultTerminal" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer" checked>
+                    </div>
+
                     <!-- Continuous Mode Switch -->
                     <div class="flex items-center justify-between bg-slate-900/50 p-2 rounded border border-slate-700">
                         <span class="text-xs text-slate-300 font-medium">連続作図モード</span>
@@ -341,6 +347,7 @@
             defaultSq: '1.25',
             defaultColor: '#dc2626',
             defaultColorName: '赤',
+            defaultIsTerminal: true,
             isContinuous: false,
 
             // Input History Chips
@@ -450,6 +457,10 @@
 
             document.getElementById('sidebarMarkText').oninput = (e) => {
                 state.defaultMarkText = e.target.value.trim();
+            };
+
+            document.getElementById('chkDefaultTerminal').onchange = (e) => {
+                state.defaultIsTerminal = e.target.checked;
             };
 
             document.getElementById('chkContinuous').onchange = (e) => {
@@ -1233,7 +1244,7 @@
                         id: 'wire_' + Date.now(), page: state.currentPage,
                         pointA: state.activePointA, pointB, waypoints,
                         markText: state.defaultMarkText, sq: state.defaultSq, color: state.defaultColor,
-                        isTerminal: true
+                        isTerminal: state.defaultIsTerminal
                     };
                     state.wires.push(newWire);
                     state.selectedWireId = newWire.id;
@@ -1368,7 +1379,7 @@
             state.editingWireId = null;
             document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-indigo-400 me-2"></i>配線パラメータ確認';
             document.getElementById('modalMarkText').value = state.defaultMarkText;
-            document.getElementById('modalTerminalConnection').checked = true;
+            document.getElementById('modalTerminalConnection').checked = state.defaultIsTerminal;
             modalTempSq = state.defaultSq;
             modalTempColor = state.defaultColor;
             syncModalButtonHighlights();
@@ -1412,6 +1423,10 @@
             state.defaultSq = sq;
             state.defaultColor = color;
             state.defaultColorName = COLOR_NAMES[color] || '電線';
+            state.defaultIsTerminal = isTerminal;
+
+            const chkDefault = document.getElementById('chkDefaultTerminal');
+            if (chkDefault) chkDefault.checked = isTerminal;
 
             document.getElementById('sidebarMarkText').value = markText;
             addMarkTextToHistory(markText);
@@ -1548,8 +1563,8 @@
             if (newScale === oldScale) return;
 
             const rect = canvasWrapper.getBoundingClientRect();
-            const anchorX = anchor ? anchor.x : rect.width / 2;
-            const anchorY = anchor ? anchor.y : rect.height / 2;
+            anchorX = anchor ? anchor.x : rect.width / 2;
+            anchorY = anchor ? anchor.y : rect.height / 2;
             const diagramX = (anchorX - state.panX) / oldScale;
             const diagramY = (anchorY - state.panY) / oldScale;
 
