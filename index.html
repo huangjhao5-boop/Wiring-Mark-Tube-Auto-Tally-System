@@ -467,13 +467,13 @@
                 state.isContinuous = e.target.checked;
             };
 
-            // Modal Enter Key Confirm
-            document.getElementById('modalMarkText').onkeydown = (e) => {
-                if (e.key === 'Enter') {
+            // Modal Enter Key Confirm (Anywhere inside modal when not in IME composition)
+            document.getElementById('wireModal').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.isComposing) {
                     e.preventDefault();
                     handleModalConfirm();
                 }
-            };
+            });
 
             // Modal SQ/Color button grids
             document.getElementById('modalSqButtons').onclick = (e) => {
