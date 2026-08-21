@@ -232,10 +232,10 @@
                         </div>
 
                         <!-- 端子台接続 標記選項 -->
-                        <label class="flex items-center gap-2 bg-slate-900/60 p-2 rounded border border-slate-700 cursor-pointer">
-                            <input type="checkbox" id="modalTerminalConnection" class="w-4 h-4 accent-indigo-600 cursor-pointer" checked>
-                            <span class="text-slate-200 font-medium">端子台接続</span>
-                            <span class="text-[10px] text-slate-400">端子必要數に加算 (+1點)</span>
+                        <label class="flex items-center gap-2 bg-amber-950/40 p-2 rounded border border-amber-500/50 cursor-pointer">
+                            <input type="checkbox" id="modalTerminalConnection" class="w-4 h-4 accent-amber-500 cursor-pointer" checked>
+                            <span class="text-amber-200 font-semibold">端子台接続</span>
+                            <span class="text-[10px] text-amber-400"> (黃框標記 & 積算+1點)</span>
                         </label>
 
                         <div>
@@ -926,11 +926,11 @@
 
                 if (wire.waypoints.length > 0) {
                     const midWp = wire.waypoints[Math.floor(wire.waypoints.length / 2)];
-                    drawMarkTubeTag(midWp.x, midWp.y, wire.markText, isSelected && !isExport);
+                    drawMarkTubeTag(midWp.x, midWp.y, wire.markText, isSelected && !isExport, wire.isTerminal !== false);
                 } else {
                     const midX = (wire.pointA.x + wire.pointB.x) / 2;
                     const midY = (wire.pointA.y + wire.pointB.y) / 2;
-                    drawMarkTubeTag(midX, midY, wire.markText, isSelected && !isExport);
+                    drawMarkTubeTag(midX, midY, wire.markText, isSelected && !isExport, wire.isTerminal !== false);
                 }
 
                 if (!isExport && isSelected) {
@@ -964,22 +964,35 @@
             }
         }
 
-        function drawMarkTubeTag(x, y, text, isSelected) {
+        // Draw Mark Tube Tag with distinct color styling for Terminal Block wires
+        function drawMarkTubeTag(x, y, text, isSelected, isTerminal = true) {
             ctx.font = 'bold 11px monospace';
             const metrics = ctx.measureText(text);
             const w = metrics.width + 12;
             const h = 18;
 
-            ctx.fillStyle = isSelected ? '#fef08a' : '#ffffff';
-            ctx.strokeStyle = '#1e293b';
-            ctx.lineWidth = 1.5;
+            if (isSelected) {
+                ctx.fillStyle = '#fef08a';
+                ctx.strokeStyle = '#ca8a04';
+                ctx.lineWidth = 2.5;
+            } else if (isTerminal) {
+                // Amber/Yellow background & border for Terminal Block connected wires
+                ctx.fillStyle = '#fef3c7';
+                ctx.strokeStyle = '#d97706';
+                ctx.lineWidth = 2.0;
+            } else {
+                // Default white background & dark slate border for Non-terminal wires
+                ctx.fillStyle = '#ffffff';
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 1.5;
+            }
 
             ctx.beginPath();
             ctx.roundRect(x - w/2, y - h/2, w, h, 4);
             ctx.fill();
             ctx.stroke();
 
-            ctx.fillStyle = '#0f172a';
+            ctx.fillStyle = isTerminal ? '#92400e' : '#0f172a';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(text, x, y);
@@ -1525,12 +1538,16 @@
                     card.className = `p-2.5 rounded-lg border text-xs flex items-center justify-between transition ${wire.id === state.selectedWireId ? 'bg-slate-700/80 border-indigo-500 shadow' : 'bg-slate-900/60 border-slate-700/80'}`;
                     
                     const colorName = COLOR_NAMES[wire.color] || '色名';
+                    const terminalBadge = wire.isTerminal !== false
+                        ? `<span class="bg-amber-900/60 text-amber-300 text-[9px] font-semibold px-1.5 py-0.5 rounded border border-amber-500/40">端子台</span>`
+                        : `<span class="bg-slate-800 text-slate-400 text-[9px] px-1.5 py-0.5 rounded border border-slate-700">直結</span>`;
 
                     card.innerHTML = `
                         <div class="space-y-0.5">
                             <div class="flex items-center space-x-2">
                                 <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${wire.color}"></span>
                                 <span class="font-bold text-white font-mono">${wire.markText}</span>
+                                ${terminalBadge}
                             </div>
                             <div class="text-[10px] text-slate-400">
                                 <span>${wire.sq} SQ</span> | <span>${colorName}</span>
