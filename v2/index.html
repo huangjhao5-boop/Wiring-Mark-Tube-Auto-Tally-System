@@ -22,7 +22,7 @@
         .canvas-container {
             background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
             background-size: 20px 20px;
-            touch-action: none; /* Prevent default browser scroll & gestures on canvas */
+            touch-action: none;
         }
         /* Custom scrollbars */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -34,82 +34,64 @@
         @media (max-width: 768px) {
             .mobile-sidebar {
                 position: fixed;
-                top: 48px;
+                top: 44px;
                 bottom: 0;
                 z-index: 40;
-                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
             }
         }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 h-screen flex flex-col overflow-hidden select-none">
 
-    <!-- Top Navigation Header -->
-    <header class="bg-slate-800 border-b border-slate-700 px-2 sm:px-4 py-1.5 sm:py-2.5 flex items-center justify-between z-20 shrink-0 gap-1 sm:gap-2">
-        <div class="flex items-center space-x-1.5 sm:space-x-3 min-w-0">
-            <div class="bg-indigo-600 text-white p-1 sm:p-2 rounded-lg shadow shrink-0">
-                <i class="fa-solid fa-diagram-project text-xs sm:text-lg"></i>
+    <!-- Top Navigation Header (Compact 1-Row Responsive Layout) -->
+    <header class="bg-slate-800 border-b border-slate-700 px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between z-20 shrink-0 gap-1">
+        <!-- Left: Logo & Title -->
+        <div class="flex items-center space-x-1.5 shrink-0">
+            <div class="bg-indigo-600 text-white p-1 sm:p-1.5 rounded-lg shadow">
+                <i class="fa-solid fa-diagram-project text-xs sm:text-base"></i>
             </div>
-            <div class="min-w-0">
-                <h1 class="text-xs sm:text-base font-bold text-white tracking-wide truncate">
-                    <span class="hidden sm:inline">ハード図面配線 & マークチューブ自動集計系統</span>
-                    <span class="sm:hidden">配線集計系統</span>
-                </h1>
-                <p class="text-[10px] text-slate-400 hidden sm:block">配線作図・自動ナンバリング・積算システム</p>
-            </div>
+            <span class="font-bold text-white text-xs sm:text-sm tracking-tight">
+                <span class="hidden sm:inline">ハード図面配線 & マークチューブ自動集計系統</span>
+                <span class="sm:hidden">配線集計</span>
+            </span>
         </div>
 
-        <!-- Center View Controls -->
-        <div class="flex items-center space-x-1 sm:space-x-2 bg-slate-900/80 p-1 sm:p-1.5 rounded-lg border border-slate-700 shrink-0">
-            <!-- PDF Page Switcher -->
-            <button id="btnPrevPage" class="p-1 sm:p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition disabled:opacity-40" title="前ページ">
-                <i class="fa-solid fa-chevron-left text-[10px] sm:text-xs"></i>
+        <!-- Center: View Controls -->
+        <div class="flex items-center space-x-0.5 sm:space-x-1 bg-slate-900/80 p-0.5 sm:p-1 rounded-lg border border-slate-700 shrink-0">
+            <button id="btnPrevPage" class="p-1 text-slate-300 hover:text-white rounded transition disabled:opacity-40" title="前ページ">
+                <i class="fa-solid fa-chevron-left text-[10px]"></i>
             </button>
-            <span id="pageIndicator" class="text-[10px] sm:text-xs font-semibold px-1 sm:px-2 text-slate-300 font-mono">1/1</span>
-            <button id="btnNextPage" class="p-1 sm:p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition disabled:opacity-40" title="次ページ">
-                <i class="fa-solid fa-chevron-right text-[10px] sm:text-xs"></i>
+            <span id="pageIndicator" class="text-[10px] font-semibold px-1 text-slate-300 font-mono">1/1</span>
+            <button id="btnNextPage" class="p-1 text-slate-300 hover:text-white rounded transition disabled:opacity-40" title="次ページ">
+                <i class="fa-solid fa-chevron-right text-[10px]"></i>
             </button>
-            <div class="h-3 sm:h-4 w-[1px] bg-slate-700 mx-0.5 sm:mx-1"></div>
-
-            <!-- Zoom & Fit -->
-            <button id="btnZoomOut" class="p-1 sm:p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition" title="縮小">
-                <i class="fa-solid fa-minus text-[10px] sm:text-xs"></i>
+            <div class="h-3 w-[1px] bg-slate-700 mx-0.5"></div>
+            <button id="btnZoomOut" class="p-1 text-slate-300 hover:text-white rounded transition" title="縮小">
+                <i class="fa-solid fa-minus text-[10px]"></i>
             </button>
-            <span id="zoomIndicator" class="text-[10px] sm:text-xs font-mono text-indigo-400 w-9 sm:w-12 text-center">100%</span>
-            <button id="btnZoomIn" class="p-1 sm:p-1.5 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition" title="拡大">
-                <i class="fa-solid fa-plus text-[10px] sm:text-xs"></i>
+            <span id="zoomIndicator" class="text-[10px] font-mono text-indigo-400 w-8 text-center">100%</span>
+            <button id="btnZoomIn" class="p-1 text-slate-300 hover:text-white rounded transition" title="拡大">
+                <i class="fa-solid fa-plus text-[10px]"></i>
             </button>
-            <button id="btnFitPage" class="px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium bg-slate-700 hover:bg-slate-600 text-white rounded transition" title="全体表示">
-                <i class="fa-solid fa-expand sm:me-1"></i><span class="hidden sm:inline">整頁</span>
+            <button id="btnFitPage" class="px-1.5 py-0.5 text-[10px] font-medium bg-slate-700 hover:bg-slate-600 text-white rounded transition" title="全体表示">
+                <i class="fa-solid fa-expand"></i>
             </button>
         </div>
 
-        <!-- Right Output Actions -->
-        <div class="flex items-center space-x-1 sm:space-x-2 shrink-0">
-            <button id="toggleLeftSidebar" class="px-2 py-1 sm:px-2.5 sm:py-1.5 text-[11px] sm:text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md transition border border-slate-600">
-                <i class="fa-solid fa-sliders sm:me-1"></i><span class="hidden sm:inline">左設定</span>
+        <!-- Right: Actions -->
+        <div class="flex items-center space-x-1 shrink-0">
+            <button id="toggleLeftSidebar" class="px-2 py-1 text-[11px] bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition border border-slate-600" title="設定">
+                <i class="fa-solid fa-sliders sm:me-1"></i><span class="hidden sm:inline">設定</span>
             </button>
-            <button id="toggleRightSidebar" class="px-2 py-1 sm:px-2.5 sm:py-1.5 text-[11px] sm:text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md transition border border-slate-600">
-                <i class="fa-solid fa-list-check sm:me-1"></i><span class="hidden sm:inline">右明細</span>
+            <button id="toggleRightSidebar" class="px-2 py-1 text-[11px] bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition border border-slate-600" title="明細">
+                <i class="fa-solid fa-list-check sm:me-1"></i><span class="hidden sm:inline">明細</span>
             </button>
-
-            <div class="h-3 sm:h-4 w-[1px] bg-slate-700 mx-0.5 sm:mx-1 hidden md:block"></div>
-
-            <!-- 匯出頁面模式選擇器 -->
-            <select id="exportPageMode" class="hidden md:block px-2 py-1 text-xs bg-slate-700 text-slate-200 rounded border border-slate-600 focus:outline-none focus:border-indigo-500">
-                <option value="current">現在頁のみ</option>
-                <option value="all">全頁</option>
-                <option value="selected">頁を指定</option>
-            </select>
-            <input id="exportPageSelection" type="text" placeholder="例: 1,3,5-7" class="hidden w-20 px-2 py-1 text-xs bg-slate-700 text-slate-200 rounded border border-slate-600 focus:outline-none focus:border-indigo-500" title="出力するページ番号（例: 1,3,5-7）">
-
-            <div class="h-3 sm:h-4 w-[1px] bg-slate-700 mx-0.5 sm:mx-1"></div>
-
-            <button id="btnExportPng" class="px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-medium bg-slate-700 hover:bg-slate-600 text-white rounded-md transition border border-slate-600 flex items-center">
-                <i class="fa-solid fa-image sm:me-1.5 text-emerald-400"></i><span class="hidden sm:inline">PNG出力</span>
+            <button id="btnExportPdf" class="px-2 py-1 text-[11px] bg-indigo-600 hover:bg-indigo-500 text-white rounded shadow transition flex items-center" title="PDF出力">
+                <i class="fa-solid fa-file-pdf sm:me-1"></i><span class="hidden sm:inline">PDF</span>
             </button>
-            <button id="btnExportPdf" class="px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded-md shadow transition flex items-center">
-                <i class="fa-solid fa-file-pdf sm:me-1.5"></i><span class="hidden sm:inline">PDF出力</span>
+            <button id="btnExportPng" class="hidden sm:flex px-2 py-1 text-[11px] bg-slate-700 hover:bg-slate-600 text-white rounded transition border border-slate-600 items-center">
+                <i class="fa-solid fa-image sm:me-1 text-emerald-400"></i>PNG
             </button>
         </div>
     </header>
@@ -117,9 +99,9 @@
     <!-- Main Content Grid -->
     <div class="flex-1 flex overflow-hidden relative">
 
-        <!-- Left Sidebar: Settings & Shortcuts -->
-        <aside id="leftSidebar" class="mobile-sidebar w-60 bg-slate-800 border-r border-slate-700 p-3 flex flex-col justify-between shrink-0 transition-all duration-200 z-30 left-0">
-            <div class="space-y-3.5 overflow-y-auto pr-1">
+        <!-- Left Sidebar: Settings & Shortcuts (Hidden on mobile by default) -->
+        <aside id="leftSidebar" class="mobile-sidebar hidden md:flex w-60 bg-slate-800 border-r border-slate-700 p-3 flex-col justify-between shrink-0 transition-all duration-200 z-30 left-0">
+            <div class="space-y-3 overflow-y-auto pr-1">
                 <!-- Close Button on Mobile -->
                 <div class="flex items-center justify-between md:hidden border-b border-slate-700 pb-1.5">
                     <span class="text-xs font-bold text-indigo-400 uppercase">設定パネル</span>
@@ -223,83 +205,78 @@
                 💡 雙指=縮放平移 | 雙指點/長按=取消A點 | 雙擊=折點增刪
             </div>
 
-            <!-- Confirmation / Editing Modal (Compact & Mobile-Optimized) -->
+            <!-- Confirmation / Editing Modal (Compact, Single-View, Zero-Scroll Mobile Optimized) -->
             <div id="wireModal" class="hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-                <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-sm max-h-[92vh] flex flex-col p-3 sm:p-4 animate-in fade-in zoom-in duration-150 my-auto">
+                <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-sm flex flex-col p-3 animate-in fade-in zoom-in duration-150 my-auto">
                     <!-- Header -->
-                    <div class="flex items-center justify-between border-b border-slate-700 pb-2 shrink-0">
+                    <div class="flex items-center justify-between border-b border-slate-700 pb-1.5 mb-2 shrink-0">
                         <h3 id="modalTitle" class="text-xs sm:text-sm font-bold text-white flex items-center">
-                            <i class="fa-solid fa-pen-to-square text-indigo-400 me-1.5 sm:me-2"></i>配線パラメータ確認
+                            <i class="fa-solid fa-pen-to-square text-indigo-400 me-1.5"></i>配線パラメータ確認
                         </h3>
-                        <button id="btnModalClose" class="p-1 text-slate-400 hover:text-white text-xs sm:text-sm"><i class="fa-solid fa-xmark"></i></button>
+                        <button id="btnModalClose" class="p-1 text-slate-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
                     </div>
 
-                    <!-- Scrollable Modal Body -->
-                    <div class="space-y-2 sm:space-y-2.5 text-xs overflow-y-auto py-1 pr-0.5 flex-1">
+                    <!-- Modal Body (Compact 1-view layout) -->
+                    <div class="space-y-2 text-xs">
+                        <!-- Mark Text & Frequency Chips -->
                         <div>
-                            <label class="block text-slate-300 mb-1 font-medium text-[11px] sm:text-xs">マークチューブ印字</label>
-                            <input type="text" id="modalMarkText" list="markTextSuggestions" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-white font-mono text-xs sm:text-sm focus:border-indigo-500 focus:outline-none">
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-slate-300 font-medium text-[11px]">マークチューブ印字</label>
+                            </div>
+                            <input type="text" id="modalMarkText" list="markTextSuggestions" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white font-mono text-xs focus:border-indigo-500 focus:outline-none">
                             <datalist id="markTextSuggestions"></datalist>
-                            <div id="markTextHistory" class="flex flex-wrap gap-1 mt-1.5"></div>
+                            <div id="markTextHistory" class="flex flex-wrap gap-1 mt-1"></div>
                         </div>
 
+                        <!-- SQ Selection (Compact 1 Row of 6 Buttons) -->
                         <div>
-                            <label class="block text-slate-300 mb-1 font-medium text-[11px] sm:text-xs">電線サイズ (SQ)</label>
-                            <div id="modalSqButtons" class="grid grid-cols-3 gap-1 sm:gap-1.5">
-                                <button type="button" data-sq="0.5" class="modal-sq-btn flex flex-col items-center justify-center gap-0.5 sm:gap-1 py-1 sm:py-1.5 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[10px] sm:text-[11px] font-semibold hover:border-indigo-400 transition">
-                                    <span class="block w-5 sm:w-6 rounded-full bg-slate-400" style="height:2px"></span>0.5
-                                </button>
-                                <button type="button" data-sq="0.75" class="modal-sq-btn flex flex-col items-center justify-center gap-0.5 sm:gap-1 py-1 sm:py-1.5 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[10px] sm:text-[11px] font-semibold hover:border-indigo-400 transition">
-                                    <span class="block w-5 sm:w-6 rounded-full bg-slate-400" style="height:3px"></span>0.75
-                                </button>
-                                <button type="button" data-sq="1.25" class="modal-sq-btn flex flex-col items-center justify-center gap-0.5 sm:gap-1 py-1 sm:py-1.5 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[10px] sm:text-[11px] font-semibold hover:border-indigo-400 transition">
-                                    <span class="block w-5 sm:w-6 rounded-full bg-slate-400" style="height:4px"></span>1.25
-                                </button>
-                                <button type="button" data-sq="2.0" class="modal-sq-btn flex flex-col items-center justify-center gap-0.5 sm:gap-1 py-1 sm:py-1.5 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[10px] sm:text-[11px] font-semibold hover:border-indigo-400 transition">
-                                    <span class="block w-5 sm:w-6 rounded-full bg-slate-400" style="height:5px"></span>2.0
-                                </button>
-                                <button type="button" data-sq="3.5" class="modal-sq-btn flex flex-col items-center justify-center gap-0.5 sm:gap-1 py-1 sm:py-1.5 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[10px] sm:text-[11px] font-semibold hover:border-indigo-400 transition">
-                                    <span class="block w-5 sm:w-6 rounded-full bg-slate-400" style="height:6px"></span>3.5
-                                </button>
-                                <button type="button" data-sq="5.5" class="modal-sq-btn flex flex-col items-center justify-center gap-0.5 sm:gap-1 py-1 sm:py-1.5 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[10px] sm:text-[11px] font-semibold hover:border-indigo-400 transition">
-                                    <span class="block w-5 sm:w-6 rounded-full bg-slate-400" style="height:8px"></span>5.5
-                                </button>
+                            <label class="block text-slate-300 mb-1 font-medium text-[11px]">電線サイズ (SQ)</label>
+                            <div id="modalSqButtons" class="grid grid-cols-6 gap-1">
+                                <button type="button" data-sq="0.5" class="modal-sq-btn py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[10px] font-semibold text-center hover:border-indigo-400 transition">0.5</button>
+                                <button type="button" data-sq="0.75" class="modal-sq-btn py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[10px] font-semibold text-center hover:border-indigo-400 transition">0.75</button>
+                                <button type="button" data-sq="1.25" class="modal-sq-btn py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[10px] font-semibold text-center hover:border-indigo-400 transition">1.25</button>
+                                <button type="button" data-sq="2.0" class="modal-sq-btn py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[10px] font-semibold text-center hover:border-indigo-400 transition">2.0</button>
+                                <button type="button" data-sq="3.5" class="modal-sq-btn py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[10px] font-semibold text-center hover:border-indigo-400 transition">3.5</button>
+                                <button type="button" data-sq="5.5" class="modal-sq-btn py-1 rounded bg-slate-900 border border-slate-700 text-slate-200 text-[10px] font-semibold text-center hover:border-indigo-400 transition">5.5</button>
                             </div>
                         </div>
 
-                        <!-- 端子台接続 標記選項 -->
-                        <label class="flex items-center gap-2 bg-amber-950/40 p-1.5 sm:p-2 rounded border border-amber-500/50 cursor-pointer">
-                            <input type="checkbox" id="modalTerminalConnection" class="w-4 h-4 accent-amber-500 cursor-pointer shrink-0" checked>
-                            <span class="text-amber-200 font-semibold text-[11px] sm:text-xs">端子台接続</span>
-                            <span class="text-[9px] sm:text-[10px] text-amber-400"> (黃框標記 & 積算+1點)</span>
+                        <!-- Terminal Block Connection Toggle (Compact 1 Row) -->
+                        <label class="flex items-center justify-between bg-amber-950/40 px-2.5 py-1 rounded border border-amber-500/50 cursor-pointer">
+                            <div class="flex items-center gap-1.5">
+                                <input type="checkbox" id="modalTerminalConnection" class="w-3.5 h-3.5 accent-amber-500 cursor-pointer shrink-0" checked>
+                                <span class="text-amber-200 font-semibold text-[11px]">端子台接続</span>
+                            </div>
+                            <span class="text-[9px] text-amber-400">(黃框標記 & 積算+1點)</span>
                         </label>
 
+                        <!-- Wire Color Selection (Compact 1 Row of 8 Buttons) -->
                         <div>
-                            <label class="block text-slate-300 mb-1 font-medium text-[11px] sm:text-xs">電線色</label>
-                            <div id="modalColorButtons" class="grid grid-cols-4 gap-1 sm:gap-1.5">
-                                <button type="button" data-color="#dc2626" data-name="赤" class="modal-color-btn p-1 sm:p-1.5 rounded border-2 border-transparent bg-red-600 text-white text-[10px] font-bold text-center">赤</button>
-                                <button type="button" data-color="#2563eb" data-name="青" class="modal-color-btn p-1 sm:p-1.5 rounded border-2 border-transparent bg-blue-600 text-white text-[10px] font-bold text-center">青</button>
-                                <button type="button" data-color="#eab308" data-name="黄" class="modal-color-btn p-1 sm:p-1.5 rounded border-2 border-transparent bg-yellow-500 text-slate-900 text-[10px] font-bold text-center">黄</button>
-                                <button type="button" data-color="#16a34a" data-name="緑" class="modal-color-btn p-1 sm:p-1.5 rounded border-2 border-transparent bg-green-600 text-white text-[10px] font-bold text-center">緑</button>
-                                <button type="button" data-color="#18181b" data-name="黒" class="modal-color-btn p-1 sm:p-1.5 rounded border-2 border-transparent bg-zinc-900 text-white text-[10px] font-bold text-center">黒</button>
-                                <button type="button" data-color="#f8fafc" data-name="白" class="modal-color-btn p-1 sm:p-1.5 rounded border-2 border-transparent bg-slate-100 text-slate-900 text-[10px] font-bold text-center">白</button>
-                                <button type="button" data-color="#9333ea" data-name="紫" class="modal-color-btn p-1 sm:p-1.5 rounded border-2 border-transparent bg-purple-600 text-white text-[10px] font-bold text-center">紫</button>
-                                <button type="button" data-color="#ea580c" data-name="橙" class="modal-color-btn p-1 sm:p-1.5 rounded border-2 border-transparent bg-orange-600 text-white text-[10px] font-bold text-center">橙</button>
+                            <label class="block text-slate-300 mb-1 font-medium text-[11px]">電線色</label>
+                            <div id="modalColorButtons" class="grid grid-cols-8 gap-1">
+                                <button type="button" data-color="#dc2626" data-name="赤" class="modal-color-btn py-1 rounded border-2 border-transparent bg-red-600 text-white text-[10px] font-bold text-center">赤</button>
+                                <button type="button" data-color="#2563eb" data-name="青" class="modal-color-btn py-1 rounded border-2 border-transparent bg-blue-600 text-white text-[10px] font-bold text-center">青</button>
+                                <button type="button" data-color="#eab308" data-name="黄" class="modal-color-btn py-1 rounded border-2 border-transparent bg-yellow-500 text-slate-900 text-[10px] font-bold text-center">黄</button>
+                                <button type="button" data-color="#16a34a" data-name="緑" class="modal-color-btn py-1 rounded border-2 border-transparent bg-green-600 text-white text-[10px] font-bold text-center">緑</button>
+                                <button type="button" data-color="#18181b" data-name="黒" class="modal-color-btn py-1 rounded border-2 border-transparent bg-zinc-900 text-white text-[10px] font-bold text-center">黒</button>
+                                <button type="button" data-color="#f8fafc" data-name="白" class="modal-color-btn py-1 rounded border-2 border-transparent bg-slate-100 text-slate-900 text-[10px] font-bold text-center">白</button>
+                                <button type="button" data-color="#9333ea" data-name="紫" class="modal-color-btn py-1 rounded border-2 border-transparent bg-purple-600 text-white text-[10px] font-bold text-center">紫</button>
+                                <button type="button" data-color="#ea580c" data-name="橙" class="modal-color-btn py-1 rounded border-2 border-transparent bg-orange-600 text-white text-[10px] font-bold text-center">橙</button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Fixed Footer Buttons -->
-                    <div class="flex items-center space-x-2 pt-2 border-t border-slate-700 shrink-0 mt-1">
-                        <button id="btnModalCancel" class="flex-1 py-1.5 sm:py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs font-medium transition">キャンセル</button>
-                        <button id="btnModalConfirm" class="flex-1 py-1.5 sm:py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow transition">確定保存 (Enter)</button>
+                    <!-- Footer Buttons -->
+                    <div class="flex items-center space-x-2 pt-2 border-t border-slate-700 shrink-0 mt-2">
+                        <button id="btnModalCancel" class="flex-1 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs font-medium transition">キャンセル</button>
+                        <button id="btnModalConfirm" class="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow transition">確定保存 (Enter)</button>
                     </div>
                 </div>
             </div>
         </main>
 
-        <!-- Right Sidebar: Summary & List -->
-        <aside id="rightSidebar" class="mobile-sidebar w-64 bg-slate-800 border-l border-slate-700 p-3 flex flex-col justify-between shrink-0 transition-all duration-200 z-30 right-0">
+        <!-- Right Sidebar: Summary & List (Hidden on mobile by default) -->
+        <aside id="rightSidebar" class="mobile-sidebar hidden md:flex w-64 bg-slate-800 border-l border-slate-700 p-3 flex-col justify-between shrink-0 transition-all duration-200 z-30 right-0">
             <div class="flex flex-col h-full space-y-3">
                 <div class="flex items-center justify-between border-b border-slate-700 pb-2">
                     <h2 class="text-xs font-bold text-indigo-400 uppercase tracking-wider">配線明細リスト</h2>
@@ -413,7 +390,7 @@
         let modalTempSq = '1.25';
         let modalTempColor = '#dc2626';
 
-        // Touch State Tracking & Ghost Click Prevention
+        // Touch State Tracking & Double Tap Isolation
         let lastTouchTimestamp = 0;
         let lastTapTime = 0;
         let lastTapPos = null;
@@ -447,7 +424,7 @@
         }
 
         window.onload = function() {
-            // Default collapse sidebars on mobile
+            // Default collapse sidebars on mobile (< 768px)
             if (window.innerWidth <= 768) {
                 document.getElementById('leftSidebar').classList.add('hidden');
                 document.getElementById('rightSidebar').classList.add('hidden');
@@ -515,6 +492,9 @@
                 setTimeout(resetCanvasDimensions, 250);
             });
             window.addEventListener('resize', () => {
+                if (window.innerWidth <= 768) {
+                    // Mobile: keep sidebars collapsed if small
+                }
                 applyCanvasTransform();
             });
 
@@ -593,17 +573,6 @@
             document.getElementById('btnModalClose').onclick = closeModal;
             document.getElementById('btnModalCancel').onclick = closeModal;
             document.getElementById('btnModalConfirm').onclick = handleModalConfirm;
-
-            // Export Page Mode Selector
-            const exportModeSelect = document.getElementById('exportPageMode');
-            if (exportModeSelect) {
-                exportModeSelect.onchange = (e) => {
-                    state.exportPageMode = e.target.value;
-                    const pageSelection = document.getElementById('exportPageSelection');
-                    pageSelection.classList.toggle('hidden', state.exportPageMode !== 'selected');
-                    if (state.exportPageMode === 'selected') pageSelection.focus();
-                };
-            }
 
             // Export Actions
             document.getElementById('btnExportPng').onclick = exportPNG;
@@ -713,7 +682,7 @@
             state.bgImageData = tCtx.getImageData(0, 0, canvas.width, canvas.height);
         }
 
-        // Mobile & PC Responsive Canvas Initial Sizing
+        // Responsive Canvas Initial Sizing
         function resetCanvasDimensions() {
             if (!state.bgImage) return;
 
@@ -726,14 +695,14 @@
             const isMobile = window.innerWidth <= 768;
             const isPortrait = rect.width < rect.height;
 
-            const scaleX = (rect.width - (isMobile ? 12 : 40)) / canvas.width;
-            const scaleY = (rect.height - (isMobile ? 12 : 40)) / canvas.height;
+            const scaleX = (rect.width - (isMobile ? 10 : 40)) / canvas.width;
+            const scaleY = (rect.height - (isMobile ? 10 : 40)) / canvas.height;
 
             if (isMobile && isPortrait && canvas.width > canvas.height) {
                 // Mobile Portrait with Landscape Diagram: Fit width so it is large & clearly readable
                 state.scale = Math.min(scaleX, 1.2);
                 state.panX = (rect.width - canvas.width * state.scale) / 2;
-                state.panY = Math.max(12, (rect.height - canvas.height * state.scale) / 3.5);
+                state.panY = Math.max(10, (rect.height - canvas.height * state.scale) / 3.5);
             } else {
                 // Standard PC or Landscape Mobile: Fit both width and height cleanly
                 state.scale = Math.min(scaleX, scaleY, 1.0);
@@ -1171,7 +1140,7 @@
                     e.preventDefault();
                 }
 
-                // Long Press Detection (0.45s) -> Shortcut to cancel A point or delete/insert waypoint
+                // Long Press (0.45s) -> Cancel Point A or delete waypoint
                 touchLongPressTimer = setTimeout(() => {
                     if (touchState.activeTouches === 1 && !touchState.isTouchDragging && !touchState.isPinching) {
                         isTouchLongPressTriggered = true;
@@ -1183,6 +1152,9 @@
                 e.preventDefault();
                 clearTimeout(touchLongPressTimer);
                 clearTimeout(singleTapTimer);
+                singleTapTimer = null;
+                lastTapTime = 0;
+                lastTapPos = null;
 
                 // Two-finger tap shortcut: if Point A is active, cancel it immediately!
                 if (state.activePointA) {
@@ -1300,14 +1272,16 @@
                     const curTime = Date.now();
                     const curPos = touchState.touchStartPos;
 
-                    // Check for Double-Tap Gesture
-                    if (lastTapPos && (curTime - lastTapTime < 340) && (Math.hypot(curPos.clientX - lastTapPos.clientX, curPos.clientY - lastTapPos.clientY) < 30)) {
+                    // Check for Double-Tap Gesture (within 350ms & 30px)
+                    if (lastTapPos && (curTime - lastTapTime < 350) && (Math.hypot(curPos.clientX - lastTapPos.clientX, curPos.clientY - lastTapPos.clientY) < 30)) {
+                        // Double Tap detected -> Cancel pending single tap completely!
                         clearTimeout(singleTapTimer);
+                        singleTapTimer = null;
                         lastTapTime = 0;
                         lastTapPos = null;
                         handleTouchDoubleTap(curPos);
                     } else {
-                        // Single Tap Handler (with debounce to avoid ghost double execution)
+                        // Single Tap -> Set delay timer so double-tap can cancel it if second tap follows
                         lastTapTime = curTime;
                         lastTapPos = curPos;
                         clearTimeout(singleTapTimer);
@@ -1315,7 +1289,10 @@
                             const addWp = state.mobileAddWaypointPending;
                             state.mobileAddWaypointPending = false;
                             processCanvasClick(curPos, addWp);
-                        }, 250);
+                            singleTapTimer = null;
+                            lastTapTime = 0;
+                            lastTapPos = null;
+                        }, 280);
                     }
                 }
                 touchState.isTouchDragging = false;
@@ -1347,7 +1324,7 @@
             }
         }
 
-        // Double Tap Handler for Mobile
+        // Double Tap Handler for Mobile (Waypoint Insert/Delete only - NEVER sets Point A)
         function handleTouchDoubleTap(pos) {
             // 1. Delete waypoint if double tapped
             for (let wire of state.wires) {
@@ -1416,8 +1393,8 @@
 
         // ================= MOUSE EVENTS (PC) =================
         function handleCanvasMouseDown(e) {
-            // Ignore ghost mouse events simulated by touch
-            if (Date.now() - lastTouchTimestamp < 650) return;
+            // Strict ghost click prevention from touch
+            if (Date.now() - lastTouchTimestamp < 800) return;
             if (!state.bgImage) return;
 
             if (e.button === 1 || (e.button === 0 && state.isSpacePressed)) {
@@ -1457,7 +1434,7 @@
         }
 
         function handleCanvasMouseMove(e) {
-            if (Date.now() - lastTouchTimestamp < 650) return;
+            if (Date.now() - lastTouchTimestamp < 800) return;
 
             if (state.isPanning) {
                 state.panX = e.clientX - state.panStartX;
@@ -1508,7 +1485,7 @@
         }
 
         function handleCanvasMouseUp(e) {
-            if (Date.now() - lastTouchTimestamp < 650) return;
+            if (Date.now() - lastTouchTimestamp < 800) return;
             clearTimeout(state.longPressTimer);
 
             const wasPanning = state.isPanning || state.isLongPress;
@@ -1555,7 +1532,7 @@
         }
 
         function handleCanvasDblClick(e) {
-            if (Date.now() - lastTouchTimestamp < 650) return;
+            if (Date.now() - lastTouchTimestamp < 800) return;
             clearTimeout(state.clickDelayTimer);
             const pos = getCanvasCoords(e);
 
@@ -1853,7 +1830,7 @@
 
         function openWireModalForAdd(pointA, pointB, waypoints) {
             state.editingWireId = null;
-            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-indigo-400 me-2"></i>配線パラメータ確認';
+            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-indigo-400 me-1.5"></i>配線パラメータ確認';
             document.getElementById('modalMarkText').value = state.defaultMarkText;
             document.getElementById('modalTerminalConnection').checked = state.defaultIsTerminal;
             modalTempSq = state.defaultSq;
@@ -1866,7 +1843,7 @@
             state.pendingWireData = { pointA, pointB, waypoints };
             wireModal.classList.remove('hidden');
 
-            // On mobile touch devices, do not force-focus to avoid keyboard suddenly covering the modal
+            // On mobile touch devices, do not force-focus to avoid keyboard covering the modal
             const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.innerWidth <= 768;
             if (!isTouch) {
                 setTimeout(() => {
@@ -1883,12 +1860,15 @@
             document.querySelectorAll('.modal-sq-btn').forEach(b => {
                 const match = b.dataset.sq === modalTempSq;
                 b.classList.toggle('border-indigo-500', match);
-                b.classList.toggle('bg-indigo-900/50', match);
+                b.classList.toggle('bg-indigo-900/60', match);
                 b.classList.toggle('text-indigo-300', match);
+                b.classList.toggle('bg-slate-900', !match);
+                b.classList.toggle('border-slate-700', !match);
             });
             document.querySelectorAll('.modal-color-btn').forEach(b => {
                 const match = b.dataset.color === modalTempColor;
-                b.classList.toggle('border-indigo-500', match);
+                b.classList.toggle('border-indigo-400', match);
+                b.classList.toggle('scale-105', match);
                 b.classList.toggle('border-transparent', !match);
             });
         }
@@ -1957,7 +1937,7 @@
             if (!wire) return;
 
             state.editingWireId = wireId;
-            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-indigo-400 me-2"></i>配線パラメータ編集';
+            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-indigo-400 me-1.5"></i>配線パラメータ編集';
             document.getElementById('modalMarkText').value = wire.markText;
             document.getElementById('modalTerminalConnection').checked = wire.isTerminal !== false;
             modalTempSq = wire.sq;
@@ -2084,29 +2064,7 @@
             if (state.exportPageMode === 'all') {
                 return Array.from({ length: state.totalPages }, (_, i) => i + 1);
             }
-
-            const input = document.getElementById('exportPageSelection').value.trim();
-            if (!input) {
-                showToast('出力するページを指定してください（例: 1,3,5-7）');
-                return null;
-            }
-
-            const pages = new Set();
-            for (const part of input.split(',').map(value => value.trim()).filter(Boolean)) {
-                const range = part.match(/^(\d+)(?:\s*-\s*(\d+))?$/);
-                if (!range) {
-                    showToast('ページ指定の形式が正しくありません（例: 1,3,5-7）');
-                    return null;
-                }
-                const start = Number(range[1]);
-                const end = Number(range[2] || range[1]);
-                if (start < 1 || end < start || end > state.totalPages) {
-                    showToast(`ページは 1 ～ ${state.totalPages} の範囲で指定してください`);
-                    return null;
-                }
-                for (let page = start; page <= end; page++) pages.add(page);
-            }
-            return [...pages].sort((a, b) => a - b);
+            return [state.currentPage];
         }
 
         async function exportPNG() {
