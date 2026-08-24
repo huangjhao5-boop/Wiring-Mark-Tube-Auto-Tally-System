@@ -30,16 +30,32 @@
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #64748b; }
         
-        /* Mobile slide-over sidebars with smooth scrolling */
+        /* Universal Responsive Sidebars (Mobile, iPad, PC) */
+        .app-sidebar {
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            touch-action: pan-y !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
         @media (max-width: 768px) {
-            .mobile-sidebar {
+            .app-sidebar {
                 position: fixed;
                 top: 44px;
                 bottom: 0;
                 z-index: 45;
                 box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
-                touch-action: pan-y !important;
-                -webkit-overflow-scrolling: touch !important;
+            }
+            .sidebar-left { left: 0; transform: translateX(-100%); }
+            .sidebar-left.open { transform: translateX(0); }
+            .sidebar-right { right: 0; transform: translateX(100%); }
+            .sidebar-right.open { transform: translateX(0); }
+        }
+        @media (min-width: 769px) {
+            .app-sidebar {
+                position: relative;
+                transform: none !important;
+            }
+            .app-sidebar.closed {
+                display: none !important;
             }
         }
     </style>
@@ -83,10 +99,10 @@
 
         <!-- Right: Actions -->
         <div class="flex items-center space-x-1 shrink-0">
-            <button id="toggleLeftSidebar" class="px-2 py-1 text-[11px] bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition border border-slate-600" title="設定">
+            <button id="toggleLeftSidebar" class="px-2 py-1 text-[11px] bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition border border-slate-600" title="設定パネルを開閉">
                 <i class="fa-solid fa-sliders sm:me-1"></i><span class="hidden sm:inline">設定</span>
             </button>
-            <button id="toggleRightSidebar" class="px-2 py-1 text-[11px] bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition border border-slate-600" title="明細">
+            <button id="toggleRightSidebar" class="px-2 py-1 text-[11px] bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition border border-slate-600" title="明細パネルを開閉">
                 <i class="fa-solid fa-list-check sm:me-1"></i><span class="hidden sm:inline">明細</span>
             </button>
             <button id="btnOpenExportModal" class="px-2 py-1 text-[11px] bg-indigo-600 hover:bg-indigo-500 text-white rounded shadow transition flex items-center" title="出力設定 (PDF/PNG)">
@@ -95,19 +111,19 @@
         </div>
     </header>
 
-    <!-- Mobile Sidebar Dark Overlay Backdrop -->
+    <!-- Mobile Sidebar Backdrop Overlay -->
     <div id="sidebarOverlay" class="hidden fixed inset-0 bg-slate-950/60 backdrop-blur-[2px] z-40 md:hidden" onclick="closeMobileSidebars()"></div>
 
     <!-- Main Content Grid -->
     <div class="flex-1 flex overflow-hidden relative">
 
-        <!-- Left Sidebar: Settings & Shortcuts (Hidden on mobile by default) -->
-        <aside id="leftSidebar" class="mobile-sidebar hidden md:flex w-64 bg-slate-800 border-r border-slate-700 p-3 flex-col justify-between shrink-0 transition-all duration-200 z-45 left-0 h-[calc(100dvh-44px)] overflow-y-auto" style="touch-action: pan-y; -webkit-overflow-scrolling: touch;">
+        <!-- Left Sidebar: Settings & Shortcuts (Comprehensive PC & Mobile) -->
+        <aside id="leftSidebar" class="app-sidebar sidebar-left w-64 bg-slate-800 border-r border-slate-700 p-3 flex flex-col justify-between shrink-0 h-[calc(100dvh-44px)] overflow-y-auto">
             <div class="space-y-3 overflow-y-auto pr-1">
-                <!-- Close Button on Mobile -->
-                <div class="flex items-center justify-between md:hidden border-b border-slate-700 pb-1.5">
+                <!-- Header with Close Button -->
+                <div class="flex items-center justify-between border-b border-slate-700 pb-1.5">
                     <span class="text-xs font-bold text-indigo-400 uppercase">設定パネル</span>
-                    <button onclick="document.getElementById('leftSidebar').classList.add('hidden'); updateSidebarOverlay();" class="p-1 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-sm"></i></button>
+                    <button onclick="toggleLeftSidebarAction()" class="p-1 text-slate-400 hover:text-white" title="閉じる"><i class="fa-solid fa-xmark text-sm"></i></button>
                 </div>
 
                 <!-- File Upload Box -->
@@ -171,13 +187,29 @@
                 </div>
             </div>
 
-            <!-- Shortcut Guide Box -->
-            <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-700/80 text-[10px] sm:text-[11px] text-slate-400 space-y-1 mt-2">
-                <div class="font-bold text-slate-300 mb-0.5 border-b border-slate-700 pb-0.5"><i class="fa-solid fa-hand-pointer me-1 text-indigo-400"></i>操作方法</div>
-                <div><span class="text-slate-200 font-semibold">1本指タップ:</span> A点/B点 設置</div>
-                <div><span class="text-slate-200 font-semibold">2本指ピンチ:</span> 画面ズーム & パン</div>
-                <div><span class="text-slate-200 font-semibold">2本指タップ:</span> A点解除 (キャンセル)</div>
-                <div><span class="text-slate-200 font-semibold">折点追加:</span> 頂部按鈕 或 選中配線後點擊「＋折点」</div>
+            <!-- Comprehensive Shortcut Guide Box for PC & Touch/Stylus -->
+            <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-700 text-[10px] sm:text-[11px] text-slate-400 space-y-1.5 mt-2 shrink-0">
+                <div class="font-bold text-slate-200 border-b border-slate-700 pb-1 flex items-center justify-between">
+                    <span><i class="fa-solid fa-keyboard me-1 text-indigo-400"></i>操作方法ガイド</span>
+                </div>
+                <!-- PC Operations -->
+                <div class="space-y-0.5 border-b border-slate-700/60 pb-1">
+                    <div class="text-indigo-300 font-bold text-[10px]">【パソコン操作】</div>
+                    <div><span class="text-slate-200 font-semibold">クリック:</span> A点 / B点 設置</div>
+                    <div><span class="text-slate-200 font-semibold">Shift + クリック:</span> 折点追加</div>
+                    <div><span class="text-slate-200 font-semibold">ダブルクリック:</span> 折点の追加 / 削除</div>
+                    <div><span class="text-slate-200 font-semibold">右クリック / ESC:</span> A点解除</div>
+                    <div><span class="text-slate-200 font-semibold">Space + 拖曳 / 中鍵:</span> 畫面平移</div>
+                    <div><span class="text-slate-200 font-semibold">滾輪:</span> 畫面縮放</div>
+                </div>
+                <!-- Touch & Stylus Pen Operations -->
+                <div class="space-y-0.5 pt-0.5">
+                    <div class="text-emerald-300 font-bold text-[10px]">【iPad / 觸控筆操作】</div>
+                    <div><span class="text-slate-200 font-semibold">ペン/指タップ:</span> A点/B点 設置 (即時反応)</div>
+                    <div><span class="text-amber-300 font-semibold">單指按住 + 筆尖點擊:</span> 📍 即時插入折點</div>
+                    <div><span class="text-slate-200 font-semibold">雙指輕點:</span> A點解除</div>
+                    <div><span class="text-slate-200 font-semibold">雙指捏合/拖曳:</span> 畫面縮放 & 平移</div>
+                </div>
             </div>
         </aside>
 
@@ -188,7 +220,7 @@
                 <div id="angleHint" class="hidden absolute z-20 pointer-events-none px-2 py-1 rounded bg-slate-900/95 border border-emerald-400 text-emerald-300 text-xs font-mono shadow-lg whitespace-nowrap"></div>
             </div>
 
-            <!-- Floating Prompt / Action Bar (Drawing A-Point Active) -->
+            <!-- Floating Prompt / Action Bar (When Point A is active) -->
             <div id="statusBar" class="absolute top-2 sm:top-3 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur border border-slate-700 px-3 sm:px-4 py-1.5 rounded-full shadow-lg text-[11px] sm:text-xs font-medium text-slate-200 flex items-center space-x-2 z-20 max-w-[95vw]">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
                 <span id="statusText" class="truncate">始点 (A点) を導線上タップして指定してください</span>
@@ -202,7 +234,7 @@
                 </div>
             </div>
 
-            <!-- Selected Wire Floating Action Bar (Dedicated for Touch & Stylus Pen) -->
+            <!-- Selected Wire Floating Action Bar (For Touch & Stylus Pen) -->
             <div id="wireActionBar" class="hidden absolute bottom-3 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur border border-indigo-500/80 px-3 py-1.5 rounded-full shadow-2xl text-xs font-medium text-slate-200 flex items-center space-x-2 z-20 max-w-[95vw] animate-in fade-in slide-in-from-bottom-2 duration-150">
                 <span class="font-bold text-indigo-300 font-mono" id="actionBarWireName">101</span>
                 <div class="h-3 w-[1px] bg-slate-600"></div>
@@ -231,7 +263,7 @@
                         <button id="btnModalClose" class="p-1 text-slate-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
                     </div>
 
-                    <!-- Modal Body (Compact 1-view layout, no scroll needed) -->
+                    <!-- Modal Body -->
                     <div class="space-y-2 text-xs">
                         <!-- Mark Text & Frequency Chips -->
                         <div>
@@ -254,7 +286,7 @@
                             </div>
                         </div>
 
-                        <!-- Terminal Block Connection Toggle (Compact 1 Row) -->
+                        <!-- Terminal Block Connection Toggle -->
                         <label class="flex items-center justify-between bg-amber-950/40 px-2.5 py-1 rounded border border-amber-500/50 cursor-pointer">
                             <div class="flex items-center gap-1.5">
                                 <input type="checkbox" id="modalTerminalConnection" class="w-3.5 h-3.5 accent-amber-500 cursor-pointer shrink-0" checked>
@@ -343,14 +375,14 @@
             </div>
         </main>
 
-        <!-- Right Sidebar: Summary & List (Hidden on mobile by default) -->
-        <aside id="rightSidebar" class="mobile-sidebar hidden md:flex w-64 bg-slate-800 border-l border-slate-700 p-3 flex-col justify-between shrink-0 transition-all duration-200 z-45 right-0 h-[calc(100dvh-44px)] overflow-y-auto" style="touch-action: pan-y; -webkit-overflow-scrolling: touch;">
+        <!-- Right Sidebar: Summary & List -->
+        <aside id="rightSidebar" class="app-sidebar sidebar-right w-64 bg-slate-800 border-l border-slate-700 p-3 flex flex-col justify-between shrink-0 h-[calc(100dvh-44px)] overflow-y-auto">
             <div class="flex flex-col h-full space-y-3">
                 <div class="flex items-center justify-between border-b border-slate-700 pb-2">
                     <h2 class="text-xs font-bold text-indigo-400 uppercase tracking-wider">配線明細リスト</h2>
                     <div class="flex items-center space-x-2">
                         <span id="wireCountBadge" class="bg-indigo-900/60 text-indigo-300 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-indigo-500/30">0 本</span>
-                        <button onclick="document.getElementById('rightSidebar').classList.add('hidden'); updateSidebarOverlay();" class="p-1 text-slate-400 hover:text-white md:hidden"><i class="fa-solid fa-xmark text-sm"></i></button>
+                        <button onclick="toggleRightSidebarAction()" class="p-1 text-slate-400 hover:text-white" title="閉じる"><i class="fa-solid fa-xmark text-sm"></i></button>
                     </div>
                 </div>
 
@@ -394,7 +426,7 @@
     </div>
 
     <script>
-        // Color Mapping Dictionary (Japanese Name -> Hex)
+        // Color Mapping Dictionary
         const COLOR_NAMES = {
             '#dc2626': '赤',
             '#2563eb': '青',
@@ -462,9 +494,6 @@
 
         // Touch & Stylus State Tracking
         let lastTouchTimestamp = 0;
-        let lastTapTime = 0;
-        let lastTapPos = null;
-        let singleTapTimer = null;
         let touchLongPressTimer = null;
         let isTouchLongPressTriggered = false;
 
@@ -478,7 +507,8 @@
             initialScale: 1.0,
             initialCenter: { x: 0, y: 0 },
             isTouchDragging: false,
-            draggedHandle: null
+            draggedHandle: null,
+            isModifierWaypointHandled: false
         };
 
         // DOM Elements
@@ -494,20 +524,39 @@
         }
 
         window.onload = function() {
-            // Default collapse sidebars on mobile (< 768px)
-            if (window.innerWidth <= 768) {
-                document.getElementById('leftSidebar').classList.add('hidden');
-                document.getElementById('rightSidebar').classList.add('hidden');
-            }
-
             initEventListeners();
             updateUIState();
             drawDiagram();
         };
 
+        // Universal Sidebar Toggles for All Devices (Mobile, iPad, PC)
+        function toggleLeftSidebarAction() {
+            const ls = document.getElementById('leftSidebar');
+            const rs = document.getElementById('rightSidebar');
+            if (window.innerWidth <= 768) {
+                if (rs.classList.contains('open')) rs.classList.remove('open');
+                ls.classList.toggle('open');
+            } else {
+                ls.classList.toggle('closed');
+            }
+            updateSidebarOverlay();
+        }
+
+        function toggleRightSidebarAction() {
+            const ls = document.getElementById('leftSidebar');
+            const rs = document.getElementById('rightSidebar');
+            if (window.innerWidth <= 768) {
+                if (ls.classList.contains('open')) ls.classList.remove('open');
+                rs.classList.toggle('open');
+            } else {
+                rs.classList.toggle('closed');
+            }
+            updateSidebarOverlay();
+        }
+
         function closeMobileSidebars() {
-            document.getElementById('leftSidebar').classList.add('hidden');
-            document.getElementById('rightSidebar').classList.add('hidden');
+            document.getElementById('leftSidebar').classList.remove('open');
+            document.getElementById('rightSidebar').classList.remove('open');
             updateSidebarOverlay();
         }
 
@@ -515,7 +564,7 @@
             const ls = document.getElementById('leftSidebar');
             const rs = document.getElementById('rightSidebar');
             const overlay = document.getElementById('sidebarOverlay');
-            if (window.innerWidth <= 768 && (!ls.classList.contains('hidden') || !rs.classList.contains('hidden'))) {
+            if (window.innerWidth <= 768 && (ls.classList.contains('open') || rs.classList.contains('open'))) {
                 overlay.classList.remove('hidden');
             } else {
                 overlay.classList.add('hidden');
@@ -536,21 +585,9 @@
             document.getElementById('btnZoomOut').onclick = () => adjustZoom(0.92);
             document.getElementById('btnFitPage').onclick = resetCanvasDimensions;
 
-            // Sidebars Toggle
-            document.getElementById('toggleLeftSidebar').onclick = () => {
-                const ls = document.getElementById('leftSidebar');
-                const rs = document.getElementById('rightSidebar');
-                if (window.innerWidth <= 768 && !rs.classList.contains('hidden')) rs.classList.add('hidden');
-                ls.classList.toggle('hidden');
-                updateSidebarOverlay();
-            };
-            document.getElementById('toggleRightSidebar').onclick = () => {
-                const ls = document.getElementById('leftSidebar');
-                const rs = document.getElementById('rightSidebar');
-                if (window.innerWidth <= 768 && !ls.classList.contains('hidden')) ls.classList.add('hidden');
-                rs.classList.toggle('hidden');
-                updateSidebarOverlay();
-            };
+            // Sidebars Toggle (Works seamlessly on Mobile, iPad, and PC!)
+            document.getElementById('toggleLeftSidebar').onclick = toggleLeftSidebarAction;
+            document.getElementById('toggleRightSidebar').onclick = toggleRightSidebarAction;
 
             // Mobile Action Bar Buttons (Drawing Mode)
             document.getElementById('btnMobileCancelA').onclick = (e) => {
@@ -585,14 +622,14 @@
                 drawDiagram();
             };
 
-            // Canvas Mouse Events (PC)
+            // Canvas Mouse Events (PC - Fully Preserved & Working)
             canvasWrapper.addEventListener('mousedown', handleCanvasMouseDown);
             canvasWrapper.addEventListener('mousemove', handleCanvasMouseMove);
             window.addEventListener('mouseup', handleCanvasMouseUp);
             canvasWrapper.addEventListener('wheel', handleCanvasWheel, { passive: false });
             canvasWrapper.addEventListener('dblclick', handleCanvasDblClick);
 
-            // Canvas Touch Events (Mobile: iPhone, iPad, Stylus Pen)
+            // Canvas Touch Events (iPad, Apple Pencil / Stylus Pen, Mobile)
             canvasWrapper.addEventListener('touchstart', handleTouchStart, { passive: false });
             canvasWrapper.addEventListener('touchmove', handleTouchMove, { passive: false });
             canvasWrapper.addEventListener('touchend', handleTouchEnd, { passive: false });
@@ -863,12 +900,10 @@
             const scaleY = (rect.height - (isMobile ? 10 : 40)) / canvas.height;
 
             if (isMobile && isPortrait && canvas.width > canvas.height) {
-                // Mobile Portrait with Landscape Diagram: Fit width so it is large & clearly readable
                 state.scale = Math.min(scaleX, 1.2);
                 state.panX = (rect.width - canvas.width * state.scale) / 2;
                 state.panY = Math.max(10, (rect.height - canvas.height * state.scale) / 3.5);
             } else {
-                // Standard PC or Landscape Mobile: Fit both width and height cleanly
                 state.scale = Math.min(scaleX, scaleY, 1.0);
                 state.panX = (rect.width - canvas.width * state.scale) / 2;
                 state.panY = (rect.height - canvas.height * state.scale) / 2;
@@ -1212,7 +1247,6 @@
             }
         }
 
-        // Draw Mark Tube Tag with distinct color styling for Terminal Block wires
         function drawMarkTubeTag(x, y, text, isSelected, isTerminal = true) {
             ctx.font = 'bold 11px monospace';
             const metrics = ctx.measureText(text);
@@ -1276,7 +1310,7 @@
             };
         }
 
-        // ================= TOUCH GESTURES (Mobile / iPad / Stylus Pen) =================
+        // ================= TOUCH & STYLUS PEN GESTURES =================
         function handleTouchStart(e) {
             lastTouchTimestamp = Date.now();
             if (!state.bgImage) return;
@@ -1293,6 +1327,7 @@
                 touchState.touchStartPan = { panX: state.panX, panY: state.panY, clientX: t.clientX, clientY: t.clientY };
                 touchState.isTouchDragging = false;
                 touchState.draggedHandle = null;
+                touchState.isModifierWaypointHandled = false;
 
                 const handleHit = findHandleAt(pos);
                 if (!state.activePointA && handleHit) {
@@ -1314,12 +1349,21 @@
             } else if (e.touches.length === 2) {
                 e.preventDefault();
                 clearTimeout(touchLongPressTimer);
-                clearTimeout(singleTapTimer);
-                singleTapTimer = null;
-                lastTapTime = 0;
-                lastTapPos = null;
 
-                // Two-finger tap shortcut: cancel Point A immediately!
+                // Check for Procreate-style Gesture: ONE finger holding + Stylus/Finger tapping = ADD WAYPOINT!
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+                const duration1 = Date.now() - touchState.touchStartTime;
+
+                // If touch 1 was already holding down for > 80ms, touch 2 is an intentional Waypoint Tap!
+                if (touchState.activeTouches === 1 && duration1 > 80 && !touchState.isTouchDragging) {
+                    touchState.isModifierWaypointHandled = true;
+                    const wpPos = getTouchCanvasCoords(t2);
+                    processCanvasClick(wpPos, true /* addWaypoint = true */);
+                    return;
+                }
+
+                // Otherwise, normal two-finger pinch-to-zoom & two-finger tap cancel
                 if (state.activePointA) {
                     cancelActivePointA();
                     showToast('A点を解除しました (2本指タップ)');
@@ -1327,8 +1371,6 @@
 
                 touchState.activeTouches = 2;
                 touchState.isPinching = true;
-                const t1 = e.touches[0];
-                const t2 = e.touches[1];
                 touchState.initialDistance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
                 touchState.initialScale = state.scale;
                 touchState.initialCenter = {
@@ -1342,6 +1384,8 @@
         function handleTouchMove(e) {
             lastTouchTimestamp = Date.now();
             if (!state.bgImage) return;
+
+            if (touchState.isModifierWaypointHandled) return;
 
             if (e.touches.length === 2 && touchState.isPinching) {
                 e.preventDefault();
@@ -1411,6 +1455,15 @@
             lastTouchTimestamp = Date.now();
             clearTimeout(touchLongPressTimer);
 
+            if (touchState.isModifierWaypointHandled) {
+                if (e.touches.length === 0) {
+                    touchState.isModifierWaypointHandled = false;
+                    touchState.isTouchDragging = false;
+                    touchState.touchStartPos = null;
+                }
+                return;
+            }
+
             if (touchState.isPinching && e.touches.length < 2) {
                 touchState.isPinching = false;
             }
@@ -1431,32 +1484,12 @@
 
             if (e.touches.length === 0) {
                 const duration = Date.now() - touchState.touchStartTime;
-                if (!touchState.isTouchDragging && !touchState.isPinching && duration < 400 && touchState.touchStartPos) {
-                    const curTime = Date.now();
+                if (!touchState.isTouchDragging && !touchState.isPinching && duration < 350 && touchState.touchStartPos) {
+                    // Instant Drawing Tap for Stylus Pen & Finger Touch (0ms Latency!)
                     const curPos = touchState.touchStartPos;
-
-                    // Check for Double-Tap Gesture (Generous tolerance for Stylus Pens & Fingers: 420ms & 50px)
-                    if (lastTapPos && (curTime - lastTapTime < 420) && (Math.hypot(curPos.clientX - lastTapPos.clientX, curPos.clientY - lastTapPos.clientY) < 50)) {
-                        // Double Tap detected -> Cancel pending single tap completely!
-                        clearTimeout(singleTapTimer);
-                        singleTapTimer = null;
-                        lastTapTime = 0;
-                        lastTapPos = null;
-                        handleTouchDoubleTap(curPos);
-                    } else {
-                        // Single Tap -> Set delay timer so double-tap can cancel it if second tap follows
-                        lastTapTime = curTime;
-                        lastTapPos = curPos;
-                        clearTimeout(singleTapTimer);
-                        singleTapTimer = setTimeout(() => {
-                            const addWp = state.mobileAddWaypointPending;
-                            state.mobileAddWaypointPending = false;
-                            processCanvasClick(curPos, addWp);
-                            singleTapTimer = null;
-                            lastTapTime = 0;
-                            lastTapPos = null;
-                        }, 280);
-                    }
+                    const addWp = state.mobileAddWaypointPending;
+                    state.mobileAddWaypointPending = false;
+                    processCanvasClick(curPos, addWp);
                 }
                 touchState.isTouchDragging = false;
                 touchState.touchStartPos = null;
@@ -1487,75 +1520,7 @@
             }
         }
 
-        // Double Tap Handler for Mobile (Waypoint Insert/Delete only - NEVER sets Point A)
-        function handleTouchDoubleTap(pos) {
-            // 1. Delete waypoint if double tapped
-            for (let wire of state.wires) {
-                if (wire.page !== state.currentPage) continue;
-                for (let i = 0; i < wire.waypoints.length; i++) {
-                    const wp = wire.waypoints[i];
-                    if (Math.hypot(wp.x - pos.x, wp.y - pos.y) < 18) {
-                        wire.waypoints.splice(i, 1);
-                        drawDiagram();
-                        updateTablesAndStats();
-                        showToast('折点を削除しました');
-                        return;
-                    }
-                }
-            }
-
-            // 2. Insert waypoint if double tapping directly on existing wire segment
-            let closest = null;
-            for (let wire of state.wires) {
-                if (wire.page !== state.currentPage) continue;
-                const fullPoints = [wire.pointA, ...wire.waypoints, wire.pointB];
-                for (let i = 0; i < fullPoints.length - 1; i++) {
-                    const { dist } = distToSegment(pos.x, pos.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
-                    if (dist < 16 && (!closest || dist < closest.dist)) {
-                        closest = { wire, segIndex: i, dist };
-                    }
-                }
-            }
-
-            if (closest) {
-                const snappedWaypoint = snapToCircuitLine(pos) || pos;
-                closest.wire.waypoints.splice(closest.segIndex, 0, snappedWaypoint);
-                state.selectedWireId = closest.wire.id;
-                updateSelectedWireActionBar();
-                drawDiagram();
-                updateTablesAndStats();
-                showToast('折点を追加しました');
-                return;
-            }
-
-            // 3. If a wire is selected AND double tapping over dark circuit line, insert waypoint
-            if (state.selectedWireId) {
-                const selectedWire = state.wires.find(w => w.id === state.selectedWireId && w.page === state.currentPage);
-                if (selectedWire) {
-                    const snappedWaypoint = snapToCircuitLine(pos);
-                    if (snappedWaypoint || isDarkNear(pos.x, pos.y, 4)) {
-                        const newPoint = snappedWaypoint || pos;
-                        const fullPoints = [selectedWire.pointA, ...selectedWire.waypoints, selectedWire.pointB];
-                        let bestSegIndex = 0;
-                        let minDist = Infinity;
-                        for (let i = 0; i < fullPoints.length - 1; i++) {
-                            const { dist } = distToSegment(newPoint.x, newPoint.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
-                            if (dist < minDist) {
-                                minDist = dist;
-                                bestSegIndex = i;
-                            }
-                        }
-                        selectedWire.waypoints.splice(bestSegIndex, 0, newPoint);
-                        drawDiagram();
-                        updateTablesAndStats();
-                        showToast('選擇中の配線に折点を追加しました');
-                        return;
-                    }
-                }
-            }
-        }
-
-        // ================= MOUSE EVENTS (PC) =================
+        // ================= MOUSE EVENTS (PC - Fully Preserved) =================
         function handleCanvasMouseDown(e) {
             if (Date.now() - lastTouchTimestamp < 800) return;
             if (!state.bgImage) return;
@@ -1672,10 +1637,7 @@
             if (e.button === 0 && state.pendingClickPos && !wasPanning) {
                 const clickPos = state.pendingClickPos;
                 const addWaypoint = state.pendingClickAddWaypoint;
-                clearTimeout(state.clickDelayTimer);
-                state.clickDelayTimer = setTimeout(() => {
-                    processCanvasClick(clickPos, addWaypoint);
-                }, 280);
+                processCanvasClick(clickPos, addWaypoint);
             }
 
             state.mouseDownPos = null;
@@ -1696,7 +1658,6 @@
 
         function handleCanvasDblClick(e) {
             if (Date.now() - lastTouchTimestamp < 800) return;
-            clearTimeout(state.clickDelayTimer);
             const pos = getCanvasCoords(e);
 
             // 1. Delete waypoint if double clicking existing handle node
@@ -1737,32 +1698,6 @@
                 showToast('折点を追加しました');
                 return;
             }
-
-            // 3. If a wire is selected AND double-clicking over a dark circuit line, insert waypoint into selected wire
-            if (state.selectedWireId) {
-                const selectedWire = state.wires.find(w => w.id === state.selectedWireId && w.page === state.currentPage);
-                if (selectedWire) {
-                    const snappedWaypoint = snapToCircuitLine(pos);
-                    if (snappedWaypoint || isDarkNear(pos.x, pos.y, 4)) {
-                        const newPoint = snappedWaypoint || pos;
-                        const fullPoints = [selectedWire.pointA, ...selectedWire.waypoints, selectedWire.pointB];
-                        let bestSegIndex = 0;
-                        let minDist = Infinity;
-                        for (let i = 0; i < fullPoints.length - 1; i++) {
-                            const { dist } = distToSegment(newPoint.x, newPoint.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
-                            if (dist < minDist) {
-                                minDist = dist;
-                                bestSegIndex = i;
-                            }
-                        }
-                        selectedWire.waypoints.splice(bestSegIndex, 0, newPoint);
-                        drawDiagram();
-                        updateTablesAndStats();
-                        showToast('選擇中の配線に底図導線の折点を追加しました');
-                        return;
-                    }
-                }
-            }
         }
 
         function distToSegment(px, py, x1, y1, x2, y2) {
@@ -1799,6 +1734,7 @@
                 }
             }
 
+            // If drawing wire (Point A is active)
             if (state.activePointA) {
                 // If tapping right near Point A, cancel Point A
                 if (Math.hypot(pos.x - state.activePointA.x, pos.y - state.activePointA.y) < 18) {
@@ -1818,7 +1754,7 @@
                     state.activeWaypoints.push(snappedPos);
                     document.getElementById('statusText').innerText = '折点を追加しました。B点を指定してください';
                     drawDiagram();
-                    showToast('底図導線上に折点を追加しました');
+                    showToast('📍 導線上に折点を追加しました');
                     return;
                 }
 
@@ -1866,6 +1802,31 @@
 
             const hitWireId = findWireAt(pos);
             if (hitWireId) {
+                // If Shift key or Finger modifier active when clicking a wire -> Insert waypoint into that wire!
+                if (addWaypoint) {
+                    const wire = state.wires.find(w => w.id === hitWireId && w.page === state.currentPage);
+                    if (wire) {
+                        const snappedWaypoint = snapToCircuitLine(pos) || pos;
+                        const fullPoints = [wire.pointA, ...wire.waypoints, wire.pointB];
+                        let bestSegIndex = 0;
+                        let minDist = Infinity;
+                        for (let i = 0; i < fullPoints.length - 1; i++) {
+                            const { dist } = distToSegment(snappedWaypoint.x, snappedWaypoint.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                bestSegIndex = i;
+                            }
+                        }
+                        wire.waypoints.splice(bestSegIndex, 0, snappedWaypoint);
+                        state.selectedWireId = wire.id;
+                        updateSelectedWireActionBar();
+                        drawDiagram();
+                        updateTablesAndStats();
+                        showToast('📍 配線に折点を追加しました');
+                        return;
+                    }
+                }
+
                 state.selectedWireId = hitWireId;
                 updateSelectedWireActionBar();
                 drawDiagram();
