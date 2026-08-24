@@ -205,7 +205,8 @@
                 <!-- Touch & Stylus Pen Operations -->
                 <div class="space-y-0.5 pt-0.5">
                     <div class="text-emerald-300 font-bold text-[10px]">【iPad / 觸控筆操作】</div>
-                    <div><span class="text-slate-200 font-semibold">ペン/指タップ:</span> A点/B点 設置 (即時)</div>
+                    <div><span class="text-slate-200 font-semibold">ペン/指タップ:</span> A点 / B点 設置 (即時)</div>
+                    <div><span class="text-amber-300 font-semibold">長押し (0.3秒):</span> 📍 折点追加 / 削除</div>
                     <div><span class="text-amber-300 font-semibold">ダブルタップ:</span> 📍 折点追加 / 削除</div>
                     <div><span class="text-amber-300 font-semibold">指ホールド + ペン:</span> 📍 折点追加</div>
                     <div><span class="text-slate-200 font-semibold">2本指タップ:</span> A点解除</div>
@@ -1342,13 +1343,13 @@
                     e.preventDefault();
                 }
 
-                // Long Press (0.45s) -> Cancel Point A or delete waypoint
+                // Long Press (0.34s) -> Stylus Pen Waypoint Insertion or Deletion
                 touchLongPressTimer = setTimeout(() => {
                     if (touchState.activeTouches === 1 && !touchState.isTouchDragging && !touchState.isPinching) {
                         isTouchLongPressTriggered = true;
                         handleCanvasLongPress(pos);
                     }
-                }, 450);
+                }, 340);
 
             } else if (e.touches.length === 2) {
                 e.preventDefault();
@@ -1626,26 +1627,91 @@
             }
         }
 
-        // Long Press Handler for Mobile
+        // Long Press Handler for Mobile, iPad & Stylus Pen
         function handleCanvasLongPress(pos) {
-            if (state.activePointA) {
-                cancelActivePointA();
-                showToast('A点を解除しました (長押し)');
-                return;
-            }
+            clearTimeout(state.clickDelayTimer);
 
-            // If long pressing existing waypoint, delete it
+            // 1. Delete waypoint if long-pressing existing waypoint node
             for (let wire of state.wires) {
                 if (wire.page !== state.currentPage) continue;
                 for (let i = 0; i < wire.waypoints.length; i++) {
                     const wp = wire.waypoints[i];
-                    if (Math.hypot(wp.x - pos.x, wp.y - pos.y) < 18) {
+                    if (Math.hypot(wp.x - pos.x, wp.y - pos.y) < 22) {
                         wire.waypoints.splice(i, 1);
                         drawDiagram();
                         updateTablesAndStats();
-                        showToast('折点を削除しました');
+                        showToast('🗑️ 折点を削除しました (長押し)');
+                        if (navigator.vibrate) navigator.vibrate(30);
                         return;
                     }
+                }
+            }
+
+            // 2. If drawing wire (Point A is active) -> Long press on black line adds Waypoint and keeps routing!
+            if (state.activePointA) {
+                const snappedPos = snapToCircuitLine(pos);
+                if (snappedPos) {
+                    state.activeWaypoints.push(snappedPos);
+                    state.activeMousePos = snappedPos;
+                    document.getElementById('statusText').innerText = '折点を追加しました。B点を指定してください';
+                    const statusActions = document.getElementById('statusActions');
+                    if (statusActions) {
+                        statusActions.classList.remove('hidden');
+                        statusActions.classList.add('flex');
+                    }
+                    drawDiagram();
+                    showToast('📍 導線上に折点を追加しました (長押し)');
+                    if (navigator.vibrate) navigator.vibrate(40);
+                    return;
+                } else {
+                    // Long pressing empty space cancels Point A
+                    cancelActivePointA();
+                    showToast('A点を解除しました (長押し)');
+                    return;
+                }
+            }
+
+            // 3. When not drawing -> Long pressing on ANY black line or wire inserts a Waypoint!
+            const snappedPoint = snapToCircuitLine(pos) || (isDarkNear(pos.x, pos.y, 4) ? pos : null);
+            if (snappedPoint && state.wires.length > 0) {
+                let targetWire = null;
+                if (state.selectedWireId) {
+                    targetWire = state.wires.find(w => w.id === state.selectedWireId && w.page === state.currentPage);
+                }
+                if (!targetWire) {
+                    // Find closest wire on current page
+                    let minDist = Infinity;
+                    for (let wire of state.wires) {
+                        if (wire.page !== state.currentPage) continue;
+                        const fullPoints = [wire.pointA, ...wire.waypoints, wire.pointB];
+                        for (let i = 0; i < fullPoints.length - 1; i++) {
+                            const { dist } = distToSegment(snappedPoint.x, snappedPoint.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                targetWire = wire;
+                            }
+                        }
+                    }
+                }
+                if (targetWire) {
+                    const fullPoints = [targetWire.pointA, ...targetWire.waypoints, targetWire.pointB];
+                    let bestSegIndex = 0;
+                    let minDist = Infinity;
+                    for (let i = 0; i < fullPoints.length - 1; i++) {
+                        const { dist } = distToSegment(snappedPoint.x, snappedPoint.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            bestSegIndex = i;
+                        }
+                    }
+                    targetWire.waypoints.splice(bestSegIndex, 0, snappedPoint);
+                    state.selectedWireId = targetWire.id;
+                    updateSelectedWireActionBar();
+                    drawDiagram();
+                    updateTablesAndStats();
+                    showToast('📍 触控筆長押し：黒線位置に折点を追加しました');
+                    if (navigator.vibrate) navigator.vibrate(40);
+                    return;
                 }
             }
         }
