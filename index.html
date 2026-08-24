@@ -350,8 +350,9 @@
             defaultIsTerminal: true,
             isContinuous: false,
 
-            // Input History Chips
-            markTextHistory: ['101', '102', '103', '201', 'COM', 'PE'],
+            // Input Usage Frequency Tracking & History
+            markTextCounts: { 'COM': 6, '101': 5, '102': 4, '103': 3, 'PE': 2, '201': 1 },
+            markTextLastUsed: { 'COM': 6, '101': 5, '102': 4, '103': 3, 'PE': 2, '201': 1 },
 
             // Active Interactive Wiring
             activePointA: null,
@@ -1261,6 +1262,7 @@
                     };
                     state.wires.push(newWire);
                     state.selectedWireId = newWire.id;
+                    addMarkTextToHistory(state.defaultMarkText);
                     state.activePointA = null;
                     state.activeWaypoints = [];
                     document.getElementById('angleHint').classList.add('hidden');
@@ -1347,11 +1349,10 @@
 
         function addMarkTextToHistory(text) {
             if (!text) return;
-            state.markTextHistory = state.markTextHistory.filter(t => t !== text);
-            state.markTextHistory.push(text);
-            if (state.markTextHistory.length > 15) {
-                state.markTextHistory.shift();
-            }
+            if (!state.markTextCounts) state.markTextCounts = {};
+            if (!state.markTextLastUsed) state.markTextLastUsed = {};
+            state.markTextCounts[text] = (state.markTextCounts[text] || 0) + 1;
+            state.markTextLastUsed[text] = Date.now();
             renderMarkTextHistory();
             updateMarkTextSuggestions();
         }
@@ -1360,15 +1361,39 @@
             const container = document.getElementById('markTextHistory');
             if (!container) return;
             container.innerHTML = '';
-            const recent = [...state.markTextHistory].reverse().slice(0, 6);
-            recent.forEach(text => {
+
+            // Collect all known mark texts from count history and current wires
+            const allKeys = new Set([
+                ...Object.keys(state.markTextCounts || {}),
+                ...state.wires.map(w => w.markText)
+            ]);
+
+            // Calculate usage frequency for each mark text
+            const list = Array.from(allKeys).map(text => {
+                const wireOccurrences = state.wires.filter(w => w.markText === text).length;
+                const recordedCount = (state.markTextCounts && state.markTextCounts[text]) || 0;
+                const totalCount = Math.max(recordedCount, wireOccurrences, 1);
+                const lastUsed = (state.markTextLastUsed && state.markTextLastUsed[text]) || 0;
+                return { text, count: totalCount, lastUsed };
+            });
+
+            // Sort descending by usage count (left to right: most used -> least used), tie-break by most recently used
+            list.sort((a, b) => {
+                if (b.count !== a.count) return b.count - a.count;
+                return b.lastUsed - a.lastUsed;
+            });
+
+            // Display top 6 most frequently used
+            const top6 = list.slice(0, 6);
+            top6.forEach(item => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'px-1.5 py-0.5 rounded bg-slate-700 hover:bg-indigo-600 text-slate-200 hover:text-white text-[10px] font-mono transition';
-                btn.textContent = text;
+                btn.className = 'px-1.5 py-0.5 rounded bg-slate-700 hover:bg-indigo-600 text-slate-200 hover:text-white text-[10px] font-mono transition flex items-center gap-1';
+                btn.title = `使用回数: ${item.count}回`;
+                btn.innerHTML = `<span>${item.text}</span><span class="text-[9px] text-indigo-300 font-sans">(${item.count})</span>`;
                 btn.onclick = () => {
                     const input = document.getElementById('modalMarkText');
-                    input.value = text;
+                    input.value = item.text;
                     input.focus();
                     input.select();
                 };
@@ -1380,10 +1405,28 @@
             const datalist = document.getElementById('markTextSuggestions');
             if (!datalist) return;
             datalist.innerHTML = '';
-            const unique = new Set([...state.markTextHistory, ...state.wires.map(w => w.markText)]);
-            unique.forEach(text => {
+
+            const allKeys = new Set([
+                ...Object.keys(state.markTextCounts || {}),
+                ...state.wires.map(w => w.markText)
+            ]);
+
+            const list = Array.from(allKeys).map(text => {
+                const wireOccurrences = state.wires.filter(w => w.markText === text).length;
+                const recordedCount = (state.markTextCounts && state.markTextCounts[text]) || 0;
+                const totalCount = Math.max(recordedCount, wireOccurrences, 1);
+                const lastUsed = (state.markTextLastUsed && state.markTextLastUsed[text]) || 0;
+                return { text, count: totalCount, lastUsed };
+            });
+
+            list.sort((a, b) => {
+                if (b.count !== a.count) return b.count - a.count;
+                return b.lastUsed - a.lastUsed;
+            });
+
+            list.forEach(item => {
                 const option = document.createElement('option');
-                option.value = text;
+                option.value = item.text;
                 datalist.appendChild(option);
             });
         }
