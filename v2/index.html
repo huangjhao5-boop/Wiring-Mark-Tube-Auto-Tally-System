@@ -22,7 +22,7 @@
         .canvas-container {
             background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
             background-size: 20px 20px;
-            touch-action: none; /* Prevent default mobile gestures on canvas */
+            touch-action: none; /* Prevent default browser scroll & gestures on canvas */
         }
         /* Custom scrollbars */
         ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -30,11 +30,11 @@
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #64748b; }
         
-        /* Mobile sidebar slide-over styling */
+        /* Mobile slide-over sidebars */
         @media (max-width: 768px) {
             .mobile-sidebar {
                 position: fixed;
-                top: 50px;
+                top: 48px;
                 bottom: 0;
                 z-index: 40;
                 box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
@@ -46,14 +46,14 @@
 
     <!-- Top Navigation Header -->
     <header class="bg-slate-800 border-b border-slate-700 px-2 sm:px-4 py-1.5 sm:py-2.5 flex items-center justify-between z-20 shrink-0 gap-1 sm:gap-2">
-        <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
-            <div class="bg-indigo-600 text-white p-1.5 sm:p-2 rounded-lg shadow shrink-0">
-                <i class="fa-solid fa-diagram-project text-sm sm:text-lg"></i>
+        <div class="flex items-center space-x-1.5 sm:space-x-3 min-w-0">
+            <div class="bg-indigo-600 text-white p-1 sm:p-2 rounded-lg shadow shrink-0">
+                <i class="fa-solid fa-diagram-project text-xs sm:text-lg"></i>
             </div>
             <div class="min-w-0">
                 <h1 class="text-xs sm:text-base font-bold text-white tracking-wide truncate">
                     <span class="hidden sm:inline">ハード図面配線 & マークチューブ自動集計系統</span>
-                    <span class="sm:hidden">配線集計</span>
+                    <span class="sm:hidden">配線集計系統</span>
                 </h1>
                 <p class="text-[10px] text-slate-400 hidden sm:block">配線作図・自動ナンバリング・積算システム</p>
             </div>
@@ -192,7 +192,8 @@
                 <div class="font-bold text-slate-300 mb-0.5 border-b border-slate-700 pb-0.5"><i class="fa-solid fa-hand-pointer me-1 text-indigo-400"></i>操作方法</div>
                 <div><span class="text-slate-200 font-semibold">1本指タップ:</span> A点/B点 設置</div>
                 <div><span class="text-slate-200 font-semibold">2本指ピンチ:</span> 画面ズーム & パン</div>
-                <div><span class="text-slate-200 font-semibold">折点追加:</span> 選択中配線の黑線をダブルタップ</div>
+                <div><span class="text-slate-200 font-semibold">2本指タップ:</span> A点解除 (キャンセル)</div>
+                <div><span class="text-slate-200 font-semibold">ダブルタップ:</span> 折点の追加 / 削除</div>
             </div>
         </aside>
 
@@ -203,10 +204,23 @@
                 <div id="angleHint" class="hidden absolute z-20 pointer-events-none px-2 py-1 rounded bg-slate-900/95 border border-emerald-400 text-emerald-300 text-xs font-mono shadow-lg whitespace-nowrap"></div>
             </div>
 
-            <!-- Floating Prompt Bar -->
-            <div id="statusBar" class="absolute top-2 sm:top-3 left-1/2 -translate-x-1/2 bg-slate-800/90 backdrop-blur border border-slate-700 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full shadow-lg text-[11px] sm:text-xs font-medium text-slate-200 flex items-center space-x-1.5 sm:space-x-2 pointer-events-none z-10 max-w-[90vw] truncate">
+            <!-- Floating Prompt / Action Bar -->
+            <div id="statusBar" class="absolute top-2 sm:top-3 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur border border-slate-700 px-3 sm:px-4 py-1.5 rounded-full shadow-lg text-[11px] sm:text-xs font-medium text-slate-200 flex items-center space-x-2 z-20 max-w-[95vw]">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                <span id="statusText" class="truncate">始点 (A点) を導線上クリックして指定してください</span>
+                <span id="statusText" class="truncate">始点 (A点) を導線上タップして指定してください</span>
+                <div id="statusActions" class="hidden items-center space-x-1.5 pl-1 shrink-0">
+                    <button id="btnMobileAddWp" type="button" class="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[10px] sm:text-xs font-semibold shadow transition flex items-center">
+                        <i class="fa-solid fa-plus me-1 text-[9px]"></i>折点
+                    </button>
+                    <button id="btnMobileCancelA" type="button" class="px-2 py-0.5 bg-red-600/80 hover:bg-red-500 text-white rounded text-[10px] sm:text-xs font-semibold shadow transition flex items-center">
+                        <i class="fa-solid fa-xmark me-1 text-[9px]"></i>取消
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile Gesture Quick Helper Badge -->
+            <div class="md:hidden absolute bottom-2 left-1/2 -translate-x-1/2 bg-slate-900/85 backdrop-blur border border-slate-700/70 px-2.5 py-1 rounded-full text-[10px] text-slate-300 pointer-events-none z-10 whitespace-nowrap shadow">
+                💡 雙指=縮放平移 | 雙指點/長按=取消A點 | 雙擊=折點增刪
             </div>
 
             <!-- Confirmation / Editing Modal (Compact & Mobile-Optimized) -->
@@ -386,6 +400,7 @@
             activeMousePos: null,
             selectedWireId: null,
             draggingHandle: null,
+            mobileAddWaypointPending: false,
 
             // Wire Collection
             wires: [],
@@ -398,7 +413,14 @@
         let modalTempSq = '1.25';
         let modalTempColor = '#dc2626';
 
-        // Touch State Tracking for Mobile Pinch-Zoom & Pan
+        // Touch State Tracking & Ghost Click Prevention
+        let lastTouchTimestamp = 0;
+        let lastTapTime = 0;
+        let lastTapPos = null;
+        let singleTapTimer = null;
+        let touchLongPressTimer = null;
+        let isTouchLongPressTriggered = false;
+
         const touchState = {
             activeTouches: 0,
             touchStartTime: 0,
@@ -462,6 +484,17 @@
                 const rs = document.getElementById('rightSidebar');
                 if (window.innerWidth <= 768 && !ls.classList.contains('hidden')) ls.classList.add('hidden');
                 rs.classList.toggle('hidden');
+            };
+
+            // Mobile Action Bar Buttons
+            document.getElementById('btnMobileCancelA').onclick = (e) => {
+                e.stopPropagation();
+                cancelActivePointA();
+            };
+            document.getElementById('btnMobileAddWp').onclick = (e) => {
+                e.stopPropagation();
+                state.mobileAddWaypointPending = true;
+                showToast('次のタップ位置を折点として追加します');
             };
 
             // Canvas Mouse Events (PC)
@@ -786,8 +819,11 @@
             hint.classList.toggle('text-red-300', !isValid);
 
             const rect = canvasWrapper.getBoundingClientRect();
-            hint.style.left = `${Math.min(e.clientX - rect.left + 14, rect.width - 125)}px`;
-            hint.style.top = `${Math.min(e.clientY - rect.top + 14, rect.height - 30)}px`;
+            const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : rect.left + rect.width / 2);
+            const clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : rect.top + 50);
+
+            hint.style.left = `${Math.min(clientX - rect.left + 14, rect.width - 125)}px`;
+            hint.style.top = `${Math.min(clientY - rect.top + 14, rect.height - 30)}px`;
             hint.classList.remove('hidden');
         }
 
@@ -1111,7 +1147,11 @@
 
         // ================= TOUCH GESTURES (Mobile / iPad / iPhone) =================
         function handleTouchStart(e) {
+            lastTouchTimestamp = Date.now();
             if (!state.bgImage) return;
+
+            isTouchLongPressTriggered = false;
+            clearTimeout(touchLongPressTimer);
 
             if (e.touches.length === 1) {
                 const t = e.touches[0];
@@ -1130,8 +1170,26 @@
                     drawDiagram();
                     e.preventDefault();
                 }
+
+                // Long Press Detection (0.45s) -> Shortcut to cancel A point or delete/insert waypoint
+                touchLongPressTimer = setTimeout(() => {
+                    if (touchState.activeTouches === 1 && !touchState.isTouchDragging && !touchState.isPinching) {
+                        isTouchLongPressTriggered = true;
+                        handleCanvasLongPress(pos);
+                    }
+                }, 450);
+
             } else if (e.touches.length === 2) {
                 e.preventDefault();
+                clearTimeout(touchLongPressTimer);
+                clearTimeout(singleTapTimer);
+
+                // Two-finger tap shortcut: if Point A is active, cancel it immediately!
+                if (state.activePointA) {
+                    cancelActivePointA();
+                    showToast('A点を解除しました (2本指タップ)');
+                }
+
                 touchState.activeTouches = 2;
                 touchState.isPinching = true;
                 const t1 = e.touches[0];
@@ -1147,10 +1205,12 @@
         }
 
         function handleTouchMove(e) {
+            lastTouchTimestamp = Date.now();
             if (!state.bgImage) return;
 
             if (e.touches.length === 2 && touchState.isPinching) {
                 e.preventDefault();
+                clearTimeout(touchLongPressTimer);
                 const t1 = e.touches[0];
                 const t2 = e.touches[1];
                 const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
@@ -1182,6 +1242,10 @@
                 const pos = getTouchCanvasCoords(t);
                 const distMoved = Math.hypot(t.clientX - touchState.touchStartPan.clientX, t.clientY - touchState.touchStartPan.clientY);
 
+                if (distMoved > 8) {
+                    clearTimeout(touchLongPressTimer);
+                }
+
                 if (touchState.draggedHandle) {
                     e.preventDefault();
                     const wire = state.wires.find(w => w.id === touchState.draggedHandle.wireId);
@@ -1209,6 +1273,9 @@
         }
 
         function handleTouchEnd(e) {
+            lastTouchTimestamp = Date.now();
+            clearTimeout(touchLongPressTimer);
+
             if (touchState.isPinching && e.touches.length < 2) {
                 touchState.isPinching = false;
             }
@@ -1220,18 +1287,137 @@
                 return;
             }
 
+            if (isTouchLongPressTriggered) {
+                isTouchLongPressTriggered = false;
+                touchState.isTouchDragging = false;
+                touchState.touchStartPos = null;
+                return;
+            }
+
             if (e.touches.length === 0) {
                 const duration = Date.now() - touchState.touchStartTime;
                 if (!touchState.isTouchDragging && !touchState.isPinching && duration < 380 && touchState.touchStartPos) {
-                    processCanvasClick(touchState.touchStartPos, false);
+                    const curTime = Date.now();
+                    const curPos = touchState.touchStartPos;
+
+                    // Check for Double-Tap Gesture
+                    if (lastTapPos && (curTime - lastTapTime < 340) && (Math.hypot(curPos.clientX - lastTapPos.clientX, curPos.clientY - lastTapPos.clientY) < 30)) {
+                        clearTimeout(singleTapTimer);
+                        lastTapTime = 0;
+                        lastTapPos = null;
+                        handleTouchDoubleTap(curPos);
+                    } else {
+                        // Single Tap Handler (with debounce to avoid ghost double execution)
+                        lastTapTime = curTime;
+                        lastTapPos = curPos;
+                        clearTimeout(singleTapTimer);
+                        singleTapTimer = setTimeout(() => {
+                            const addWp = state.mobileAddWaypointPending;
+                            state.mobileAddWaypointPending = false;
+                            processCanvasClick(curPos, addWp);
+                        }, 250);
+                    }
                 }
                 touchState.isTouchDragging = false;
                 touchState.touchStartPos = null;
             }
         }
 
+        // Long Press Handler for Mobile
+        function handleCanvasLongPress(pos) {
+            if (state.activePointA) {
+                cancelActivePointA();
+                showToast('A点を解除しました (長押し)');
+                return;
+            }
+
+            // If long pressing existing waypoint, delete it
+            for (let wire of state.wires) {
+                if (wire.page !== state.currentPage) continue;
+                for (let i = 0; i < wire.waypoints.length; i++) {
+                    const wp = wire.waypoints[i];
+                    if (Math.hypot(wp.x - pos.x, wp.y - pos.y) < 16) {
+                        wire.waypoints.splice(i, 1);
+                        drawDiagram();
+                        updateTablesAndStats();
+                        showToast('折点を削除しました');
+                        return;
+                    }
+                }
+            }
+        }
+
+        // Double Tap Handler for Mobile
+        function handleTouchDoubleTap(pos) {
+            // 1. Delete waypoint if double tapped
+            for (let wire of state.wires) {
+                if (wire.page !== state.currentPage) continue;
+                for (let i = 0; i < wire.waypoints.length; i++) {
+                    const wp = wire.waypoints[i];
+                    if (Math.hypot(wp.x - pos.x, wp.y - pos.y) < 16) {
+                        wire.waypoints.splice(i, 1);
+                        drawDiagram();
+                        updateTablesAndStats();
+                        showToast('折点を削除しました');
+                        return;
+                    }
+                }
+            }
+
+            // 2. Insert waypoint if double tapping directly on existing wire segment
+            let closest = null;
+            for (let wire of state.wires) {
+                if (wire.page !== state.currentPage) continue;
+                const fullPoints = [wire.pointA, ...wire.waypoints, wire.pointB];
+                for (let i = 0; i < fullPoints.length - 1; i++) {
+                    const { dist } = distToSegment(pos.x, pos.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
+                    if (dist < 14 && (!closest || dist < closest.dist)) {
+                        closest = { wire, segIndex: i, dist };
+                    }
+                }
+            }
+
+            if (closest) {
+                const snappedWaypoint = snapToCircuitLine(pos) || pos;
+                closest.wire.waypoints.splice(closest.segIndex, 0, snappedWaypoint);
+                state.selectedWireId = closest.wire.id;
+                drawDiagram();
+                updateTablesAndStats();
+                showToast('折点を追加しました');
+                return;
+            }
+
+            // 3. If a wire is selected AND double tapping over dark circuit line, insert waypoint
+            if (state.selectedWireId) {
+                const selectedWire = state.wires.find(w => w.id === state.selectedWireId && w.page === state.currentPage);
+                if (selectedWire) {
+                    const snappedWaypoint = snapToCircuitLine(pos);
+                    if (snappedWaypoint || isDarkNear(pos.x, pos.y, 4)) {
+                        const newPoint = snappedWaypoint || pos;
+                        const fullPoints = [selectedWire.pointA, ...selectedWire.waypoints, selectedWire.pointB];
+                        let bestSegIndex = 0;
+                        let minDist = Infinity;
+                        for (let i = 0; i < fullPoints.length - 1; i++) {
+                            const { dist } = distToSegment(newPoint.x, newPoint.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                bestSegIndex = i;
+                            }
+                        }
+                        selectedWire.waypoints.splice(bestSegIndex, 0, newPoint);
+                        drawDiagram();
+                        updateTablesAndStats();
+                        showToast('選擇中の配線に折点を追加しました');
+                        return;
+                    }
+                }
+            }
+        }
+
         // ================= MOUSE EVENTS (PC) =================
         function handleCanvasMouseDown(e) {
+            // Ignore ghost mouse events simulated by touch
+            if (Date.now() - lastTouchTimestamp < 650) return;
             if (!state.bgImage) return;
 
             if (e.button === 1 || (e.button === 0 && state.isSpacePressed)) {
@@ -1271,6 +1457,8 @@
         }
 
         function handleCanvasMouseMove(e) {
+            if (Date.now() - lastTouchTimestamp < 650) return;
+
             if (state.isPanning) {
                 state.panX = e.clientX - state.panStartX;
                 state.panY = e.clientY - state.panStartY;
@@ -1320,6 +1508,7 @@
         }
 
         function handleCanvasMouseUp(e) {
+            if (Date.now() - lastTouchTimestamp < 650) return;
             clearTimeout(state.longPressTimer);
 
             const wasPanning = state.isPanning || state.isLongPress;
@@ -1366,6 +1555,7 @@
         }
 
         function handleCanvasDblClick(e) {
+            if (Date.now() - lastTouchTimestamp < 650) return;
             clearTimeout(state.clickDelayTimer);
             const pos = getCanvasCoords(e);
 
@@ -1455,7 +1645,7 @@
 
                 if (addWaypoint) {
                     state.activeWaypoints.push(snappedPos);
-                    document.getElementById('statusText').innerText = '折点を追加しました。角度表示を確認しながら調整してください';
+                    document.getElementById('statusText').innerText = '折点を追加しました。B点を指定してください';
                     drawDiagram();
                     showToast('底図導線上に折点を追加しました');
                     return;
@@ -1477,8 +1667,14 @@
                     addMarkTextToHistory(state.defaultMarkText);
                     state.activePointA = null;
                     state.activeWaypoints = [];
+                    state.mobileAddWaypointPending = false;
                     document.getElementById('angleHint').classList.add('hidden');
-                    document.getElementById('statusText').innerText = '始点 (A点) を導線上クリックして指定してください';
+                    document.getElementById('statusText').innerText = '始点 (A点) を導線上タップして指定してください';
+                    const statusActions = document.getElementById('statusActions');
+                    if (statusActions) {
+                        statusActions.classList.add('hidden');
+                        statusActions.classList.remove('flex');
+                    }
                     drawDiagram();
                     updateTablesAndStats();
                     showToast('配線を追加しました');
@@ -1510,7 +1706,13 @@
 
             state.activePointA = snappedPos;
             state.activeWaypoints = [];
+            state.mobileAddWaypointPending = false;
             document.getElementById('statusText').innerText = '終点 (B点) を指定してください';
+            const statusActions = document.getElementById('statusActions');
+            if (statusActions) {
+                statusActions.classList.remove('hidden');
+                statusActions.classList.add('flex');
+            }
             showToast('A点を設定しました');
         }
 
@@ -1519,14 +1721,14 @@
             const wire = state.wires.find(w => w.id === state.selectedWireId && w.page === state.currentPage);
             if (!wire) return null;
 
-            if (Math.hypot(wire.pointA.x - pos.x, wire.pointA.y - pos.y) < 12) {
+            if (Math.hypot(wire.pointA.x - pos.x, wire.pointA.y - pos.y) < 14) {
                 return { wireId: wire.id, handleType: 'A', index: -1 };
             }
-            if (Math.hypot(wire.pointB.x - pos.x, wire.pointB.y - pos.y) < 12) {
+            if (Math.hypot(wire.pointB.x - pos.x, wire.pointB.y - pos.y) < 14) {
                 return { wireId: wire.id, handleType: 'B', index: -1 };
             }
             for (let i = 0; i < wire.waypoints.length; i++) {
-                if (Math.hypot(wire.waypoints[i].x - pos.x, wire.waypoints[i].y - pos.y) < 12) {
+                if (Math.hypot(wire.waypoints[i].x - pos.x, wire.waypoints[i].y - pos.y) < 14) {
                     return { wireId: wire.id, handleType: 'WP', index: i };
                 }
             }
@@ -1541,7 +1743,7 @@
                 const fullPoints = [wire.pointA, ...wire.waypoints, wire.pointB];
                 for (let i = 0; i < fullPoints.length - 1; i++) {
                     const { dist } = distToSegment(pos.x, pos.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
-                    if (dist < 10 && dist < minDist) {
+                    if (dist < 12 && dist < minDist) {
                         minDist = dist;
                         closestWireId = wire.id;
                     }
@@ -1553,8 +1755,14 @@
         function cancelActivePointA() {
             state.activePointA = null;
             state.activeWaypoints = [];
+            state.mobileAddWaypointPending = false;
             document.getElementById('angleHint').classList.add('hidden');
-            document.getElementById('statusText').innerText = '始点 (A点) を導線上クリックして指定してください';
+            document.getElementById('statusText').innerText = '始点 (A点) を導線上タップして指定してください';
+            const statusActions = document.getElementById('statusActions');
+            if (statusActions) {
+                statusActions.classList.add('hidden');
+                statusActions.classList.remove('flex');
+            }
             drawDiagram();
             showToast('A点を解除しました');
         }
@@ -1728,8 +1936,14 @@
                 state.selectedWireId = newWire.id;
                 state.activePointA = null;
                 state.activeWaypoints = [];
+                state.mobileAddWaypointPending = false;
                 document.getElementById('angleHint').classList.add('hidden');
-                document.getElementById('statusText').innerText = '始点 (A点) を導線上クリックして指定してください';
+                document.getElementById('statusText').innerText = '始点 (A点) を導線上タップして指定してください';
+                const statusActions = document.getElementById('statusActions');
+                if (statusActions) {
+                    statusActions.classList.add('hidden');
+                    statusActions.classList.remove('flex');
+                }
                 showToast('配線を追加しました');
             }
 
