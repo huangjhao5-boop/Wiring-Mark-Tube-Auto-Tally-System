@@ -200,15 +200,16 @@
                     <div><span class="text-slate-200 font-semibold">ダブルクリック:</span> 折点の追加 / 削除</div>
                     <div><span class="text-slate-200 font-semibold">右クリック / ESC:</span> A点解除</div>
                     <div><span class="text-slate-200 font-semibold">Space + 拖曳 / 中鍵:</span> 畫面平移</div>
-                    <div><span class="text-slate-200 font-semibold">滾輪:</span> 畫面縮放</div>
+                    <div><span class="text-slate-200 font-semibold">滾輪:</span> 畫面縮放 (平滑)</div>
                 </div>
                 <!-- Touch & Stylus Pen Operations -->
                 <div class="space-y-0.5 pt-0.5">
                     <div class="text-emerald-300 font-bold text-[10px]">【iPad / 觸控筆操作】</div>
-                    <div><span class="text-slate-200 font-semibold">ペン/指タップ:</span> A点/B点 設置 (即時反応)</div>
-                    <div><span class="text-amber-300 font-semibold">單指按住 + 筆尖點擊:</span> 📍 即時插入折點</div>
-                    <div><span class="text-slate-200 font-semibold">雙指輕點:</span> A點解除</div>
-                    <div><span class="text-slate-200 font-semibold">雙指捏合/拖曳:</span> 畫面縮放 & 平移</div>
+                    <div><span class="text-slate-200 font-semibold">ペン/指タップ:</span> A点/B点 設置 (即時)</div>
+                    <div><span class="text-amber-300 font-semibold">ダブルタップ:</span> 📍 折点追加 / 削除</div>
+                    <div><span class="text-amber-300 font-semibold">指ホールド + ペン:</span> 📍 折点追加</div>
+                    <div><span class="text-slate-200 font-semibold">2本指タップ:</span> A点解除</div>
+                    <div><span class="text-slate-200 font-semibold">2本指ピンチ/移動:</span> 縮放 & 平移</div>
                 </div>
             </div>
         </aside>
@@ -458,6 +459,7 @@
             longPressTimer: null,
             isLongPress: false,
             clickDelayTimer: null,
+            lastPointATimestamp: 0,
 
             // Default Wire Parameters
             defaultMarkText: '101',
@@ -494,6 +496,8 @@
 
         // Touch & Stylus State Tracking
         let lastTouchTimestamp = 0;
+        let lastTapTime = 0;
+        let lastTapPos = null;
         let touchLongPressTimer = null;
         let isTouchLongPressTriggered = false;
 
@@ -585,7 +589,7 @@
             document.getElementById('btnZoomOut').onclick = () => adjustZoom(0.92);
             document.getElementById('btnFitPage').onclick = resetCanvasDimensions;
 
-            // Sidebars Toggle (Works seamlessly on Mobile, iPad, and PC!)
+            // Sidebars Toggle
             document.getElementById('toggleLeftSidebar').onclick = toggleLeftSidebarAction;
             document.getElementById('toggleRightSidebar').onclick = toggleRightSidebarAction;
 
@@ -622,7 +626,7 @@
                 drawDiagram();
             };
 
-            // Canvas Mouse Events (PC - Fully Preserved & Working)
+            // Canvas Mouse Events (PC - Fully Preserved & Optimized)
             canvasWrapper.addEventListener('mousedown', handleCanvasMouseDown);
             canvasWrapper.addEventListener('mousemove', handleCanvasMouseMove);
             window.addEventListener('mouseup', handleCanvasMouseUp);
@@ -1350,12 +1354,11 @@
                 e.preventDefault();
                 clearTimeout(touchLongPressTimer);
 
-                // Check for Procreate-style Gesture: ONE finger holding + Stylus/Finger tapping = ADD WAYPOINT!
+                // Two-touch Modifier: ONE finger holding + Stylus/Finger tapping = ADD WAYPOINT!
                 const t1 = e.touches[0];
                 const t2 = e.touches[1];
                 const duration1 = Date.now() - touchState.touchStartTime;
 
-                // If touch 1 was already holding down for > 80ms, touch 2 is an intentional Waypoint Tap!
                 if (touchState.activeTouches === 1 && duration1 > 80 && !touchState.isTouchDragging) {
                     touchState.isModifierWaypointHandled = true;
                     const wpPos = getTouchCanvasCoords(t2);
@@ -1363,7 +1366,7 @@
                     return;
                 }
 
-                // Otherwise, normal two-finger pinch-to-zoom & two-finger tap cancel
+                // Two-finger tap shortcut: cancel Point A
                 if (state.activePointA) {
                     cancelActivePointA();
                     showToast('A点を解除しました (2本指タップ)');
@@ -1485,14 +1488,141 @@
             if (e.touches.length === 0) {
                 const duration = Date.now() - touchState.touchStartTime;
                 if (!touchState.isTouchDragging && !touchState.isPinching && duration < 350 && touchState.touchStartPos) {
-                    // Instant Drawing Tap for Stylus Pen & Finger Touch (0ms Latency!)
                     const curPos = touchState.touchStartPos;
-                    const addWp = state.mobileAddWaypointPending;
-                    state.mobileAddWaypointPending = false;
-                    processCanvasClick(curPos, addWp);
+                    const curTime = Date.now();
+
+                    // Mobile / Stylus Double Tap Detection (350ms & 25px) -> Insert or Delete Waypoint
+                    if (lastTapPos && (curTime - lastTapTime < 350) && (Math.hypot(curPos.clientX - lastTapPos.clientX, curPos.clientY - lastTapPos.clientY) < 25)) {
+                        clearTimeout(state.clickDelayTimer);
+                        lastTapTime = 0;
+                        lastTapPos = null;
+                        executeDoubleTapWaypointAction(curPos);
+                    } else {
+                        // Single Tap (Execute with slight delay to distinguish double-tap, or instant if modifier)
+                        lastTapTime = curTime;
+                        lastTapPos = curPos;
+                        const addWp = state.mobileAddWaypointPending;
+                        state.mobileAddWaypointPending = false;
+                        clearTimeout(state.clickDelayTimer);
+                        state.clickDelayTimer = setTimeout(() => {
+                            processCanvasClick(curPos, addWp);
+                        }, 200);
+                    }
                 }
                 touchState.isTouchDragging = false;
                 touchState.touchStartPos = null;
+            }
+        }
+
+        function executeDoubleTapWaypointAction(pos) {
+            clearTimeout(state.clickDelayTimer);
+
+            // If drawing wire (Point A is active or modal just opened) -> Add Waypoint to the active route!
+            if (state.activePointA || (!wireModal.classList.contains('hidden') && state.pendingWireData)) {
+                if (!wireModal.classList.contains('hidden') && state.pendingWireData) {
+                    state.activePointA = state.pendingWireData.pointA;
+                    state.activeWaypoints = state.pendingWireData.waypoints || [];
+                    closeModal();
+                }
+                const snappedPos = snapToCircuitLine(pos) || pos;
+                state.activeWaypoints.push(snappedPos);
+                state.activeMousePos = snappedPos;
+                document.getElementById('statusText').innerText = '折点を追加しました。B点を指定してください';
+                const statusActions = document.getElementById('statusActions');
+                if (statusActions) {
+                    statusActions.classList.remove('hidden');
+                    statusActions.classList.add('flex');
+                }
+                drawDiagram();
+                showToast('📍 黒線上に折点を追加しました (ダブルクリック)');
+                return;
+            }
+
+            // Close modal if first tap opened modal
+            if (!wireModal.classList.contains('hidden') && state.pendingWireData) {
+                closeModal();
+            }
+
+            // 1. Delete waypoint if double-tapping existing node
+            for (let wire of state.wires) {
+                if (wire.page !== state.currentPage) continue;
+                for (let i = 0; i < wire.waypoints.length; i++) {
+                    const wp = wire.waypoints[i];
+                    if (Math.hypot(wp.x - pos.x, wp.y - pos.y) < 18) {
+                        wire.waypoints.splice(i, 1);
+                        drawDiagram();
+                        updateTablesAndStats();
+                        showToast('折点を削除しました');
+                        return;
+                    }
+                }
+            }
+
+            // 2. Insert waypoint if double-clicking directly on an existing wire segment
+            let closest = null;
+            for (let wire of state.wires) {
+                if (wire.page !== state.currentPage) continue;
+                const fullPoints = [wire.pointA, ...wire.waypoints, wire.pointB];
+                for (let i = 0; i < fullPoints.length - 1; i++) {
+                    const { dist } = distToSegment(pos.x, pos.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
+                    if (dist < 18 && (!closest || dist < closest.dist)) {
+                        closest = { wire, segIndex: i, dist };
+                    }
+                }
+            }
+
+            if (closest) {
+                const snappedWaypoint = snapToCircuitLine(pos) || pos;
+                closest.wire.waypoints.splice(closest.segIndex, 0, snappedWaypoint);
+                state.selectedWireId = closest.wire.id;
+                updateSelectedWireActionBar();
+                drawDiagram();
+                updateTablesAndStats();
+                showToast('📍 配線に折点を追加しました');
+                return;
+            }
+
+            // 3. Double-clicking on ANY black line on the drawing -> Insert waypoint into closest/selected wire!
+            const snappedPoint = snapToCircuitLine(pos) || (isDarkNear(pos.x, pos.y, 4) ? pos : null);
+            if (snappedPoint && state.wires.length > 0) {
+                let targetWire = null;
+                if (state.selectedWireId) {
+                    targetWire = state.wires.find(w => w.id === state.selectedWireId && w.page === state.currentPage);
+                }
+                if (!targetWire) {
+                    // Find closest wire on current page
+                    let minDist = Infinity;
+                    for (let wire of state.wires) {
+                        if (wire.page !== state.currentPage) continue;
+                        const fullPoints = [wire.pointA, ...wire.waypoints, wire.pointB];
+                        for (let i = 0; i < fullPoints.length - 1; i++) {
+                            const { dist } = distToSegment(snappedPoint.x, snappedPoint.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                targetWire = wire;
+                            }
+                        }
+                    }
+                }
+                if (targetWire) {
+                    const fullPoints = [targetWire.pointA, ...targetWire.waypoints, targetWire.pointB];
+                    let bestSegIndex = 0;
+                    let minDist = Infinity;
+                    for (let i = 0; i < fullPoints.length - 1; i++) {
+                        const { dist } = distToSegment(snappedPoint.x, snappedPoint.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            bestSegIndex = i;
+                        }
+                    }
+                    targetWire.waypoints.splice(bestSegIndex, 0, snappedPoint);
+                    state.selectedWireId = targetWire.id;
+                    updateSelectedWireActionBar();
+                    drawDiagram();
+                    updateTablesAndStats();
+                    showToast('📍 底図の黒線位置に折点を追加しました');
+                    return;
+                }
             }
         }
 
@@ -1520,7 +1650,7 @@
             }
         }
 
-        // ================= MOUSE EVENTS (PC - Fully Preserved) =================
+        // ================= MOUSE EVENTS (PC - Fully Preserved & Optimized) =================
         function handleCanvasMouseDown(e) {
             if (Date.now() - lastTouchTimestamp < 800) return;
             if (!state.bgImage) return;
@@ -1637,7 +1767,17 @@
             if (e.button === 0 && state.pendingClickPos && !wasPanning) {
                 const clickPos = state.pendingClickPos;
                 const addWaypoint = state.pendingClickAddWaypoint;
-                processCanvasClick(clickPos, addWaypoint);
+                
+                // If Shift key is pressed -> Execute add waypoint immediately!
+                if (addWaypoint) {
+                    processCanvasClick(clickPos, true);
+                } else {
+                    // Delay single click slightly (210ms) so double click can intercept and add waypoint cleanly!
+                    clearTimeout(state.clickDelayTimer);
+                    state.clickDelayTimer = setTimeout(() => {
+                        processCanvasClick(clickPos, false);
+                    }, 210);
+                }
             }
 
             state.mouseDownPos = null;
@@ -1646,9 +1786,10 @@
             state.isLongPress = false;
         }
 
+        // Ultra-Smooth, Gentle Mouse Wheel Zooming
         function handleCanvasWheel(e) {
             e.preventDefault();
-            const zoomFactor = e.deltaY < 0 ? 1.04 : 0.96;
+            const zoomFactor = e.deltaY < 0 ? 1.02 : 0.98;
             const rect = canvasWrapper.getBoundingClientRect();
             adjustZoom(zoomFactor, {
                 x: e.clientX - rect.left,
@@ -1656,48 +1797,12 @@
             });
         }
 
+        // PC Double Click Handler (Fully Restored for any Black Circuit Line & Wire)
         function handleCanvasDblClick(e) {
             if (Date.now() - lastTouchTimestamp < 800) return;
+            clearTimeout(state.clickDelayTimer);
             const pos = getCanvasCoords(e);
-
-            // 1. Delete waypoint if double clicking existing handle node
-            for (let wire of state.wires) {
-                if (wire.page !== state.currentPage) continue;
-                for (let i = 0; i < wire.waypoints.length; i++) {
-                    const wp = wire.waypoints[i];
-                    if (Math.hypot(wp.x - pos.x, wp.y - pos.y) < 14) {
-                        wire.waypoints.splice(i, 1);
-                        drawDiagram();
-                        updateTablesAndStats();
-                        showToast('折点を削除しました');
-                        return;
-                    }
-                }
-            }
-
-            // 2. Insert waypoint if double clicking directly on an existing wire segment
-            let closest = null;
-            for (let wire of state.wires) {
-                if (wire.page !== state.currentPage) continue;
-                const fullPoints = [wire.pointA, ...wire.waypoints, wire.pointB];
-                for (let i = 0; i < fullPoints.length - 1; i++) {
-                    const { dist } = distToSegment(pos.x, pos.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
-                    if (dist < 12 && (!closest || dist < closest.dist)) {
-                        closest = { wire, segIndex: i, dist };
-                    }
-                }
-            }
-
-            if (closest) {
-                const snappedWaypoint = snapToCircuitLine(pos) || pos;
-                closest.wire.waypoints.splice(closest.segIndex, 0, snappedWaypoint);
-                state.selectedWireId = closest.wire.id;
-                updateSelectedWireActionBar();
-                drawDiagram();
-                updateTablesAndStats();
-                showToast('折点を追加しました');
-                return;
-            }
+            executeDoubleTapWaypointAction(pos);
         }
 
         function distToSegment(px, py, x1, y1, x2, y2) {
@@ -1802,7 +1907,7 @@
 
             const hitWireId = findWireAt(pos);
             if (hitWireId) {
-                // If Shift key or Finger modifier active when clicking a wire -> Insert waypoint into that wire!
+                // If Shift key or Modifier active when clicking a wire -> Insert waypoint into that wire!
                 if (addWaypoint) {
                     const wire = state.wires.find(w => w.id === hitWireId && w.page === state.currentPage);
                     if (wire) {
@@ -1848,6 +1953,7 @@
             state.activeWaypoints = [];
             state.mobileAddWaypointPending = false;
             state.selectedWireId = null;
+            state.lastPointATimestamp = Date.now();
             updateSelectedWireActionBar();
 
             document.getElementById('statusText').innerText = '終点 (B点) を指定してください';
