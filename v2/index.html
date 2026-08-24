@@ -206,7 +206,7 @@
                 <div class="space-y-0.5 pt-0.5">
                     <div class="text-emerald-300 font-bold text-[10px]">【iPad / 觸控筆操作】</div>
                     <div><span class="text-slate-200 font-semibold">ペン/指タップ:</span> A点 / B点 設置 (即時)</div>
-                    <div><span class="text-amber-300 font-semibold">長押し (0.3秒):</span> 📍 折点追加 / 削除</div>
+                    <div><span class="text-amber-300 font-semibold">長押し (0.5秒):</span> 📍 折点追加 / 削除</div>
                     <div><span class="text-amber-300 font-semibold">ダブルタップ:</span> 📍 折点追加 / 削除</div>
                     <div><span class="text-amber-300 font-semibold">指ホールド + ペン:</span> 📍 折点追加</div>
                     <div><span class="text-slate-200 font-semibold">2本指タップ:</span> A点解除</div>
@@ -1343,13 +1343,13 @@
                     e.preventDefault();
                 }
 
-                // Long Press (0.34s) -> Stylus Pen Waypoint Insertion or Deletion
+                // Long Press (0.5s) -> Stylus Pen Waypoint Insertion or Deletion
                 touchLongPressTimer = setTimeout(() => {
                     if (touchState.activeTouches === 1 && !touchState.isTouchDragging && !touchState.isPinching) {
                         isTouchLongPressTriggered = true;
                         handleCanvasLongPress(pos);
                     }
-                }, 340);
+                }, 500);
 
             } else if (e.touches.length === 2) {
                 e.preventDefault();
@@ -1479,8 +1479,11 @@
                 return;
             }
 
-            if (isTouchLongPressTriggered) {
+            if (isTouchLongPressTriggered || (Date.now() - (state.lastLongPressTimestamp || 0) < 500)) {
                 isTouchLongPressTriggered = false;
+                clearTimeout(state.clickDelayTimer);
+                lastTapTime = 0;
+                lastTapPos = null;
                 touchState.isTouchDragging = false;
                 touchState.touchStartPos = null;
                 return;
@@ -1488,7 +1491,7 @@
 
             if (e.touches.length === 0) {
                 const duration = Date.now() - touchState.touchStartTime;
-                if (!touchState.isTouchDragging && !touchState.isPinching && duration < 350 && touchState.touchStartPos) {
+                if (!touchState.isTouchDragging && !touchState.isPinching && duration < 400 && touchState.touchStartPos) {
                     const curPos = touchState.touchStartPos;
                     const curTime = Date.now();
 
@@ -1630,6 +1633,9 @@
         // Long Press Handler for Mobile, iPad & Stylus Pen
         function handleCanvasLongPress(pos) {
             clearTimeout(state.clickDelayTimer);
+            state.lastLongPressTimestamp = Date.now();
+            lastTapTime = 0;
+            lastTapPos = null;
 
             // 1. Delete waypoint if long-pressing existing waypoint node
             for (let wire of state.wires) {
