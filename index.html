@@ -440,18 +440,6 @@
                                 <option value="#ea580c">橙</option>
                             </select>
                         </div>
-
-                        <!-- Change Terminal checkbox & toggle -->
-                        <div class="bg-slate-900/60 p-2 rounded border border-slate-700 space-y-1.5">
-                            <label class="flex items-center space-x-2 cursor-pointer">
-                                <input type="checkbox" id="batchChangeTerminalChk" class="accent-indigo-500">
-                                <span class="font-semibold text-slate-200">端子台接続を変更</span>
-                            </label>
-                            <select id="batchNewTerminalSelect" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white">
-                                <option value="true">端子台接続あり (黄枠標記)</option>
-                                <option value="false">直結 (なし)</option>
-                            </select>
-                        </div>
                     </div>
 
                     <!-- Footer Buttons -->
@@ -1181,10 +1169,9 @@
 
             const changeSq = document.getElementById('batchChangeSqChk').checked;
             const changeColor = document.getElementById('batchChangeColorChk').checked;
-            const changeTerminal = document.getElementById('batchChangeTerminalChk').checked;
 
-            if (!changeSq && !changeColor && !changeTerminal) {
-                showToast('変更する項目にチェックを入れてください');
+            if (!changeSq && !changeColor) {
+                showToast('変更する項目（サイズまたは電線色）にチェックを入れてください');
                 return;
             }
 
@@ -1192,14 +1179,12 @@
 
             const newSq = document.getElementById('batchNewSqSelect').value;
             const newColor = document.getElementById('batchNewColorSelect').value;
-            const newTerminal = document.getElementById('batchNewTerminalSelect').value === 'true';
 
             let modifiedCount = 0;
             state.wires.forEach(wire => {
                 if (wire.markText === targetMark) {
                     if (changeSq) wire.sq = newSq;
                     if (changeColor) wire.color = newColor;
-                    if (changeTerminal) wire.isTerminal = newTerminal;
                     modifiedCount++;
                 }
             });
