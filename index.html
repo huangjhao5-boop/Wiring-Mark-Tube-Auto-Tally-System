@@ -202,13 +202,13 @@
                             <span class="text-xs text-slate-200 font-medium block">連番自動インクリメント</span>
                             <span class="text-[9px] text-slate-400 block">(101 → 102 → 103...)</span>
                         </div>
-                        <input type="checkbox" id="chkAutoIncrement" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer" checked>
+                        <input type="checkbox" id="chkAutoIncrement" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer">
                     </div>
 
                     <!-- Default Terminal Block Switch -->
                     <div class="flex items-center justify-between bg-slate-900/50 p-2 rounded border border-slate-700">
                         <span class="text-xs text-slate-300 font-medium">端子台接続 (初期値)</span>
-                        <input type="checkbox" id="chkDefaultTerminal" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer" checked>
+                        <input type="checkbox" id="chkDefaultTerminal" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer">
                     </div>
 
                     <!-- Continuous Mode Switch -->
@@ -361,7 +361,7 @@
                         <!-- Terminal Block Connection Toggle -->
                         <label class="flex items-center justify-between bg-amber-950/40 px-2.5 py-1 rounded border border-amber-500/50 cursor-pointer">
                             <div class="flex items-center gap-1.5">
-                                <input type="checkbox" id="modalTerminalConnection" class="w-3.5 h-3.5 accent-amber-500 cursor-pointer shrink-0" checked>
+                                <input type="checkbox" id="modalTerminalConnection" class="w-3.5 h-3.5 accent-amber-500 cursor-pointer shrink-0">
                                 <span class="text-amber-200 font-semibold text-[11px]">端子台接続</span>
                             </div>
                             <span class="text-[9px] text-amber-400">(黃框標記 & 積算+1點)</span>
@@ -612,9 +612,11 @@
             defaultSq: '1.25',
             defaultColor: '#dc2626',
             defaultColorName: '赤',
-            defaultIsTerminal: true,
+            defaultIsTerminal: false,
             isContinuous: false,
-            isAutoIncrement: true,
+            isAutoIncrement: false,
+            lastWaypointDeleteTimestamp: 0,
+            lastWaypointDeletedPos: null,
 
             // Blueprint Display Enhancements
             contrast: 100,
@@ -2107,6 +2109,10 @@
 
         function executeDoubleTapWaypointAction(pos) {
             clearTimeout(state.clickDelayTimer);
+            clearTimeout(touchLongPressTimer);
+            lastTapTime = 0;
+            lastTapPos = null;
+            state.lastLongPressTimestamp = Date.now();
 
             // If drawing wire (Point A is active or modal just opened) -> Add Waypoint to the active route!
             if (state.activePointA || (!wireModal.classList.contains('hidden') && state.pendingWireData)) {
@@ -2139,15 +2145,21 @@
                 if (wire.page !== state.currentPage) continue;
                 for (let i = 0; i < wire.waypoints.length; i++) {
                     const wp = wire.waypoints[i];
-                    if (Math.hypot(wp.x - pos.x, wp.y - pos.y) < 18) {
+                    if (Math.hypot(wp.x - pos.x, wp.y - pos.y) < 20) {
                         saveHistoryState('Delete-Waypoint');
                         wire.waypoints.splice(i, 1);
+                        state.lastWaypointDeleteTimestamp = Date.now();
                         drawDiagram();
                         updateTablesAndStats();
-                        showToast('折点を削除しました');
+                        showToast('🗑️ 折点を削除しました');
                         return;
                     }
                 }
+            }
+
+            // If a waypoint was recently deleted at or near this gesture, DO NOT immediately re-add!
+            if (Date.now() - (state.lastWaypointDeleteTimestamp || 0) < 850) {
+                return;
             }
 
             // 2. Insert waypoint if double-clicking directly on an existing wire segment
@@ -2168,6 +2180,7 @@
                 const snappedWaypoint = snapToCircuitLine(pos) || pos;
                 closest.wire.waypoints.splice(closest.segIndex, 0, snappedWaypoint);
                 state.selectedWireId = closest.wire.id;
+                state.lastWaypointAddTimestamp = Date.now();
                 updateSelectedWireActionBar();
                 drawDiagram();
                 updateTablesAndStats();
@@ -2211,6 +2224,7 @@
                     }
                     targetWire.waypoints.splice(bestSegIndex, 0, snappedPoint);
                     state.selectedWireId = targetWire.id;
+                    state.lastWaypointAddTimestamp = Date.now();
                     updateSelectedWireActionBar();
                     drawDiagram();
                     updateTablesAndStats();
@@ -2223,6 +2237,7 @@
         // Long Press Handler for Mobile, iPad & Stylus Pen
         function handleCanvasLongPress(pos) {
             clearTimeout(state.clickDelayTimer);
+            clearTimeout(touchLongPressTimer);
             state.lastLongPressTimestamp = Date.now();
             lastTapTime = 0;
             lastTapPos = null;
@@ -2235,6 +2250,7 @@
                     if (Math.hypot(wp.x - pos.x, wp.y - pos.y) < 22) {
                         saveHistoryState('Delete-Waypoint');
                         wire.waypoints.splice(i, 1);
+                        state.lastWaypointDeleteTimestamp = Date.now();
                         drawDiagram();
                         updateTablesAndStats();
                         showToast('🗑️ 折点を削除しました (長押し)');
@@ -2244,12 +2260,18 @@
                 }
             }
 
+            // If a waypoint was recently deleted, do not immediately re-add!
+            if (Date.now() - (state.lastWaypointDeleteTimestamp || 0) < 850) {
+                return;
+            }
+
             // 2. If drawing wire (Point A is active) -> Long press on black line adds Waypoint and keeps routing!
             if (state.activePointA) {
                 const snappedPos = snapToCircuitLine(pos);
                 if (snappedPos) {
                     state.activeWaypoints.push(snappedPos);
                     state.activeMousePos = snappedPos;
+                    state.lastWaypointAddTimestamp = Date.now();
                     document.getElementById('statusText').innerText = '折点を追加しました。B点を指定してください';
                     const statusActions = document.getElementById('statusActions');
                     if (statusActions) {
@@ -2304,6 +2326,7 @@
                     }
                     targetWire.waypoints.splice(bestSegIndex, 0, snappedPoint);
                     state.selectedWireId = targetWire.id;
+                    state.lastWaypointAddTimestamp = Date.now();
                     updateSelectedWireActionBar();
                     drawDiagram();
                     updateTablesAndStats();
