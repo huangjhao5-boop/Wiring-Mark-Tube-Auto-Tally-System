@@ -1731,25 +1731,35 @@
                 ctx.restore();
             });
 
-            if (state.activePointA && state.activeMousePos && !isExport) {
-                const tempB = getClearanceBPoint(state.activePointA, state.activeMousePos)
-                    || state.activeMousePos;
+            // Active Routing / Point A Rendering (Always visible once Point A is set)
+            if (state.activePointA && !isExport) {
+                const hasMouseOrMove = !!state.activeMousePos;
+                const tempB = hasMouseOrMove
+                    ? (getClearanceBPoint(state.activePointA, state.activeMousePos) || state.activeMousePos)
+                    : null;
 
                 ctx.beginPath();
                 ctx.moveTo(state.activePointA.x, state.activePointA.y);
                 state.activeWaypoints.forEach(wp => ctx.lineTo(wp.x, wp.y));
-                ctx.lineTo(tempB.x, tempB.y);
 
-                const previewStart = state.activeWaypoints[state.activeWaypoints.length - 1] || state.activePointA;
-                const previewAngles = state.activeWaypoints.length ? ENDPOINT_SNAP_ANGLES : ENDPOINT_SNAP_ANGLES;
-                ctx.strokeStyle = isValidBaseSegment(previewStart, tempB, previewAngles) ? state.defaultColor : '#ef4444';
-                ctx.lineWidth = Math.max(2, parseFloat(state.defaultSq) * 2);
-                ctx.setLineDash([5, 5]);
-                ctx.stroke();
-                ctx.setLineDash([]);
+                if (tempB) {
+                    ctx.lineTo(tempB.x, tempB.y);
+                    const previewStart = state.activeWaypoints[state.activeWaypoints.length - 1] || state.activePointA;
+                    const previewAngles = state.activeWaypoints.length ? ENDPOINT_SNAP_ANGLES : ENDPOINT_SNAP_ANGLES;
+                    ctx.strokeStyle = isValidBaseSegment(previewStart, tempB, previewAngles) ? state.defaultColor : '#ef4444';
+                    ctx.lineWidth = Math.max(2, parseFloat(state.defaultSq) * 2);
+                    ctx.setLineDash([5, 5]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    drawHandleNode(tempB.x, tempB.y, 'B', true);
+                } else if (state.activeWaypoints.length > 0) {
+                    ctx.strokeStyle = state.defaultColor;
+                    ctx.lineWidth = Math.max(2, parseFloat(state.defaultSq) * 2);
+                    ctx.stroke();
+                }
 
+                state.activeWaypoints.forEach(wp => drawHandleNode(wp.x, wp.y, 'WP', true));
                 drawHandleNode(state.activePointA.x, state.activePointA.y, 'A', true);
-                drawHandleNode(tempB.x, tempB.y, 'B', true);
             }
         }
 
@@ -1789,9 +1799,59 @@
         }
 
         function drawHandleNode(x, y, type, isSelected) {
+            if (type === 'A') {
+                ctx.save();
+                // Glowing outer halo
+                ctx.beginPath();
+                ctx.arc(x, y, 13, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(34, 197, 94, 0.35)';
+                ctx.fill();
+                // Solid center pin
+                ctx.beginPath();
+                ctx.arc(x, y, 7.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#22c55e';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                // Label 'A'
+                ctx.font = 'bold 9px sans-serif';
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('A', x, y);
+                ctx.restore();
+                return;
+            }
+
+            if (type === 'B') {
+                ctx.save();
+                // Glowing outer halo
+                ctx.beginPath();
+                ctx.arc(x, y, 13, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.35)';
+                ctx.fill();
+                // Solid center pin
+                ctx.beginPath();
+                ctx.arc(x, y, 7.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#ef4444';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                // Label 'B'
+                ctx.font = 'bold 9px sans-serif';
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('B', x, y);
+                ctx.restore();
+                return;
+            }
+
             ctx.beginPath();
-            ctx.arc(x, y, type === 'WP' ? 5 : 6, 0, Math.PI * 2);
-            ctx.fillStyle = type === 'A' ? '#22c55e' : (type === 'B' ? '#ef4444' : '#a855f7');
+            ctx.arc(x, y, 5.5, 0, Math.PI * 2);
+            ctx.fillStyle = '#a855f7';
             ctx.fill();
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 2;
@@ -1836,6 +1896,7 @@
                 touchState.touchStartPos = pos;
                 touchState.touchStartPan = { panX: state.panX, panY: state.panY, clientX: t.clientX, clientY: t.clientY };
                 touchState.isTouchDragging = false;
+                touchState.pinchOrDragOccurred = false;
                 touchState.draggedHandle = null;
                 touchState.isModifierWaypointHandled = false;
 
@@ -1850,7 +1911,7 @@
 
                 // Long Press (0.5s) -> Stylus Pen Waypoint Insertion or Deletion
                 touchLongPressTimer = setTimeout(() => {
-                    if (touchState.activeTouches === 1 && !touchState.isTouchDragging && !touchState.isPinching) {
+                    if (touchState.activeTouches === 1 && !touchState.isTouchDragging && !touchState.isPinching && !touchState.pinchOrDragOccurred) {
                         isTouchLongPressTriggered = true;
                         handleCanvasLongPress(pos);
                     }
@@ -1859,6 +1920,8 @@
             } else if (e.touches.length === 2) {
                 e.preventDefault();
                 clearTimeout(touchLongPressTimer);
+                touchState.pinchOrDragOccurred = true;
+                touchState.lastMultiTouchTimestamp = Date.now();
 
                 // Two-touch Modifier: ONE finger holding + Stylus/Finger tapping = ADD WAYPOINT!
                 const t1 = e.touches[0];
@@ -1899,6 +1962,9 @@
             if (e.touches.length === 2 && touchState.isPinching) {
                 e.preventDefault();
                 clearTimeout(touchLongPressTimer);
+                touchState.pinchOrDragOccurred = true;
+                touchState.lastMultiTouchTimestamp = Date.now();
+
                 const t1 = e.touches[0];
                 const t2 = e.touches[1];
                 const currentDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
@@ -1930,8 +1996,10 @@
                 const pos = getTouchCanvasCoords(t);
                 const distMoved = Math.hypot(t.clientX - touchState.touchStartPan.clientX, t.clientY - touchState.touchStartPan.clientY);
 
-                if (distMoved > 8) {
+                if (distMoved > 6) {
                     clearTimeout(touchLongPressTimer);
+                    touchState.pinchOrDragOccurred = true;
+                    touchState.isTouchDragging = true;
                 }
 
                 if (touchState.draggedHandle) {
@@ -1946,13 +2014,12 @@
                             drawDiagram();
                         }
                     }
-                } else if (state.activePointA) {
+                } else if (state.activePointA && distMoved > 4) {
                     e.preventDefault();
                     state.activeMousePos = pos;
                     drawDiagram();
-                } else if (distMoved > 8) {
+                } else if (distMoved > 6) {
                     e.preventDefault();
-                    touchState.isTouchDragging = true;
                     state.panX = touchState.touchStartPan.panX + (t.clientX - touchState.touchStartPan.clientX);
                     state.panY = touchState.touchStartPan.panY + (t.clientY - touchState.touchStartPan.clientY);
                     applyCanvasTransform();
@@ -1968,17 +2035,24 @@
                 if (e.touches.length === 0) {
                     touchState.isModifierWaypointHandled = false;
                     touchState.isTouchDragging = false;
+                    touchState.pinchOrDragOccurred = false;
                     touchState.touchStartPos = null;
                 }
                 return;
             }
 
-            if (touchState.isPinching && e.touches.length < 2) {
-                touchState.isPinching = false;
+            if (touchState.isPinching) {
+                touchState.lastMultiTouchTimestamp = Date.now();
+                touchState.pinchOrDragOccurred = true;
+                if (e.touches.length === 0) {
+                    touchState.isPinching = false;
+                }
             }
 
             if (touchState.draggedHandle) {
                 touchState.draggedHandle = null;
+                touchState.pinchOrDragOccurred = false;
+                touchState.isTouchDragging = false;
                 saveHistoryState('Drag-Handle');
                 drawDiagram();
                 updateTablesAndStats();
@@ -1991,13 +2065,17 @@
                 lastTapTime = 0;
                 lastTapPos = null;
                 touchState.isTouchDragging = false;
+                touchState.pinchOrDragOccurred = false;
                 touchState.touchStartPos = null;
                 return;
             }
 
             if (e.touches.length === 0) {
                 const duration = Date.now() - touchState.touchStartTime;
-                if (!touchState.isTouchDragging && !touchState.isPinching && duration < 400 && touchState.touchStartPos) {
+                const wasPinchingRecently = (Date.now() - (touchState.lastMultiTouchTimestamp || 0) < 450);
+                const wasDraggingOrPinched = touchState.isTouchDragging || touchState.isPinching || touchState.pinchOrDragOccurred || wasPinchingRecently;
+
+                if (!wasDraggingOrPinched && duration < 400 && touchState.touchStartPos) {
                     const curPos = touchState.touchStartPos;
                     const curTime = Date.now();
 
@@ -2019,7 +2097,10 @@
                         }, 200);
                     }
                 }
+
                 touchState.isTouchDragging = false;
+                touchState.isPinching = false;
+                touchState.pinchOrDragOccurred = false;
                 touchState.touchStartPos = null;
             }
         }
