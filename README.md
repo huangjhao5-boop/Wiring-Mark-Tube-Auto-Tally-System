@@ -2,14 +2,14 @@
 ### Hard Wiring Diagram & Mark Tube Auto-Aggregation System
 
 [![Author](https://img.shields.io/badge/Author-M.K(TW)-indigo.svg)](https://github.com/)
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/)
+[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](https://github.com/)
 [![License](https://img.shields.io/badge/license-MIT-emerald.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Web%20%7C%20iPad%20%7C%20PC%20%7C%20Mobile-teal.svg)]()
+[![Platform](https://img.shields.io/badge/platform-Web%20%7C%20iPad%20%7C%20PC%20%7C%20PWA-teal.svg)]()
 [![Privacy](https://img.shields.io/badge/data_privacy-100%25%20Client--Side-orange.svg)]()
 
 > **專為電氣控制盤、分電盤、自動控制配線工程設計的圖面視覺化配線與線號標籤（マークチューブ）自動集計系統。**
 > 
-> 解決傳統人工計算線號管數量繁瑣、容易漏算及圖面核對費時的痛點。支援匯入多頁 PDF / 圖檔，於瀏覽器中直接進行智慧吸附配線，並一鍵匯出符合日本電氣工事規範的 Excel 明細表與多頁標註圖面。
+> 徹底解決傳統人工計算線號管數量繁瑣、容易漏算及圖面核對費時的痛點。支援匯入多頁 PDF / 圖檔，於瀏覽器中直接進行智慧吸附配線，並一鍵匯出符合日本電氣工事規範的 Excel 明細表與多頁標註圖面。
 
 ---
 
@@ -29,13 +29,31 @@
   - `3.5 SQ` $\longrightarrow$ **4.2Φ**
   - （每條配線自動計為 **2 個線號管**，勾選端子台連接自動累計 **1 點端子**）
 
-### 3. 📱 iPad / 觸控筆 (Apple Pencil) / 行動裝置深度最佳化
+### 3. 💾 專案存檔 / 讀取 ＆ 自動備份 (Project Save/Load & Auto-Recovery)
+- **專案檔案匯出/匯入 (`.json`)**：一鍵將配線座標、線號、顏色、SQ 與端子台屬性打包儲存，隨時重新載入或跨電腦交接。
+- **LocalStorage 自動暫存**：意外關閉分頁或刷新時，下次開啟系統將主動提示「一鍵恢復上次未存進度」。
+
+### 4. ↩️ 復原 / 重做機制 (Undo / Redo)
+- 支援鍵盤 `Ctrl + Z`（復原）與 `Ctrl + Y`（重做），以及頂部導覽列 `[ ↩️ ]` / `[ ↪️ ]` 按鈕，作圖失誤秒速還原。
+
+### 5. 🔢 線號自動連號遞增模式 (+1 Auto Increment)
+- 開啟「連番自動インクリメント」後，每確認一條配線，系統自動將下一個初始線號變為 `102` $\to$ `103` $\to$ `104`，連續作圖效率提升數倍。
+
+### 6. 🔍 線號即時搜尋與全圖發光高亮 (Search & Highlight Glow)
+- 右側明細輸入線號（如 `101` 或 `COM`），畫面上所有符合的配線立即**以青藍色發光光暈高亮顯示**，其餘非目標線條自動半透明淡化，點擊清單更可直覺聚焦。
+
+### 7. ⚡ 同名線號一鍵批次修改 (Batch Edit)
+- 點擊「一括変更」，即可將所有同名線號（如所有 `COM` 線）**一秒批次變更電線 SQ、電線色或端子台屬性**。
+
+### 8. 🌓 底圖顯示增強 (Contrast / Brightness & CAD Dark Mode)
+- 提供底圖亮度與對比度微調滑桿，並支援**黑白反相（CAD 深色模式）**，讓彩色的標註配線更加清晰耀眼！
+
+### 9. 📱 iPad / 觸控筆 (Apple Pencil) / PWA 獨立 App 支援
 - **觸控筆長按（0.5秒）加/刪折點**：筆尖停留在黑線上即可隨心所欲插入折點，停在折點上自動刪除。
 - **Procreate 類雙觸控修飾手勢**：單指按住螢幕任一處 ＋ 筆尖點擊 ＝ 即刻插入折點。
-- **側邊欄彈性開閉**：頂部「設定」與「明細」面板可隨時收合，提供 100% 滿版大畫布視野。
-- **零滾動確認彈窗**：彈窗高度智慧緊湊化，平板與手機上無須捲動即可一覽全部 SQ、顏色與確定按鈕。
+- **PWA 支援**：iPad Safari 點擊「加入主畫面」，即可作為獨立 App 全螢幕滿版開啟，免除網址列干擾。
 
-### 4. 📊 完整多頁面匯出功能 (Universal Multi-Page Export)
+### 10. 📊 完整多頁面匯出功能 (Universal Multi-Page Export)
 - **Excel (`.xlsx`) & CSV 下載**：自動產生標題篩選下拉選單、尺寸分類統計、合計總數。
 - **多頁 PDF 圖面匯出**：可選擇「當前頁」、「全頁面一併輸出」或「指定頁碼（如 1, 3, 5-7）」。
 - **高解析 PNG (ZIP) 打包**：多頁圖面自動打包為單一 ZIP 壓縮檔快速下載。
@@ -51,6 +69,7 @@
 | **A 點 / B 點 設置** | 滑鼠左鍵點擊導線 | 筆尖 / 單指輕點導線（零延遲） |
 | **新增折點 (Waypoint)** | • 導線或黑線上**雙擊**<br>• 按住 `Shift` ＋ 點擊 | • **筆尖長按 0.5 秒**（最推薦）<br>• 快速雙擊黑線<br>• 單指按住螢幕 ＋ 筆尖點擊 |
 | **刪除折點** | 雙擊折點圓圈節點 | 筆尖長按折點圓圈節點 |
+| **復原 / 重做** | `Ctrl + Z` / `Ctrl + Y` | 頂部 `[ ↩️ ]` / `[ ↪️ ]` 按鈕 |
 | **取消 A 點** | 滑鼠右鍵 或 `ESC` 鍵 | 雙指輕點螢幕 或 頂部 `[✕ 取消]` |
 | **畫面縮放 (Zoom)** | 滑鼠滾輪（細緻平滑縮放） | 雙指捏合縮放 (Pinch to Zoom) |
 | **畫面平移 (Pan)** | 滑鼠中鍵 拖曳 或 `Space` ＋ 拖曳 | 雙指滑動 或 單指拖曳空白處 |

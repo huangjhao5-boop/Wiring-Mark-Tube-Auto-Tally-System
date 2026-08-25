@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <meta name="author" content="M.K(TW)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
     <title>ハード図面配線 & マークチューブ自動集計系統</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -76,8 +79,18 @@
             </span>
         </div>
 
-        <!-- Center: View Controls -->
+        <!-- Center: View Controls & Undo/Redo -->
         <div class="flex items-center space-x-0.5 sm:space-x-1 bg-slate-900/80 p-0.5 sm:p-1 rounded-lg border border-slate-700 shrink-0">
+            <!-- Undo / Redo -->
+            <button id="btnUndo" class="p-1 text-slate-300 hover:text-white rounded transition disabled:opacity-30" title="元に戻す (Ctrl+Z)" disabled>
+                <i class="fa-solid fa-rotate-left text-[11px]"></i>
+            </button>
+            <button id="btnRedo" class="p-1 text-slate-300 hover:text-white rounded transition disabled:opacity-30" title="やり直す (Ctrl+Y)" disabled>
+                <i class="fa-solid fa-rotate-right text-[11px]"></i>
+            </button>
+            <div class="h-3 w-[1px] bg-slate-700 mx-0.5"></div>
+
+            <!-- Page Nav -->
             <button id="btnPrevPage" class="p-1 text-slate-300 hover:text-white rounded transition disabled:opacity-40" title="前ページ">
                 <i class="fa-solid fa-chevron-left text-[10px]"></i>
             </button>
@@ -86,6 +99,8 @@
                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
             </button>
             <div class="h-3 w-[1px] bg-slate-700 mx-0.5"></div>
+
+            <!-- Zoom -->
             <button id="btnZoomOut" class="p-1 text-slate-300 hover:text-white rounded transition" title="縮小">
                 <i class="fa-solid fa-minus text-[10px]"></i>
             </button>
@@ -98,8 +113,15 @@
             </button>
         </div>
 
-        <!-- Right: Actions -->
+        <!-- Right: Actions & Project Management -->
         <div class="flex items-center space-x-1 shrink-0">
+            <button id="btnSaveProject" class="px-2 py-1 text-[11px] bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition border border-slate-600 flex items-center" title="プロジェクト保存 (.json)">
+                <i class="fa-solid fa-floppy-disk sm:me-1 text-indigo-400"></i><span class="hidden sm:inline">保存</span>
+            </button>
+            <input type="file" id="projectFileInput" accept=".json,.hwproj" class="hidden">
+            <button id="btnLoadProject" class="px-2 py-1 text-[11px] bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition border border-slate-600 flex items-center" title="プロジェクト読込">
+                <i class="fa-solid fa-folder-open sm:me-1 text-amber-400"></i><span class="hidden sm:inline">読込</span>
+            </button>
             <button id="toggleLeftSidebar" class="px-2 py-1 text-[11px] bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition border border-slate-600" title="設定パネルを開閉">
                 <i class="fa-solid fa-sliders sm:me-1"></i><span class="hidden sm:inline">設定</span>
             </button>
@@ -118,7 +140,7 @@
     <!-- Main Content Grid -->
     <div class="flex-1 flex overflow-hidden relative">
 
-        <!-- Left Sidebar: Settings & Shortcuts (Comprehensive PC & Mobile) -->
+        <!-- Left Sidebar: Settings & Shortcuts -->
         <aside id="leftSidebar" class="app-sidebar sidebar-left w-64 bg-slate-800 border-r border-slate-700 p-3 flex flex-col justify-between shrink-0 h-[calc(100dvh-44px)] overflow-y-auto">
             <div class="space-y-3 overflow-y-auto pr-1">
                 <!-- Header with Close Button -->
@@ -137,7 +159,7 @@
                 </div>
 
                 <!-- Wire Parameters -->
-                <div class="space-y-3">
+                <div class="space-y-2.5">
                     <h2 class="text-xs font-bold text-indigo-400 tracking-wider uppercase border-b border-slate-700 pb-1">配線パラメータ設定</h2>
 
                     <!-- Wire Color Selection -->
@@ -174,6 +196,15 @@
                         <input type="text" id="sidebarMarkText" value="101" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono">
                     </div>
 
+                    <!-- Auto-Increment Switch -->
+                    <div class="flex items-center justify-between bg-slate-900/50 p-2 rounded border border-slate-700">
+                        <div>
+                            <span class="text-xs text-slate-200 font-medium block">連番自動インクリメント</span>
+                            <span class="text-[9px] text-slate-400 block">(101 → 102 → 103...)</span>
+                        </div>
+                        <input type="checkbox" id="chkAutoIncrement" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer" checked>
+                    </div>
+
                     <!-- Default Terminal Block Switch -->
                     <div class="flex items-center justify-between bg-slate-900/50 p-2 rounded border border-slate-700">
                         <span class="text-xs text-slate-300 font-medium">端子台接続 (初期値)</span>
@@ -184,6 +215,38 @@
                     <div class="flex items-center justify-between bg-slate-900/50 p-2 rounded border border-slate-700">
                         <span class="text-xs text-slate-300 font-medium">連続作図モード</span>
                         <input type="checkbox" id="chkContinuous" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- Blueprint Display Adjustments (Contrast & CAD Dark Mode) -->
+                <div class="space-y-2 bg-slate-900/60 p-2.5 rounded-lg border border-slate-700">
+                    <h2 class="text-xs font-bold text-slate-300 flex items-center justify-between">
+                        <span><i class="fa-solid fa-sliders me-1.5 text-indigo-400"></i>底図表示調整</span>
+                        <button id="btnResetFilters" class="text-[9px] text-slate-400 hover:text-white">リセット</button>
+                    </h2>
+
+                    <!-- Contrast Slider -->
+                    <div>
+                        <div class="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                            <span>コントラスト</span>
+                            <span id="contrastValText">100%</span>
+                        </div>
+                        <input type="range" id="rngContrast" min="50" max="250" value="100" class="w-full accent-indigo-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer">
+                    </div>
+
+                    <!-- Brightness Slider -->
+                    <div>
+                        <div class="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                            <span>明るさ</span>
+                            <span id="brightnessValText">100%</span>
+                        </div>
+                        <input type="range" id="rngBrightness" min="50" max="180" value="100" class="w-full accent-indigo-500 h-1.5 bg-slate-700 rounded-lg cursor-pointer">
+                    </div>
+
+                    <!-- CAD Invert Colors Mode Switch -->
+                    <div class="flex items-center justify-between pt-1 border-t border-slate-700/60">
+                        <span class="text-[11px] text-slate-300">CAD深色模式 (白黒反転)</span>
+                        <input type="checkbox" id="chkInvertColors" class="w-3.5 h-3.5 accent-indigo-500 rounded cursor-pointer">
                     </div>
                 </div>
             </div>
@@ -197,8 +260,8 @@
                 <div class="space-y-0.5 border-b border-slate-700/60 pb-1">
                     <div class="text-indigo-300 font-bold text-[10px]">【パソコン操作】</div>
                     <div><span class="text-slate-200 font-semibold">クリック:</span> A点 / B点 設置</div>
-                    <div><span class="text-slate-200 font-semibold">Shift + クリック:</span> 折点追加</div>
                     <div><span class="text-slate-200 font-semibold">ダブルクリック:</span> 折点の追加 / 削除</div>
+                    <div><span class="text-slate-200 font-semibold">Ctrl+Z / Ctrl+Y:</span> 復原 / 重做</div>
                     <div><span class="text-slate-200 font-semibold">右クリック / ESC:</span> A点解除</div>
                     <div><span class="text-slate-200 font-semibold">Space + 拖曳 / 中鍵:</span> 畫面平移</div>
                     <div><span class="text-slate-200 font-semibold">滾輪:</span> 畫面縮放 (平滑)</div>
@@ -217,7 +280,7 @@
                 <!-- Author & Copyright Credit -->
                 <div class="pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-[9px] text-slate-500 font-mono">
                     <span>Author: <strong class="text-slate-400">M.K(TW)</strong></span>
-                    <span>v2.0.0</span>
+                    <span>v2.1.0</span>
                 </div>
             </div>
         </aside>
@@ -328,6 +391,79 @@
                 </div>
             </div>
 
+            <!-- Batch Edit Modal Dialog (同名線號一鍵批次修改) -->
+            <div id="batchEditModal" class="hidden fixed inset-0 h-[100dvh] w-full bg-slate-950/75 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+                <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-xs flex flex-col p-3.5 my-auto pointer-events-auto animate-in fade-in zoom-in duration-150">
+                    <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-2.5">
+                        <h3 class="text-xs sm:text-sm font-bold text-white flex items-center">
+                            <i class="fa-solid fa-bolt text-amber-400 me-2"></i>同名線號一括変更
+                        </h3>
+                        <button onclick="closeBatchEditModal()" class="p-1 text-slate-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <div class="space-y-2.5 text-xs">
+                        <div>
+                            <label class="block text-slate-300 font-semibold mb-1">対象のマークチューブ印字</label>
+                            <select id="batchTargetMarkTextSelect" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white font-mono focus:border-indigo-500 focus:outline-none"></select>
+                        </div>
+
+                        <!-- Change SQ checkbox & select -->
+                        <div class="bg-slate-900/60 p-2 rounded border border-slate-700 space-y-1.5">
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" id="batchChangeSqChk" class="accent-indigo-500">
+                                <span class="font-semibold text-slate-200">電線サイズ (SQ) を変更</span>
+                            </label>
+                            <select id="batchNewSqSelect" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white font-mono">
+                                <option value="0.5">0.5 SQ</option>
+                                <option value="0.75">0.75 SQ</option>
+                                <option value="1.25" selected>1.25 SQ</option>
+                                <option value="2.0">2.0 SQ</option>
+                                <option value="3.5">3.5 SQ</option>
+                                <option value="5.5">5.5 SQ</option>
+                            </select>
+                        </div>
+
+                        <!-- Change Color checkbox & palette -->
+                        <div class="bg-slate-900/60 p-2 rounded border border-slate-700 space-y-1.5">
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" id="batchChangeColorChk" class="accent-indigo-500">
+                                <span class="font-semibold text-slate-200">電線色を変更</span>
+                            </label>
+                            <select id="batchNewColorSelect" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white">
+                                <option value="#dc2626">赤</option>
+                                <option value="#2563eb">青</option>
+                                <option value="#eab308">黄</option>
+                                <option value="#16a34a">緑</option>
+                                <option value="#18181b">黒</option>
+                                <option value="#f8fafc">白</option>
+                                <option value="#9333ea">紫</option>
+                                <option value="#ea580c">橙</option>
+                            </select>
+                        </div>
+
+                        <!-- Change Terminal checkbox & toggle -->
+                        <div class="bg-slate-900/60 p-2 rounded border border-slate-700 space-y-1.5">
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" id="batchChangeTerminalChk" class="accent-indigo-500">
+                                <span class="font-semibold text-slate-200">端子台接続を変更</span>
+                            </label>
+                            <select id="batchNewTerminalSelect" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white">
+                                <option value="true">端子台接続あり (黄枠標記)</option>
+                                <option value="false">直結 (なし)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Footer Buttons -->
+                    <div class="flex items-center space-x-2 pt-3 border-t border-slate-700 mt-2.5">
+                        <button onclick="closeBatchEditModal()" class="flex-1 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs font-medium transition">キャンセル</button>
+                        <button onclick="executeBatchEdit()" class="flex-1 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded text-xs font-bold shadow transition flex items-center justify-center">
+                            <i class="fa-solid fa-check me-1.5"></i>一括適用
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Export Modal Dialog (Universal for Mobile & Desktop) -->
             <div id="exportModal" class="hidden fixed inset-0 h-[100dvh] w-full bg-slate-950/75 backdrop-blur-sm z-50 flex items-center justify-center p-3">
                 <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-xs flex flex-col p-3.5 my-auto pointer-events-auto animate-in fade-in zoom-in duration-150">
@@ -384,15 +520,27 @@
             </div>
         </main>
 
-        <!-- Right Sidebar: Summary & List -->
+        <!-- Right Sidebar: Summary, Search & List -->
         <aside id="rightSidebar" class="app-sidebar sidebar-right w-64 bg-slate-800 border-l border-slate-700 p-3 flex flex-col justify-between shrink-0 h-[calc(100dvh-44px)] overflow-y-auto">
-            <div class="flex flex-col h-full space-y-3">
-                <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+            <div class="flex flex-col h-full space-y-2.5">
+                <div class="flex items-center justify-between border-b border-slate-700 pb-1.5">
                     <h2 class="text-xs font-bold text-indigo-400 uppercase tracking-wider">配線明細リスト</h2>
-                    <div class="flex items-center space-x-2">
+                    <div class="flex items-center space-x-1.5">
+                        <button onclick="openBatchEditModal()" class="px-1.5 py-0.5 bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/40 rounded text-[10px] font-semibold transition" title="同名線號一括変更">
+                            <i class="fa-solid fa-bolt me-1"></i>一括変更
+                        </button>
                         <span id="wireCountBadge" class="bg-indigo-900/60 text-indigo-300 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-indigo-500/30">0 本</span>
                         <button onclick="toggleRightSidebarAction()" class="p-1 text-slate-400 hover:text-white" title="閉じる"><i class="fa-solid fa-xmark text-sm"></i></button>
                     </div>
+                </div>
+
+                <!-- Wire Search & Filter Input Bar -->
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="wireSearchInput" placeholder="線號搜尋 (全図発光)..." class="w-full bg-slate-900 border border-slate-700 rounded-md pl-7 pr-7 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono">
+                    <button id="btnClearSearch" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </button>
                 </div>
 
                 <!-- Wire Cards Container -->
@@ -454,6 +602,7 @@
             totalPages: 1,
             bgImage: null,
             bgImageData: null,
+            bgImageFileName: '',
             scale: 1.0,
             panX: 0,
             panY: 0,
@@ -468,6 +617,7 @@
             isLongPress: false,
             clickDelayTimer: null,
             lastPointATimestamp: 0,
+            lastLongPressTimestamp: 0,
 
             // Default Wire Parameters
             defaultMarkText: '101',
@@ -476,6 +626,20 @@
             defaultColorName: '赤',
             defaultIsTerminal: true,
             isContinuous: false,
+            isAutoIncrement: true,
+
+            // Blueprint Display Enhancements
+            contrast: 100,
+            brightness: 100,
+            invertColors: false,
+
+            // Search & Highlight
+            searchQuery: '',
+
+            // Undo / Redo History
+            undoStack: [],
+            redoStack: [],
+            maxHistory: 30,
 
             // Input Usage Frequency Tracking & History
             markTextCounts: { 'COM': 6, '101': 5, '102': 4, '103': 3, 'PE': 2, '201': 1 },
@@ -539,7 +703,108 @@
             initEventListeners();
             updateUIState();
             drawDiagram();
+            checkLocalStorageAutoRecovery();
         };
+
+        // ================= UNDO / REDO HISTORY ENGINE =================
+        function saveHistoryState(action = '') {
+            const snapshot = JSON.stringify(state.wires);
+            state.undoStack.push(snapshot);
+            if (state.undoStack.length > state.maxHistory) state.undoStack.shift();
+            state.redoStack = [];
+            updateUndoRedoButtons();
+            autoSaveToLocalStorage();
+        }
+
+        function undoAction() {
+            if (state.undoStack.length === 0) return;
+            const currentSnapshot = JSON.stringify(state.wires);
+            state.redoStack.push(currentSnapshot);
+            const prevSnapshot = state.undoStack.pop();
+            state.wires = JSON.parse(prevSnapshot);
+            state.selectedWireId = null;
+            state.activePointA = null;
+            state.activeWaypoints = [];
+            updateUndoRedoButtons();
+            drawDiagram();
+            updateTablesAndStats();
+            showToast('↩️ 操作を元に戻しました (Undo)');
+            autoSaveToLocalStorage();
+        }
+
+        function redoAction() {
+            if (state.redoStack.length === 0) return;
+            const currentSnapshot = JSON.stringify(state.wires);
+            state.undoStack.push(currentSnapshot);
+            const nextSnapshot = state.redoStack.pop();
+            state.wires = JSON.parse(nextSnapshot);
+            state.selectedWireId = null;
+            state.activePointA = null;
+            state.activeWaypoints = [];
+            updateUndoRedoButtons();
+            drawDiagram();
+            updateTablesAndStats();
+            showToast('↪️ 操作をやり直しました (Redo)');
+            autoSaveToLocalStorage();
+        }
+
+        function updateUndoRedoButtons() {
+            const btnUndo = document.getElementById('btnUndo');
+            const btnRedo = document.getElementById('btnRedo');
+            if (btnUndo) btnUndo.disabled = state.undoStack.length === 0;
+            if (btnRedo) btnRedo.disabled = state.redoStack.length === 0;
+        }
+
+        // ================= LOCALSTORAGE AUTO-SAVE & RECOVERY =================
+        function autoSaveToLocalStorage() {
+            try {
+                const data = {
+                    wires: state.wires,
+                    markTextCounts: state.markTextCounts,
+                    markTextLastUsed: state.markTextLastUsed,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('hw_wiring_autosave', JSON.stringify(data));
+            } catch (err) {
+                // Ignore quota errors
+            }
+        }
+
+        function checkLocalStorageAutoRecovery() {
+            try {
+                const saved = localStorage.getItem('hw_wiring_autosave');
+                if (!saved) return;
+                const data = JSON.parse(saved);
+                if (data && data.wires && data.wires.length > 0 && state.wires.length === 0) {
+                    const dateStr = new Date(data.timestamp).toLocaleString();
+                    setTimeout(() => {
+                        if (confirm(`📂 前回作業した自動バックアップデータ（${data.wires.length}本の配線、${dateStr}）が見つかりました。\n復元しますか？`)) {
+                            state.wires = data.wires;
+                            if (data.markTextCounts) state.markTextCounts = data.markTextCounts;
+                            if (data.markTextLastUsed) state.markTextLastUsed = data.markTextLastUsed;
+                            saveHistoryState('Auto-Recovery');
+                            drawDiagram();
+                            updateTablesAndStats();
+                            showToast('自動バックアップデータを復元しました');
+                        }
+                    }, 500);
+                }
+            } catch (err) {
+                // Ignore
+            }
+        }
+
+        // ================= AUTO-INCREMENT NUMBERING =================
+        function getNextIncrementedMarkText(text) {
+            if (!text) return '101';
+            const match = text.match(/^(.*?)(\d+)$/);
+            if (!match) return text;
+            const prefix = match[1];
+            const numStr = match[2];
+            const numVal = parseInt(numStr, 10) + 1;
+            const paddedNum = String(numVal).padStart(numStr.length, '0');
+            return prefix + paddedNum;
+        }
 
         // Universal Sidebar Toggles for All Devices (Mobile, iPad, PC)
         function toggleLeftSidebarAction() {
@@ -584,6 +849,15 @@
         }
 
         function initEventListeners() {
+            // Undo / Redo buttons
+            document.getElementById('btnUndo').onclick = undoAction;
+            document.getElementById('btnRedo').onclick = redoAction;
+
+            // Project Save / Load
+            document.getElementById('btnSaveProject').onclick = exportProjectJSON;
+            document.getElementById('btnLoadProject').onclick = () => document.getElementById('projectFileInput').click();
+            document.getElementById('projectFileInput').onchange = importProjectJSON;
+
             // File Upload
             document.getElementById('btnSelectFile').onclick = () => fileInput.click();
             fileInput.onchange = handleFileUpload;
@@ -600,6 +874,55 @@
             // Sidebars Toggle
             document.getElementById('toggleLeftSidebar').onclick = toggleLeftSidebarAction;
             document.getElementById('toggleRightSidebar').onclick = toggleRightSidebarAction;
+
+            // Wire Search Input
+            const searchInput = document.getElementById('wireSearchInput');
+            const clearSearchBtn = document.getElementById('btnClearSearch');
+            searchInput.oninput = (e) => {
+                state.searchQuery = e.target.value.trim();
+                clearSearchBtn.classList.toggle('hidden', !state.searchQuery);
+                drawDiagram();
+                updateTablesAndStats();
+            };
+            clearSearchBtn.onclick = () => {
+                searchInput.value = '';
+                state.searchQuery = '';
+                clearSearchBtn.classList.add('hidden');
+                drawDiagram();
+                updateTablesAndStats();
+            };
+
+            // Image Adjustments
+            document.getElementById('rngContrast').oninput = (e) => {
+                state.contrast = parseInt(e.target.value, 10);
+                document.getElementById('contrastValText').innerText = `${state.contrast}%`;
+                drawDiagram();
+            };
+            document.getElementById('rngBrightness').oninput = (e) => {
+                state.brightness = parseInt(e.target.value, 10);
+                document.getElementById('brightnessValText').innerText = `${state.brightness}%`;
+                drawDiagram();
+            };
+            document.getElementById('chkInvertColors').onchange = (e) => {
+                state.invertColors = e.target.checked;
+                drawDiagram();
+            };
+            document.getElementById('btnResetFilters').onclick = () => {
+                state.contrast = 100;
+                state.brightness = 100;
+                state.invertColors = false;
+                document.getElementById('rngContrast').value = 100;
+                document.getElementById('rngBrightness').value = 100;
+                document.getElementById('contrastValText').innerText = '100%';
+                document.getElementById('brightnessValText').innerText = '100%';
+                document.getElementById('chkInvertColors').checked = false;
+                drawDiagram();
+            };
+
+            // Auto-Increment switch
+            document.getElementById('chkAutoIncrement').onchange = (e) => {
+                state.isAutoIncrement = e.target.checked;
+            };
 
             // Mobile Action Bar Buttons (Drawing Mode)
             document.getElementById('btnMobileCancelA').onclick = (e) => {
@@ -647,18 +970,23 @@
             canvasWrapper.addEventListener('touchend', handleTouchEnd, { passive: false });
             canvasWrapper.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
-            // Orientation Change & Window Resize
-            window.addEventListener('orientationchange', () => {
-                setTimeout(resetCanvasDimensions, 250);
-            });
-            window.addEventListener('resize', () => {
-                applyCanvasTransform();
-            });
-
-            // Context menu / ESC
+            // Keyboard Shortcuts (Ctrl+Z, Ctrl+Y, ESC, Space)
             window.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') cancelActivePointA();
-                if (e.key === ' ') state.isSpacePressed = true;
+                if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
+                    if (document.activeElement.tagName !== 'INPUT') {
+                        e.preventDefault();
+                        undoAction();
+                    }
+                } else if ((e.ctrlKey || e.metaKey) && ((e.key === 'y' || e.key === 'Y') || ((e.key === 'z' || e.key === 'Z') && e.shiftKey))) {
+                    if (document.activeElement.tagName !== 'INPUT') {
+                        e.preventDefault();
+                        redoAction();
+                    }
+                } else if (e.key === 'Escape') {
+                    cancelActivePointA();
+                } else if (e.key === ' ') {
+                    state.isSpacePressed = true;
+                }
             });
             window.addEventListener('keyup', (e) => {
                 if (e.key === ' ') state.isSpacePressed = false;
@@ -666,6 +994,14 @@
             canvasWrapper.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 cancelActivePointA();
+            });
+
+            // Orientation Change & Window Resize
+            window.addEventListener('orientationchange', () => {
+                setTimeout(resetCanvasDimensions, 250);
+            });
+            window.addEventListener('resize', () => {
+                applyCanvasTransform();
             });
 
             // Parameter Panel Controls
@@ -737,6 +1073,143 @@
             document.getElementById('btnExportCsv').onclick = exportCSV;
         }
 
+        // ================= PROJECT SAVE & LOAD (JSON) =================
+        function exportProjectJSON() {
+            if (state.wires.length === 0 && !state.bgImage) {
+                showToast('保存するプロジェクトデータがありません');
+                return;
+            }
+            const projectData = {
+                format: 'HARD_WIRING_PROJECT',
+                version: '2.1.0',
+                createdAt: new Date().toISOString(),
+                totalPages: state.totalPages,
+                currentPage: state.currentPage,
+                wires: state.wires,
+                markTextCounts: state.markTextCounts,
+                markTextLastUsed: state.markTextLastUsed,
+                settings: {
+                    defaultMarkText: state.defaultMarkText,
+                    defaultSq: state.defaultSq,
+                    defaultColor: state.defaultColor,
+                    defaultIsTerminal: state.defaultIsTerminal,
+                    isContinuous: state.isContinuous,
+                    isAutoIncrement: state.isAutoIncrement,
+                    contrast: state.contrast,
+                    brightness: state.brightness,
+                    invertColors: state.invertColors
+                }
+            };
+
+            const jsonStr = JSON.stringify(projectData, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            link.download = `Wiring_Project_${dateStr}.json`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+            showToast('プロジェクトファイルを保存しました (.json)');
+        }
+
+        function importProjectJSON(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                try {
+                    const data = JSON.parse(evt.target.result);
+                    if (!data.wires && !Array.isArray(data)) {
+                        showToast('無効なプロジェクトファイルです');
+                        return;
+                    }
+                    saveHistoryState('Import-Project');
+                    state.wires = data.wires || data;
+                    if (data.markTextCounts) state.markTextCounts = data.markTextCounts;
+                    if (data.markTextLastUsed) state.markTextLastUsed = data.markTextLastUsed;
+                    if (data.settings) {
+                        state.defaultMarkText = data.settings.defaultMarkText || state.defaultMarkText;
+                        state.defaultSq = data.settings.defaultSq || state.defaultSq;
+                        state.defaultColor = data.settings.defaultColor || state.defaultColor;
+                        state.defaultIsTerminal = data.settings.defaultIsTerminal !== false;
+                        state.isContinuous = !!data.settings.isContinuous;
+                        state.isAutoIncrement = data.settings.isAutoIncrement !== false;
+                        if (data.settings.contrast !== undefined) state.contrast = data.settings.contrast;
+                        if (data.settings.brightness !== undefined) state.brightness = data.settings.brightness;
+                        if (data.settings.invertColors !== undefined) state.invertColors = data.settings.invertColors;
+                    }
+                    drawDiagram();
+                    updateTablesAndStats();
+                    showToast(`プロジェクトを読み込みました (${state.wires.length}本の配線)`);
+                } catch (err) {
+                    showToast('ファイルの読み込み中にエラーが発生しました');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        }
+
+        // ================= BATCH EDIT MODAL =================
+        function openBatchEditModal() {
+            const select = document.getElementById('batchTargetMarkTextSelect');
+            select.innerHTML = '';
+
+            const uniqueMarks = Array.from(new Set(state.wires.map(w => w.markText))).filter(Boolean);
+            if (uniqueMarks.length === 0) {
+                showToast('一括変更できる配線データがありません');
+                return;
+            }
+
+            uniqueMarks.forEach(mark => {
+                const count = state.wires.filter(w => w.markText === mark).length;
+                const opt = document.createElement('option');
+                opt.value = mark;
+                opt.innerText = `${mark} (${count} 本)`;
+                select.appendChild(opt);
+            });
+
+            document.getElementById('batchEditModal').classList.remove('hidden');
+        }
+
+        function closeBatchEditModal() {
+            document.getElementById('batchEditModal').classList.add('hidden');
+        }
+
+        function executeBatchEdit() {
+            const targetMark = document.getElementById('batchTargetMarkTextSelect').value;
+            if (!targetMark) return;
+
+            const changeSq = document.getElementById('batchChangeSqChk').checked;
+            const changeColor = document.getElementById('batchChangeColorChk').checked;
+            const changeTerminal = document.getElementById('batchChangeTerminalChk').checked;
+
+            if (!changeSq && !changeColor && !changeTerminal) {
+                showToast('変更する項目にチェックを入れてください');
+                return;
+            }
+
+            saveHistoryState('Batch-Edit');
+
+            const newSq = document.getElementById('batchNewSqSelect').value;
+            const newColor = document.getElementById('batchNewColorSelect').value;
+            const newTerminal = document.getElementById('batchNewTerminalSelect').value === 'true';
+
+            let modifiedCount = 0;
+            state.wires.forEach(wire => {
+                if (wire.markText === targetMark) {
+                    if (changeSq) wire.sq = newSq;
+                    if (changeColor) wire.color = newColor;
+                    if (changeTerminal) wire.isTerminal = newTerminal;
+                    modifiedCount++;
+                }
+            });
+
+            closeBatchEditModal();
+            drawDiagram();
+            updateTablesAndStats();
+            showToast(`線号「${targetMark}」${modifiedCount} 本を一括変更しました`);
+        }
+
         function openExportModal() {
             document.getElementById('exportCurPageText').innerText = `P.${state.currentPage}`;
             document.getElementById('exportAllPagesText').innerText = `全 ${state.totalPages} 頁`;
@@ -797,6 +1270,8 @@
         function handleFileUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
+
+            state.bgImageFileName = file.name;
 
             if (file.type === 'application/pdf') {
                 const fileReader = new FileReader();
@@ -1180,17 +1655,49 @@
         function drawDiagram(isExport = false) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            // Apply Display Filters (Brightness, Contrast, Invert) to Background Blueprint
             if (state.bgImage) {
+                ctx.save();
+                if (!isExport) {
+                    let filterStr = `brightness(${state.brightness}%) contrast(${state.contrast}%)`;
+                    if (state.invertColors) filterStr += ' invert(100%)';
+                    ctx.filter = filterStr;
+                }
                 ctx.drawImage(state.bgImage, 0, 0);
+                ctx.restore();
             } else {
-                ctx.fillStyle = '#ffffff';
+                ctx.fillStyle = state.invertColors && !isExport ? '#090d16' : '#ffffff';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
+
+            const query = state.searchQuery ? state.searchQuery.toLowerCase() : '';
 
             state.wires.forEach(wire => {
                 if (wire.page !== state.currentPage) return;
 
                 const isSelected = wire.id === state.selectedWireId;
+                const isSearchMatch = query && wire.markText.toLowerCase().includes(query);
+                const isDimmed = query && !isSearchMatch;
+
+                ctx.save();
+                if (isDimmed && !isExport) {
+                    ctx.globalAlpha = 0.22;
+                }
+
+                // Glowing Aura for Searched Match
+                if (isSearchMatch && !isExport) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(wire.pointA.x, wire.pointA.y);
+                    wire.waypoints.forEach(wp => ctx.lineTo(wp.x, wp.y));
+                    ctx.lineTo(wire.pointB.x, wire.pointB.y);
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = parseFloat(wire.sq) * 3 + 10;
+                    ctx.shadowColor = '#38bdf8';
+                    ctx.shadowBlur = 18;
+                    ctx.stroke();
+                    ctx.restore();
+                }
 
                 ctx.beginPath();
                 ctx.moveTo(wire.pointA.x, wire.pointA.y);
@@ -1221,11 +1728,11 @@
 
                 if (wire.waypoints.length > 0) {
                     const midWp = wire.waypoints[Math.floor(wire.waypoints.length / 2)];
-                    drawMarkTubeTag(midWp.x, midWp.y, wire.markText, isSelected && !isExport, wire.isTerminal !== false);
+                    drawMarkTubeTag(midWp.x, midWp.y, wire.markText, isSelected && !isExport, wire.isTerminal !== false, isSearchMatch);
                 } else {
                     const midX = (wire.pointA.x + wire.pointB.x) / 2;
                     const midY = (wire.pointA.y + wire.pointB.y) / 2;
-                    drawMarkTubeTag(midX, midY, wire.markText, isSelected && !isExport, wire.isTerminal !== false);
+                    drawMarkTubeTag(midX, midY, wire.markText, isSelected && !isExport, wire.isTerminal !== false, isSearchMatch);
                 }
 
                 if (!isExport && isSelected) {
@@ -1235,6 +1742,8 @@
                         drawHandleNode(wp.x, wp.y, 'WP', isSelected);
                     });
                 }
+
+                ctx.restore();
             });
 
             if (state.activePointA && state.activeMousePos && !isExport) {
@@ -1259,13 +1768,17 @@
             }
         }
 
-        function drawMarkTubeTag(x, y, text, isSelected, isTerminal = true) {
+        function drawMarkTubeTag(x, y, text, isSelected, isTerminal = true, isSearchMatch = false) {
             ctx.font = 'bold 11px monospace';
             const metrics = ctx.measureText(text);
             const w = metrics.width + 12;
             const h = 18;
 
-            if (isSelected) {
+            if (isSearchMatch) {
+                ctx.fillStyle = '#38bdf8';
+                ctx.strokeStyle = '#0284c7';
+                ctx.lineWidth = 2.5;
+            } else if (isSelected) {
                 ctx.fillStyle = '#fef08a';
                 ctx.strokeStyle = '#ca8a04';
                 ctx.lineWidth = 2.5;
@@ -1284,7 +1797,7 @@
             ctx.fill();
             ctx.stroke();
 
-            ctx.fillStyle = isTerminal ? '#92400e' : '#0f172a';
+            ctx.fillStyle = isSearchMatch ? '#082f49' : (isTerminal ? '#92400e' : '#0f172a');
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(text, x, y);
@@ -1481,6 +1994,7 @@
 
             if (touchState.draggedHandle) {
                 touchState.draggedHandle = null;
+                saveHistoryState('Drag-Handle');
                 drawDiagram();
                 updateTablesAndStats();
                 return;
@@ -1560,6 +2074,7 @@
                 for (let i = 0; i < wire.waypoints.length; i++) {
                     const wp = wire.waypoints[i];
                     if (Math.hypot(wp.x - pos.x, wp.y - pos.y) < 18) {
+                        saveHistoryState('Delete-Waypoint');
                         wire.waypoints.splice(i, 1);
                         drawDiagram();
                         updateTablesAndStats();
@@ -1583,6 +2098,7 @@
             }
 
             if (closest) {
+                saveHistoryState('Add-Waypoint');
                 const snappedWaypoint = snapToCircuitLine(pos) || pos;
                 closest.wire.waypoints.splice(closest.segIndex, 0, snappedWaypoint);
                 state.selectedWireId = closest.wire.id;
@@ -1616,6 +2132,7 @@
                     }
                 }
                 if (targetWire) {
+                    saveHistoryState('Add-Waypoint-BlackLine');
                     const fullPoints = [targetWire.pointA, ...targetWire.waypoints, targetWire.pointB];
                     let bestSegIndex = 0;
                     let minDist = Infinity;
@@ -1650,6 +2167,7 @@
                 for (let i = 0; i < wire.waypoints.length; i++) {
                     const wp = wire.waypoints[i];
                     if (Math.hypot(wp.x - pos.x, wp.y - pos.y) < 22) {
+                        saveHistoryState('Delete-Waypoint');
                         wire.waypoints.splice(i, 1);
                         drawDiagram();
                         updateTablesAndStats();
@@ -1707,6 +2225,7 @@
                     }
                 }
                 if (targetWire) {
+                    saveHistoryState('Add-Waypoint-LongPress');
                     const fullPoints = [targetWire.pointA, ...targetWire.waypoints, targetWire.pointB];
                     let bestSegIndex = 0;
                     let minDist = Infinity;
@@ -1838,6 +2357,7 @@
                 state.draggingHandle = null;
                 state.mouseDownPos = null;
                 document.getElementById('angleHint').classList.add('hidden');
+                saveHistoryState('Drag-Handle');
                 drawDiagram();
                 updateTablesAndStats();
                 return;
@@ -1899,6 +2419,7 @@
                 state.insertWaypointMode = false;
                 const selectedWire = state.wires.find(w => w.id === state.selectedWireId && w.page === state.currentPage);
                 if (selectedWire) {
+                    saveHistoryState('Insert-Waypoint');
                     const snappedWaypoint = snapToCircuitLine(pos) || pos;
                     const fullPoints = [selectedWire.pointA, ...selectedWire.waypoints, selectedWire.pointB];
                     let bestSegIndex = 0;
@@ -1947,6 +2468,7 @@
                     ? [...state.activeWaypoints]
                     : calculateOrthogonalRoute(state.activePointA, pointB);
                 if (state.isContinuous) {
+                    saveHistoryState('Add-Wire-Continuous');
                     const newWire = {
                         id: 'wire_' + Date.now(), page: state.currentPage,
                         pointA: state.activePointA, pointB, waypoints,
@@ -1957,6 +2479,13 @@
                     state.selectedWireId = newWire.id;
                     updateSelectedWireActionBar();
                     addMarkTextToHistory(state.defaultMarkText);
+
+                    // Auto-Increment
+                    if (state.isAutoIncrement) {
+                        state.defaultMarkText = getNextIncrementedMarkText(state.defaultMarkText);
+                        document.getElementById('sidebarMarkText').value = state.defaultMarkText;
+                    }
+
                     state.activePointA = null;
                     state.activeWaypoints = [];
                     state.mobileAddWaypointPending = false;
@@ -1990,6 +2519,7 @@
                 if (addWaypoint) {
                     const wire = state.wires.find(w => w.id === hitWireId && w.page === state.currentPage);
                     if (wire) {
+                        saveHistoryState('Insert-Waypoint-Shift');
                         const snappedWaypoint = snapToCircuitLine(pos) || pos;
                         const fullPoints = [wire.pointA, ...wire.waypoints, wire.pointB];
                         let bestSegIndex = 0;
@@ -2225,6 +2755,8 @@
             const color = modalTempColor;
             const isTerminal = document.getElementById('modalTerminalConnection').checked;
 
+            saveHistoryState(state.editingWireId ? 'Edit-Wire' : 'Add-Wire');
+
             state.defaultMarkText = markText;
             state.defaultSq = sq;
             state.defaultColor = color;
@@ -2234,7 +2766,6 @@
             const chkDefault = document.getElementById('chkDefaultTerminal');
             if (chkDefault) chkDefault.checked = isTerminal;
 
-            document.getElementById('sidebarMarkText').value = markText;
             addMarkTextToHistory(markText);
 
             if (state.editingWireId) {
@@ -2271,6 +2802,13 @@
                     statusActions.classList.add('hidden');
                     statusActions.classList.remove('flex');
                 }
+
+                // Auto-Increment
+                if (state.isAutoIncrement) {
+                    state.defaultMarkText = getNextIncrementedMarkText(markText);
+                }
+                document.getElementById('sidebarMarkText').value = state.defaultMarkText;
+
                 showToast('配線を追加しました');
             }
 
@@ -2315,6 +2853,7 @@
         }
 
         function deleteWire(wireId) {
+            saveHistoryState('Delete-Wire');
             state.wires = state.wires.filter(w => w.id !== wireId);
             if (state.selectedWireId === wireId) {
                 state.selectedWireId = null;
@@ -2330,16 +2869,19 @@
             container.innerHTML = '';
 
             const pageWires = state.wires.filter(w => w.page === state.currentPage);
+            const query = state.searchQuery ? state.searchQuery.toLowerCase() : '';
 
-            if (pageWires.length === 0) {
+            const filteredWires = pageWires.filter(w => !query || w.markText.toLowerCase().includes(query));
+
+            if (filteredWires.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-10 text-slate-500 text-xs">
                         <i class="fa-solid fa-diagram-next text-2xl mb-2 text-slate-600 block"></i>
-                        配線データがありません<br>図面上でA点とB点を指定してください
+                        ${query ? '一致する配線が見つかりません' : '配線データがありません<br>図面上でA点とB点を指定してください'}
                     </div>
                 `;
             } else {
-                pageWires.forEach((wire) => {
+                filteredWires.forEach((wire) => {
                     const card = document.createElement('div');
                     card.className = `p-2.5 rounded-lg border text-xs flex items-center justify-between transition cursor-pointer ${wire.id === state.selectedWireId ? 'bg-slate-700/80 border-indigo-500 shadow' : 'bg-slate-900/60 border-slate-700/80'}`;
                     
@@ -2349,17 +2891,17 @@
                         : `<span class="bg-slate-800 text-slate-400 text-[9px] px-1.5 py-0.5 rounded border border-slate-700">直結</span>`;
 
                     card.innerHTML = `
-                        <div class="space-y-0.5" onclick="selectWireFromList('${wire.id}')">
+                        <div class="space-y-0.5 flex-1" onclick="selectWireFromList('${wire.id}')">
                             <div class="flex items-center space-x-2">
-                                <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${wire.color}"></span>
-                                <span class="font-bold text-white font-mono">${wire.markText}</span>
+                                <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${wire.color}"></span>
+                                <span class="font-bold text-white font-mono text-xs ${query && wire.markText.toLowerCase().includes(query) ? 'text-amber-300 bg-amber-950/60 px-1 rounded' : ''}">${wire.markText}</span>
                                 ${terminalBadge}
                             </div>
                             <div class="text-[10px] text-slate-400">
                                 <span>${wire.sq} SQ</span> | <span>${colorName}</span>
                             </div>
                         </div>
-                        <div class="flex items-center space-x-1">
+                        <div class="flex items-center space-x-1 shrink-0">
                             <button onclick="openWireModalForEdit('${wire.id}')" class="p-1 text-slate-400 hover:text-indigo-400 transition" title="編集">
                                 <i class="fa-solid fa-pen text-xs"></i>
                             </button>
@@ -2383,6 +2925,18 @@
         function selectWireFromList(wireId) {
             state.selectedWireId = wireId;
             updateSelectedWireActionBar();
+            
+            // Pan to wire center
+            const wire = state.wires.find(w => w.id === wireId && w.page === state.currentPage);
+            if (wire) {
+                const midX = (wire.pointA.x + wire.pointB.x) / 2;
+                const midY = (wire.pointA.y + wire.pointB.y) / 2;
+                const rect = canvasWrapper.getBoundingClientRect();
+                state.panX = rect.width / 2 - midX * state.scale;
+                state.panY = rect.height / 2 - midY * state.scale;
+                applyCanvasTransform();
+            }
+
             drawDiagram();
             updateTablesAndStats();
             if (window.innerWidth <= 768) {
