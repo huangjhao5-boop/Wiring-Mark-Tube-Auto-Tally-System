@@ -450,62 +450,151 @@
                 </div>
             </div>
 
-            <!-- Batch Edit Modal Dialog (同名線號一鍵批次修改) -->
+            <!-- Batch Edit Modal Dialog (配線一括変更 - 支援直近連續・條件置換・同名) -->
             <div id="batchEditModal" class="hidden fixed inset-0 h-[100dvh] w-full bg-slate-950/75 backdrop-blur-sm z-50 flex items-center justify-center p-3">
-                <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-xs flex flex-col p-3.5 my-auto pointer-events-auto animate-in fade-in zoom-in duration-150">
-                    <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-2.5">
+                <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-sm flex flex-col p-3.5 my-auto pointer-events-auto animate-in fade-in zoom-in duration-150 max-h-[92dvh] overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-2">
                         <h3 class="text-xs sm:text-sm font-bold text-white flex items-center">
-                            <i class="fa-solid fa-bolt text-amber-400 me-2"></i>同名線號一括変更
+                            <i class="fa-solid fa-layer-group text-amber-400 me-2"></i>配線一括変更 (Batch Edit)
                         </h3>
                         <button onclick="closeBatchEditModal()" class="p-1 text-slate-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
                     </div>
 
-                    <div class="space-y-2.5 text-xs">
+                    <div class="overflow-y-auto space-y-2.5 text-xs pr-1 flex-1">
+                        <!-- Target Selection Mode Tabs -->
                         <div>
-                            <label class="block text-slate-300 font-semibold mb-1">対象のマークチューブ印字</label>
-                            <select id="batchTargetMarkTextSelect" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white font-mono focus:border-indigo-500 focus:outline-none"></select>
+                            <label class="block text-slate-300 font-semibold mb-1 text-[11px]">変更対象の選択方式</label>
+                            <div class="grid grid-cols-3 gap-1 bg-slate-900/80 p-1 rounded border border-slate-700 text-[10px]">
+                                <button type="button" id="tabBatchRecent" onclick="setBatchTargetTab('recent')" class="py-1 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400">直近配線 (連続)</button>
+                                <button type="button" id="tabBatchFilter" onclick="setBatchTargetTab('filter')" class="py-1 px-1 rounded bg-slate-800 text-slate-300 hover:text-white text-center border border-transparent">条件で置換</button>
+                                <button type="button" id="tabBatchMark" onclick="setBatchTargetTab('mark')" class="py-1 px-1 rounded bg-slate-800 text-slate-300 hover:text-white text-center border border-transparent">同名線号</button>
+                            </div>
                         </div>
 
-                        <!-- Change SQ checkbox & select -->
-                        <div class="bg-slate-900/60 p-2 rounded border border-slate-700 space-y-1.5">
-                            <label class="flex items-center space-x-2 cursor-pointer">
-                                <input type="checkbox" id="batchChangeSqChk" class="accent-indigo-500">
-                                <span class="font-semibold text-slate-200">電線サイズ (SQ) を変更</span>
-                            </label>
-                            <select id="batchNewSqSelect" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white font-mono">
-                                <option value="0.5">0.5 SQ</option>
-                                <option value="0.75">0.75 SQ</option>
-                                <option value="1.25" selected>1.25 SQ</option>
-                                <option value="2.0">2.0 SQ</option>
-                                <option value="3.5">3.5 SQ</option>
-                                <option value="5.5">5.5 SQ</option>
-                            </select>
+                        <!-- Target Sub-panels -->
+                        <!-- Panel 1: Recent Wires (連續登錄) -->
+                        <div id="batchPanelRecent" class="bg-slate-900/60 p-2 rounded border border-slate-700/80 space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] text-slate-200 font-medium">直近に作図した配線をまとめて選択</span>
+                                <span id="batchRecentMatchBadge" class="text-[10px] text-indigo-300 font-mono font-bold">0 本</span>
+                            </div>
+                            <div class="flex items-center gap-1 flex-wrap">
+                                <button type="button" onclick="setBatchRecentCount(1)" class="batch-recent-pill px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-mono border border-slate-700">直近1本</button>
+                                <button type="button" onclick="setBatchRecentCount(3)" class="batch-recent-pill px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-mono border border-slate-700">直近3本</button>
+                                <button type="button" onclick="setBatchRecentCount(5)" class="batch-recent-pill px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-mono border border-slate-700">直近5本</button>
+                                <button type="button" onclick="setBatchRecentCount(10)" class="batch-recent-pill px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-mono border border-slate-700">直近10本</button>
+                                <button type="button" onclick="setBatchRecentCount('all_page')" class="batch-recent-pill px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] border border-slate-700">当ページ全配線</button>
+                            </div>
+                            <!-- Recent Preview Chips -->
+                            <div id="batchRecentChips" class="max-h-20 overflow-y-auto flex flex-wrap gap-1 p-1.5 bg-slate-950/50 rounded border border-slate-800 text-[10px] font-mono">
+                                <!-- Chips dynamically inserted here -->
+                            </div>
                         </div>
 
-                        <!-- Change Color checkbox & palette -->
-                        <div class="bg-slate-900/60 p-2 rounded border border-slate-700 space-y-1.5">
-                            <label class="flex items-center space-x-2 cursor-pointer">
-                                <input type="checkbox" id="batchChangeColorChk" class="accent-indigo-500">
-                                <span class="font-semibold text-slate-200">電線色を変更</span>
-                            </label>
-                            <select id="batchNewColorSelect" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white">
-                                <option value="#dc2626">赤</option>
-                                <option value="#2563eb">青</option>
-                                <option value="#eab308">黄</option>
-                                <option value="#16a34a">緑</option>
-                                <option value="#18181b">黒</option>
-                                <option value="#f8fafc">白</option>
-                                <option value="#9333ea">紫</option>
-                                <option value="#ea580c">橙</option>
-                            </select>
+                        <!-- Panel 2: Condition Filter (條件置換) -->
+                        <div id="batchPanelFilter" class="hidden bg-slate-900/60 p-2 rounded border border-slate-700/80 space-y-2">
+                            <span class="text-[11px] text-slate-200 font-medium block">現在の属性から対象配線を絞り込み</span>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-0.5">置換前の色</label>
+                                    <select id="batchFilterOldColor" onchange="updateBatchFilterPreview()" class="w-full bg-slate-800 border border-slate-600 rounded px-1.5 py-1 text-xs text-white">
+                                        <option value="all">すべての色</option>
+                                        <option value="#dc2626">赤</option>
+                                        <option value="#2563eb">青</option>
+                                        <option value="#eab308">黄</option>
+                                        <option value="#16a34a">緑</option>
+                                        <option value="#18181b">黒</option>
+                                        <option value="#f8fafc">白</option>
+                                        <option value="#9333ea">紫</option>
+                                        <option value="#ea580c">橙</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-0.5">置換前のSQ</label>
+                                    <select id="batchFilterOldSq" onchange="updateBatchFilterPreview()" class="w-full bg-slate-800 border border-slate-600 rounded px-1.5 py-1 text-xs text-white font-mono">
+                                        <option value="all">すべてのSQ</option>
+                                        <option value="0.5">0.5 SQ</option>
+                                        <option value="0.75">0.75 SQ</option>
+                                        <option value="1.25">1.25 SQ</option>
+                                        <option value="2.0">2.0 SQ</option>
+                                        <option value="3.5">3.5 SQ</option>
+                                        <option value="5.5">5.5 SQ</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="text-[10px] text-indigo-300 flex justify-between">
+                                <span>該当配線数:</span>
+                                <span id="batchFilterMatchBadge" class="font-bold">0 本</span>
+                            </div>
+                        </div>
+
+                        <!-- Panel 3: Mark & List (同名線號) -->
+                        <div id="batchPanelMark" class="hidden bg-slate-900/60 p-2 rounded border border-slate-700/80 space-y-1.5">
+                            <label class="block text-[11px] text-slate-200 font-medium">同名線号を指定</label>
+                            <select id="batchTargetMarkTextSelect" onchange="updateBatchMarkPreview()" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white font-mono focus:border-indigo-500 focus:outline-none"></select>
+                            <div class="text-[10px] text-indigo-300 flex justify-between">
+                                <span>該当配線数:</span>
+                                <span id="batchMarkMatchBadge" class="font-bold">0 本</span>
+                            </div>
+                        </div>
+
+                        <!-- Divider: New Parameters to Apply -->
+                        <div class="border-t border-slate-700/80 pt-2 space-y-2">
+                            <span class="block text-[11px] text-indigo-400 font-bold uppercase tracking-wider">変更後のパラメータ設定</span>
+
+                            <!-- Change SQ checkbox & select -->
+                            <div class="bg-slate-900/60 p-2 rounded border border-slate-700 space-y-1.5">
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" id="batchChangeSqChk" checked class="accent-indigo-500">
+                                    <span class="font-semibold text-slate-200">電線サイズ (SQ) を変更</span>
+                                </label>
+                                <select id="batchNewSqSelect" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white font-mono">
+                                    <option value="0.5">0.5 SQ</option>
+                                    <option value="0.75">0.75 SQ</option>
+                                    <option value="1.25" selected>1.25 SQ</option>
+                                    <option value="2.0">2.0 SQ</option>
+                                    <option value="3.5">3.5 SQ</option>
+                                    <option value="5.5">5.5 SQ</option>
+                                </select>
+                            </div>
+
+                            <!-- Change Color checkbox & palette -->
+                            <div class="bg-slate-900/60 p-2 rounded border border-slate-700 space-y-1.5">
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" id="batchChangeColorChk" checked class="accent-indigo-500">
+                                    <span class="font-semibold text-slate-200">電線色を変更</span>
+                                </label>
+                                <select id="batchNewColorSelect" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white">
+                                    <option value="#dc2626">赤</option>
+                                    <option value="#2563eb" selected>青</option>
+                                    <option value="#eab308">黄</option>
+                                    <option value="#16a34a">緑</option>
+                                    <option value="#18181b">黒</option>
+                                    <option value="#f8fafc">白</option>
+                                    <option value="#9333ea">紫</option>
+                                    <option value="#ea580c">橙</option>
+                                </select>
+                            </div>
+
+                            <!-- Change Terminal checkbox & select -->
+                            <div class="bg-slate-900/60 p-2 rounded border border-slate-700 space-y-1.5">
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" id="batchChangeTerminalChk" class="accent-indigo-500">
+                                    <span class="font-semibold text-slate-200">端子台接続属性を変更</span>
+                                </label>
+                                <select id="batchNewTerminalSelect" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white">
+                                    <option value="true">端子台接続にする</option>
+                                    <option value="false">直結にする</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Footer Buttons -->
-                    <div class="flex items-center space-x-2 pt-3 border-t border-slate-700 mt-2.5">
+                    <div class="flex items-center space-x-2 pt-2.5 border-t border-slate-700 mt-2 shrink-0">
                         <button onclick="closeBatchEditModal()" class="flex-1 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs font-medium transition">キャンセル</button>
-                        <button onclick="executeBatchEdit()" class="flex-1 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded text-xs font-bold shadow transition flex items-center justify-center">
-                            <i class="fa-solid fa-check me-1.5"></i>一括適用
+                        <button onclick="executeBatchEdit()" id="btnExecuteBatchEdit" class="flex-1 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded text-xs font-bold shadow transition flex items-center justify-center">
+                            <i class="fa-solid fa-check me-1.5"></i>一括適用 (<span id="batchTotalCountText">0本</span>)
                         </button>
                     </div>
                 </div>
@@ -572,9 +661,12 @@
             <div class="flex flex-col h-full space-y-2.5">
                 <div class="flex items-center justify-between border-b border-slate-700 pb-1.5">
                     <h2 class="text-xs font-bold text-indigo-400 uppercase tracking-wider">配線明細リスト</h2>
-                    <div class="flex items-center space-x-1.5">
-                        <button onclick="openBatchEditModal()" class="px-1.5 py-0.5 bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/40 rounded text-[10px] font-semibold transition" title="同名線號一括変更">
-                            <i class="fa-solid fa-bolt me-1"></i>一括変更
+                    <div class="flex items-center space-x-1">
+                        <button id="btnToggleMultiSelect" onclick="toggleMultiSelectMode()" class="px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600 rounded text-[10px] font-semibold transition" title="複数配線を選択して一括操作">
+                            <i class="fa-solid fa-check-double me-1 text-indigo-400"></i>複数選択
+                        </button>
+                        <button onclick="openBatchEditModal()" class="px-1.5 py-0.5 bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/40 rounded text-[10px] font-semibold transition" title="条件・直近配線の一括変更">
+                            <i class="fa-solid fa-layer-group me-1"></i>一括変更
                         </button>
                         <span id="wireCountBadge" class="bg-indigo-900/60 text-indigo-300 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-indigo-500/30">0 本</span>
                         <button onclick="toggleRightSidebarAction()" class="p-1 text-slate-400 hover:text-white" title="閉じる"><i class="fa-solid fa-xmark text-sm"></i></button>
@@ -588,6 +680,45 @@
                     <button id="btnClearSearch" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs">
                         <i class="fa-solid fa-circle-xmark"></i>
                     </button>
+                </div>
+
+                <!-- Multi-Select Action Panel (when active) -->
+                <div id="multiSelectBar" class="hidden bg-slate-900/90 border border-indigo-500/50 rounded-lg p-2 space-y-2 text-xs shadow-lg animate-in fade-in duration-150">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-1.5">
+                            <span class="text-[11px] font-bold text-white">選択中:</span>
+                            <span id="multiSelectCountBadge" class="bg-indigo-600 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">0 本</span>
+                        </div>
+                        <div class="flex items-center space-x-1 text-[10px]">
+                            <button type="button" onclick="quickSelectRecentWires(3)" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700">直近3本</button>
+                            <button type="button" onclick="quickSelectRecentWires(5)" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700">直近5本</button>
+                            <button type="button" onclick="toggleSelectAllCurrentPageWires()" id="btnSelectAllWires" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700">全選択</button>
+                        </div>
+                    </div>
+
+                    <!-- Instant Action Palette -->
+                    <div id="multiSelectActions" class="space-y-1.5 pt-1.5 border-t border-slate-800">
+                        <!-- Quick Color Palette -->
+                        <div>
+                            <span class="text-[9px] text-slate-400 font-medium block mb-1">電線色を一括変更:</span>
+                            <div class="grid grid-cols-8 gap-1" id="multiSelectColorPalette"></div>
+                        </div>
+                        <!-- Quick SQ Buttons -->
+                        <div>
+                            <span class="text-[9px] text-slate-400 font-medium block mb-1">電線サイズ (SQ) を一括変更:</span>
+                            <div class="grid grid-cols-6 gap-1" id="multiSelectSqButtons"></div>
+                        </div>
+                        <!-- Quick Terminal & Delete -->
+                        <div class="flex items-center justify-between pt-1">
+                            <div class="flex space-x-1">
+                                <button type="button" onclick="batchSetTerminal(true)" class="px-1.5 py-0.5 bg-amber-900/40 hover:bg-amber-800/60 text-amber-300 rounded border border-amber-700/50 text-[10px]">端子台</button>
+                                <button type="button" onclick="batchSetTerminal(false)" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 text-[10px]">直結</button>
+                            </div>
+                            <button type="button" onclick="batchDeleteSelectedWires()" class="px-2 py-0.5 bg-red-900/40 hover:bg-red-800/60 text-red-300 rounded border border-red-700/50 text-[10px] flex items-center">
+                                <i class="fa-solid fa-trash me-1"></i>一括削除
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Wire Cards Container -->
@@ -700,6 +831,10 @@
             activeWaypoints: [],
             activeMousePos: null,
             selectedWireId: null,
+            isMultiSelectMode: false,
+            selectedWireIds: new Set(),
+            batchTargetTab: 'recent',
+            batchRecentCount: 3,
             draggingHandle: null,
             mobileAddWaypointPending: false,
             insertWaypointMode: false,
@@ -1361,17 +1496,17 @@
             e.target.value = '';
         }
 
-        // ================= BATCH EDIT MODAL =================
+        // ================= BATCH EDIT & MULTI-SELECT SYSTEM =================
         function openBatchEditModal() {
-            const select = document.getElementById('batchTargetMarkTextSelect');
-            select.innerHTML = '';
-
-            const uniqueMarks = Array.from(new Set(state.wires.map(w => w.markText))).filter(Boolean);
-            if (uniqueMarks.length === 0) {
+            if (state.wires.length === 0) {
                 showToast('一括変更できる配線データがありません');
                 return;
             }
 
+            // Populate Unique Mark Dropdown
+            const select = document.getElementById('batchTargetMarkTextSelect');
+            select.innerHTML = '';
+            const uniqueMarks = Array.from(new Set(state.wires.map(w => w.markText))).filter(Boolean);
             uniqueMarks.forEach(mark => {
                 const count = state.wires.filter(w => w.markText === mark).length;
                 const opt = document.createElement('option');
@@ -1380,6 +1515,14 @@
                 select.appendChild(opt);
             });
 
+            // If user had multi-selected wires in sidebar, default recent count to that or 3
+            if (state.selectedWireIds && state.selectedWireIds.size > 0) {
+                state.batchRecentCount = state.selectedWireIds.size;
+            } else if (!state.batchRecentCount) {
+                state.batchRecentCount = Math.min(3, state.wires.filter(w => w.page === state.currentPage).length || 1);
+            }
+
+            setBatchTargetTab(state.batchTargetTab || 'recent');
             document.getElementById('batchEditModal').classList.remove('hidden');
         }
 
@@ -1387,15 +1530,134 @@
             document.getElementById('batchEditModal').classList.add('hidden');
         }
 
+        function setBatchTargetTab(tab) {
+            state.batchTargetTab = tab;
+            
+            const btnRecent = document.getElementById('tabBatchRecent');
+            const btnFilter = document.getElementById('tabBatchFilter');
+            const btnMark = document.getElementById('tabBatchMark');
+            
+            const pnlRecent = document.getElementById('batchPanelRecent');
+            const pnlFilter = document.getElementById('batchPanelFilter');
+            const pnlMark = document.getElementById('batchPanelMark');
+
+            [btnRecent, btnFilter, btnMark].forEach(b => {
+                if (b) b.className = 'py-1 px-1 rounded bg-slate-800 text-slate-300 hover:text-white text-center border border-transparent';
+            });
+            [pnlRecent, pnlFilter, pnlMark].forEach(p => { if (p) p.classList.add('hidden'); });
+
+            if (tab === 'recent') {
+                if (btnRecent) btnRecent.className = 'py-1 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm';
+                if (pnlRecent) pnlRecent.classList.remove('hidden');
+                updateBatchRecentPreview();
+            } else if (tab === 'filter') {
+                if (btnFilter) btnFilter.className = 'py-1 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm';
+                if (pnlFilter) pnlFilter.classList.remove('hidden');
+                updateBatchFilterPreview();
+            } else if (tab === 'mark') {
+                if (btnMark) btnMark.className = 'py-1 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm';
+                if (pnlMark) pnlMark.classList.remove('hidden');
+                updateBatchMarkPreview();
+            }
+        }
+
+        function setBatchRecentCount(cnt) {
+            state.batchRecentCount = cnt;
+            updateBatchRecentPreview();
+        }
+
+        function getBatchTargetWires() {
+            const pageWires = state.wires.filter(w => w.page === state.currentPage);
+            const tab = state.batchTargetTab || 'recent';
+
+            if (tab === 'recent') {
+                if (state.batchRecentCount === 'all_page') {
+                    return [...pageWires];
+                }
+                const num = parseInt(state.batchRecentCount, 10) || 3;
+                return pageWires.slice(-num);
+            } else if (tab === 'filter') {
+                const oldColor = document.getElementById('batchFilterOldColor').value;
+                const oldSq = document.getElementById('batchFilterOldSq').value;
+                return pageWires.filter(w => {
+                    const matchColor = (oldColor === 'all' || w.color === oldColor);
+                    const matchSq = (oldSq === 'all' || String(w.sq) === String(oldSq));
+                    return matchColor && matchSq;
+                });
+            } else if (tab === 'mark') {
+                const targetMark = document.getElementById('batchTargetMarkTextSelect').value;
+                return state.wires.filter(w => w.markText === targetMark);
+            }
+            return [];
+        }
+
+        function updateBatchRecentPreview() {
+            const targets = getBatchTargetWires();
+            const badge = document.getElementById('batchRecentMatchBadge');
+            if (badge) badge.innerText = `${targets.length} 本`;
+
+            const chipsContainer = document.getElementById('batchRecentChips');
+            if (chipsContainer) {
+                if (targets.length === 0) {
+                    chipsContainer.innerHTML = '<span class="text-slate-500 italic p-1">該当する配線がありません</span>';
+                } else {
+                    chipsContainer.innerHTML = targets.map(w => {
+                        const colName = COLOR_NAMES[w.color] || '色';
+                        return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">
+                            <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background-color: ${w.color}"></span>
+                            <span class="font-bold text-white">${w.markText}</span>
+                            <span class="text-[9px] text-slate-400">(${colName}, ${w.sq}SQ)</span>
+                        </span>`;
+                    }).join('');
+                }
+            }
+
+            document.querySelectorAll('.batch-recent-pill').forEach(btn => {
+                const text = btn.innerText;
+                const match = (state.batchRecentCount === 'all_page' && text.includes('全配線')) ||
+                              (text.includes(`直近${state.batchRecentCount}本`));
+                if (match) {
+                    btn.className = 'batch-recent-pill px-2 py-0.5 rounded bg-indigo-600 text-white font-bold text-[10px] font-mono border border-indigo-400 shadow-sm';
+                } else {
+                    btn.className = 'batch-recent-pill px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-mono border border-slate-700';
+                }
+            });
+
+            updateBatchTotalCountText(targets.length);
+        }
+
+        function updateBatchFilterPreview() {
+            const targets = getBatchTargetWires();
+            const badge = document.getElementById('batchFilterMatchBadge');
+            if (badge) badge.innerText = `${targets.length} 本`;
+            updateBatchTotalCountText(targets.length);
+        }
+
+        function updateBatchMarkPreview() {
+            const targets = getBatchTargetWires();
+            const badge = document.getElementById('batchMarkMatchBadge');
+            if (badge) badge.innerText = `${targets.length} 本`;
+            updateBatchTotalCountText(targets.length);
+        }
+
+        function updateBatchTotalCountText(count) {
+            const span = document.getElementById('batchTotalCountText');
+            if (span) span.innerText = `${count}本`;
+        }
+
         function executeBatchEdit() {
-            const targetMark = document.getElementById('batchTargetMarkTextSelect').value;
-            if (!targetMark) return;
+            const targetWires = getBatchTargetWires();
+            if (targetWires.length === 0) {
+                showToast('変更対象の配線がありません');
+                return;
+            }
 
             const changeSq = document.getElementById('batchChangeSqChk').checked;
             const changeColor = document.getElementById('batchChangeColorChk').checked;
+            const changeTerminal = document.getElementById('batchChangeTerminalChk').checked;
 
-            if (!changeSq && !changeColor) {
-                showToast('変更する項目（サイズまたは電線色）にチェックを入れてください');
+            if (!changeSq && !changeColor && !changeTerminal) {
+                showToast('変更する項目（サイズ、電線色、端子台）にチェックを入れてください');
                 return;
             }
 
@@ -1403,20 +1665,227 @@
 
             const newSq = document.getElementById('batchNewSqSelect').value;
             const newColor = document.getElementById('batchNewColorSelect').value;
+            const newTerminal = document.getElementById('batchNewTerminalSelect').value === 'true';
 
-            let modifiedCount = 0;
-            state.wires.forEach(wire => {
-                if (wire.markText === targetMark) {
-                    if (changeSq) wire.sq = newSq;
-                    if (changeColor) wire.color = newColor;
-                    modifiedCount++;
-                }
+            targetWires.forEach(wire => {
+                if (changeSq) wire.sq = newSq;
+                if (changeColor) wire.color = newColor;
+                if (changeTerminal) wire.isTerminal = newTerminal;
             });
 
             closeBatchEditModal();
             drawDiagram();
             updateTablesAndStats();
-            showToast(`線号「${targetMark}」${modifiedCount} 本を一括変更しました`);
+            autoSaveToLocalStorage();
+            showToast(`${targetWires.length} 本の配線を一括変更しました`);
+        }
+
+        // ================= RIGHT SIDEBAR MULTI-SELECT BAR =================
+        let lastClickedWireId = null;
+
+        function toggleMultiSelectMode(force) {
+            state.isMultiSelectMode = (force !== undefined) ? force : !state.isMultiSelectMode;
+            const bar = document.getElementById('multiSelectBar');
+            const btn = document.getElementById('btnToggleMultiSelect');
+            
+            if (state.isMultiSelectMode) {
+                bar.classList.remove('hidden');
+                btn.className = 'px-1.5 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-400 rounded text-[10px] font-bold shadow-sm transition';
+                renderMultiSelectPalette();
+            } else {
+                bar.classList.add('hidden');
+                btn.className = 'px-1.5 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600 rounded text-[10px] font-semibold transition';
+                if (state.selectedWireIds) state.selectedWireIds.clear();
+            }
+            updateMultiSelectUI();
+            drawDiagram();
+            updateTablesAndStats();
+        }
+
+        function renderMultiSelectPalette() {
+            const pal = document.getElementById('multiSelectColorPalette');
+            if (pal && pal.children.length === 0) {
+                Object.keys(COLOR_NAMES).forEach(color => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'w-5 h-5 rounded-full border border-slate-600 hover:scale-110 transition shrink-0 shadow-sm';
+                    btn.style.backgroundColor = color;
+                    btn.title = COLOR_NAMES[color];
+                    btn.onclick = () => batchApplyColorToSelected(color);
+                    pal.appendChild(btn);
+                });
+            }
+
+            const sqContainer = document.getElementById('multiSelectSqButtons');
+            if (sqContainer && sqContainer.children.length === 0) {
+                ['0.5', '0.75', '1.25', '2.0', '3.5', '5.5'].forEach(sq => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'py-0.5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white text-[10px] font-mono border border-slate-700 transition';
+                    btn.innerText = sq;
+                    btn.onclick = () => batchApplySqToSelected(sq);
+                    sqContainer.appendChild(btn);
+                });
+            }
+        }
+
+        function updateMultiSelectUI() {
+            const count = state.selectedWireIds ? state.selectedWireIds.size : 0;
+            const badge = document.getElementById('multiSelectCountBadge');
+            if (badge) badge.innerText = `${count} 本`;
+
+            const actions = document.getElementById('multiSelectActions');
+            if (actions) {
+                if (count > 0) {
+                    actions.classList.remove('opacity-40', 'pointer-events-none');
+                } else {
+                    actions.classList.add('opacity-40', 'pointer-events-none');
+                }
+            }
+
+            const btnSelectAll = document.getElementById('btnSelectAllWires');
+            if (btnSelectAll) {
+                const pageWires = state.wires.filter(w => w.page === state.currentPage);
+                const allSelected = pageWires.length > 0 && pageWires.every(w => state.selectedWireIds.has(w.id));
+                btnSelectAll.innerText = allSelected ? '全解除' : '全選択';
+            }
+        }
+
+        function toggleWireSelection(wireId, e) {
+            if (!state.selectedWireIds) state.selectedWireIds = new Set();
+            
+            if (e && e.shiftKey && lastClickedWireId) {
+                const pageWires = state.wires.filter(w => w.page === state.currentPage);
+                const idx1 = pageWires.findIndex(w => w.id === lastClickedWireId);
+                const idx2 = pageWires.findIndex(w => w.id === wireId);
+                if (idx1 !== -1 && idx2 !== -1) {
+                    const start = Math.min(idx1, idx2);
+                    const end = Math.max(idx1, idx2);
+                    for (let i = start; i <= end; i++) {
+                        state.selectedWireIds.add(pageWires[i].id);
+                    }
+                }
+            } else {
+                if (state.selectedWireIds.has(wireId)) {
+                    state.selectedWireIds.delete(wireId);
+                } else {
+                    state.selectedWireIds.add(wireId);
+                }
+            }
+            lastClickedWireId = wireId;
+            updateMultiSelectUI();
+            drawDiagram();
+            updateTablesAndStats();
+        }
+
+        function quickSelectRecentWires(n) {
+            if (!state.isMultiSelectMode) toggleMultiSelectMode(true);
+            if (!state.selectedWireIds) state.selectedWireIds = new Set();
+            state.selectedWireIds.clear();
+
+            const pageWires = state.wires.filter(w => w.page === state.currentPage);
+            const targets = pageWires.slice(-n);
+            targets.forEach(w => state.selectedWireIds.add(w.id));
+
+            updateMultiSelectUI();
+            drawDiagram();
+            updateTablesAndStats();
+            showToast(`直近 ${targets.length} 本の配線を選択しました`);
+        }
+
+        function toggleSelectAllCurrentPageWires() {
+            if (!state.isMultiSelectMode) toggleMultiSelectMode(true);
+            if (!state.selectedWireIds) state.selectedWireIds = new Set();
+
+            const pageWires = state.wires.filter(w => w.page === state.currentPage);
+            const allSelected = pageWires.length > 0 && pageWires.every(w => state.selectedWireIds.has(w.id));
+
+            if (allSelected) {
+                pageWires.forEach(w => state.selectedWireIds.delete(w.id));
+                showToast('選択を解除しました');
+            } else {
+                pageWires.forEach(w => state.selectedWireIds.add(w.id));
+                showToast(`当ページの全 ${pageWires.length} 本を選択しました`);
+            }
+
+            updateMultiSelectUI();
+            drawDiagram();
+            updateTablesAndStats();
+        }
+
+        function batchApplyColorToSelected(color) {
+            if (!state.selectedWireIds || state.selectedWireIds.size === 0) {
+                showToast('変更する配線を選択してください');
+                return;
+            }
+            saveHistoryState('Batch-Color');
+            let count = 0;
+            state.wires.forEach(w => {
+                if (state.selectedWireIds.has(w.id)) {
+                    w.color = color;
+                    count++;
+                }
+            });
+            drawDiagram();
+            updateTablesAndStats();
+            autoSaveToLocalStorage();
+            showToast(`${count} 本の電線色を「${COLOR_NAMES[color]||'色'}」に変更しました`);
+        }
+
+        function batchApplySqToSelected(sq) {
+            if (!state.selectedWireIds || state.selectedWireIds.size === 0) {
+                showToast('変更する配線を選択してください');
+                return;
+            }
+            saveHistoryState('Batch-SQ');
+            let count = 0;
+            state.wires.forEach(w => {
+                if (state.selectedWireIds.has(w.id)) {
+                    w.sq = sq;
+                    count++;
+                }
+            });
+            drawDiagram();
+            updateTablesAndStats();
+            autoSaveToLocalStorage();
+            showToast(`${count} 本の電線サイズを ${sq} SQ に変更しました`);
+        }
+
+        function batchSetTerminal(isTerminal) {
+            if (!state.selectedWireIds || state.selectedWireIds.size === 0) {
+                showToast('変更する配線を選択してください');
+                return;
+            }
+            saveHistoryState('Batch-Terminal');
+            let count = 0;
+            state.wires.forEach(w => {
+                if (state.selectedWireIds.has(w.id)) {
+                    w.isTerminal = isTerminal;
+                    count++;
+                }
+            });
+            drawDiagram();
+            updateTablesAndStats();
+            autoSaveToLocalStorage();
+            showToast(`${count} 本の端子台属性を「${isTerminal ? '端子台' : '直結'}」に変更しました`);
+        }
+
+        function batchDeleteSelectedWires() {
+            if (!state.selectedWireIds || state.selectedWireIds.size === 0) {
+                showToast('削除する配線を選択してください');
+                return;
+            }
+            const count = state.selectedWireIds.size;
+            if (!confirm(`選択中の ${count} 本の配線を一括削除しますか？\n（Ctrl+Zで元に戻せます）`)) return;
+            
+            saveHistoryState('Batch-Delete');
+            state.wires = state.wires.filter(w => !state.selectedWireIds.has(w.id));
+            state.selectedWireIds.clear();
+            state.selectedWireId = null;
+            drawDiagram();
+            updateTablesAndStats();
+            autoSaveToLocalStorage();
+            showToast(`${count} 本の配線を一括削除しました`);
         }
 
         function openExportModal() {
@@ -1986,7 +2455,9 @@
             state.wires.forEach(wire => {
                 if (wire.page !== state.currentPage) return;
 
-                const isSelected = wire.id === state.selectedWireId;
+                const isSingleSelected = wire.id === state.selectedWireId;
+                const isMultiSelected = state.selectedWireIds && state.selectedWireIds.has(wire.id);
+                const isSelected = isSingleSelected || isMultiSelected;
                 const isSearchMatch = query && wire.markText.toLowerCase().includes(query);
                 const isDimmed = query && !isSearchMatch;
 
@@ -2016,7 +2487,7 @@
                 ctx.lineTo(wire.pointB.x, wire.pointB.y);
 
                 if (isSelected && !isExport) {
-                    ctx.strokeStyle = '#fde047';
+                    ctx.strokeStyle = isMultiSelected ? '#818cf8' : '#fde047';
                     ctx.lineWidth = parseFloat(wire.sq) * 3 + 6;
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
@@ -3311,25 +3782,39 @@
             } else {
                 filteredWires.forEach((wire) => {
                     const card = document.createElement('div');
-                    card.className = `p-2.5 rounded-lg border text-xs flex items-center justify-between transition cursor-pointer ${wire.id === state.selectedWireId ? 'bg-slate-700/80 border-indigo-500 shadow' : 'bg-slate-900/60 border-slate-700/80'}`;
+                    const isMultiSelected = state.selectedWireIds && state.selectedWireIds.has(wire.id);
+                    const isSingleSelected = wire.id === state.selectedWireId;
+
+                    card.className = `p-2.5 rounded-lg border text-xs flex items-center justify-between transition cursor-pointer ${
+                        isMultiSelected 
+                            ? 'bg-indigo-950/60 border-indigo-500 shadow-md ring-1 ring-indigo-500/60' 
+                            : (isSingleSelected ? 'bg-slate-700/80 border-indigo-500 shadow' : 'bg-slate-900/60 border-slate-700/80 hover:border-slate-600')
+                    }`;
                     
                     const colorName = COLOR_NAMES[wire.color] || '色名';
                     const terminalBadge = wire.isTerminal !== false
                         ? `<span class="bg-amber-900/60 text-amber-300 text-[9px] font-semibold px-1.5 py-0.5 rounded border border-amber-500/40">端子台</span>`
                         : `<span class="bg-slate-800 text-slate-400 text-[9px] px-1.5 py-0.5 rounded border border-slate-700">直結</span>`;
 
+                    const checkboxHtml = state.isMultiSelectMode ? `
+                        <input type="checkbox" ${isMultiSelected ? 'checked' : ''} class="w-4 h-4 accent-indigo-600 rounded cursor-pointer shrink-0 mr-2" onclick="event.stopPropagation(); toggleWireSelection('${wire.id}', event);">
+                    ` : '';
+
                     card.innerHTML = `
-                        <div class="space-y-0.5 flex-1" onclick="selectWireFromList('${wire.id}')">
-                            <div class="flex items-center space-x-2">
-                                <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${wire.color}"></span>
-                                <span class="font-bold text-white font-mono text-xs ${query && wire.markText.toLowerCase().includes(query) ? 'text-amber-300 bg-amber-950/60 px-1 rounded' : ''}">${wire.markText}</span>
-                                ${terminalBadge}
-                            </div>
-                            <div class="text-[10px] text-slate-400">
-                                <span>${wire.sq} SQ</span> | <span>${colorName}</span>
+                        <div class="flex items-center space-x-1 flex-1 min-w-0" onclick="if(state.isMultiSelectMode){ toggleWireSelection('${wire.id}', event); } else { selectWireFromList('${wire.id}'); }">
+                            ${checkboxHtml}
+                            <div class="space-y-0.5 flex-1 min-w-0">
+                                <div class="flex items-center space-x-2">
+                                    <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${wire.color}"></span>
+                                    <span class="font-bold text-white font-mono text-xs ${query && wire.markText.toLowerCase().includes(query) ? 'text-amber-300 bg-amber-950/60 px-1 rounded' : ''}">${wire.markText}</span>
+                                    ${terminalBadge}
+                                </div>
+                                <div class="text-[10px] text-slate-400">
+                                    <span>${wire.sq} SQ</span> | <span>${colorName}</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="flex items-center space-x-1 shrink-0">
+                        <div class="flex items-center space-x-1 shrink-0 ml-2" onclick="event.stopPropagation();">
                             <button onclick="openWireModalForEdit('${wire.id}')" class="p-1 text-slate-400 hover:text-indigo-400 transition" title="編集">
                                 <i class="fa-solid fa-pen text-xs"></i>
                             </button>
@@ -3348,6 +3833,7 @@
             document.getElementById('totalWireCount').innerText = `${state.wires.length} 本`;
             document.getElementById('totalTubeCount').innerText = `${state.wires.length * 2} 個`;
             document.getElementById('totalTerminalCount').innerText = `${totalTerminalPoints} 点`;
+            updateMultiSelectUI();
         }
 
         function selectWireFromList(wireId) {
