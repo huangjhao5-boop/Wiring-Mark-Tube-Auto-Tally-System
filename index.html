@@ -79,7 +79,7 @@
             <span class="font-bold text-white text-xs sm:text-sm tracking-tight flex items-center gap-1.5">
                 <span class="hidden sm:inline">ハード図面配線 & マークチューブ自動集計系統</span>
                 <span class="sm:hidden">配線集計</span>
-                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded tracking-normal">v2.6 (C型正交匯流排修復版)</span>
+                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded tracking-normal">v2.7 (多頁CSV・Excel集計対応)</span>
             </span>
         </div>
 
@@ -607,12 +607,18 @@
                         <!-- Format Selection -->
                         <div>
                             <label class="block text-slate-300 font-semibold mb-1">出力フォーマット</label>
-                            <div class="grid grid-cols-2 gap-1.5">
-                                <button type="button" id="expFormatPdf" onclick="selectExportFormat('pdf')" class="py-1.5 px-2 rounded bg-indigo-900/60 border border-indigo-500 text-indigo-200 font-bold text-center flex items-center justify-center">
-                                    <i class="fa-solid fa-file-pdf me-1.5 text-indigo-400"></i>PDF
+                            <div class="grid grid-cols-4 gap-1.5">
+                                <button type="button" id="expFormatPdf" onclick="selectExportFormat('pdf')" class="py-1.5 px-1.5 rounded bg-indigo-900/60 border border-indigo-500 text-indigo-200 font-bold text-center flex items-center justify-center text-xs transition">
+                                    <i class="fa-solid fa-file-pdf me-1 text-indigo-400"></i>PDF
                                 </button>
-                                <button type="button" id="expFormatPng" onclick="selectExportFormat('png')" class="py-1.5 px-2 rounded bg-slate-900 border border-slate-700 text-slate-300 font-bold text-center hover:border-slate-600 flex items-center justify-center">
-                                    <i class="fa-solid fa-image me-1.5 text-emerald-400"></i>PNG (ZIP)
+                                <button type="button" id="expFormatPng" onclick="selectExportFormat('png')" class="py-1.5 px-1.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-medium text-center hover:border-slate-600 flex items-center justify-center text-xs transition">
+                                    <i class="fa-solid fa-image me-1 text-emerald-400"></i>PNG
+                                </button>
+                                <button type="button" id="expFormatExcel" onclick="selectExportFormat('excel')" class="py-1.5 px-1.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-medium text-center hover:border-slate-600 flex items-center justify-center text-xs transition">
+                                    <i class="fa-solid fa-file-excel me-1 text-emerald-400"></i>Excel
+                                </button>
+                                <button type="button" id="expFormatCsv" onclick="selectExportFormat('csv')" class="py-1.5 px-1.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-medium text-center hover:border-slate-600 flex items-center justify-center text-xs transition">
+                                    <i class="fa-solid fa-file-csv me-1 text-amber-400"></i>CSV
                                 </button>
                             </div>
                         </div>
@@ -736,11 +742,28 @@
                         <span>端子必要点:</span>
                         <span id="totalTerminalCount" class="font-bold text-amber-400">0 点</span>
                     </div>
-                    <button id="btnExportExcel" class="w-full mt-2 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-medium rounded text-xs transition flex items-center justify-center">
-                        <i class="fa-solid fa-file-excel me-1.5"></i>集計Excelダウンロード
+                    <!-- Page Scope Selector for CSV & Excel -->
+                    <div class="pt-2 border-t border-slate-800 space-y-1">
+                        <div class="flex items-center justify-between text-[11px] text-slate-300">
+                            <label for="sidebarExportScopeSelect" class="font-semibold flex items-center">
+                                <i class="fa-solid fa-filter text-indigo-400 me-1"></i>出力範囲:
+                            </label>
+                            <select id="sidebarExportScopeSelect" onchange="handleSidebarExportScopeChange(this.value)" class="bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-[11px] text-white focus:outline-none focus:border-indigo-500 font-sans">
+                                <option value="all">全ページ一括集計</option>
+                                <option value="current">現在のページのみ</option>
+                                <option value="custom">ページ指定...</option>
+                            </select>
+                        </div>
+                        <div id="sidebarExportRangeContainer" class="hidden">
+                            <input type="text" id="sidebarExportRangeInput" oninput="updateSidebarExportButtonsText()" placeholder="例: 1, 3, 5-10" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-[11px] text-white font-mono focus:border-indigo-500 focus:outline-none placeholder-slate-500">
+                        </div>
+                    </div>
+
+                    <button id="btnExportExcel" class="w-full mt-2 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-medium rounded text-xs transition flex items-center justify-center shadow-sm">
+                        <i class="fa-solid fa-file-excel me-1.5"></i><span id="btnExportExcelText">集計Excelダウンロード</span>
                     </button>
-                    <button id="btnExportCsv" class="w-full mt-1 py-1 text-slate-400 hover:text-white text-[11px] transition flex items-center justify-center">
-                        <i class="fa-solid fa-file-csv me-1.5"></i>CSVでもダウンロード
+                    <button id="btnExportCsv" class="w-full mt-1 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 hover:text-white rounded text-xs transition flex items-center justify-center">
+                        <i class="fa-solid fa-file-csv me-1.5 text-amber-400"></i><span id="btnExportCsvText">CSVダウンロード</span>
                     </button>
                 </div>
             </div>
@@ -840,8 +863,9 @@
             editingWireId: null,
 
             // Export Page Mode ('current', 'all', or 'selected')
-            exportPageMode: 'current',
-            exportSelectedFormat: 'pdf'
+            exportPageMode: 'all',
+            exportSelectedFormat: 'csv',
+            sidebarExportScope: 'all'
         };
 
         let modalTempSq = '1.25';
@@ -2036,6 +2060,16 @@
         function openExportModal() {
             document.getElementById('exportCurPageText').innerText = `P.${state.currentPage}`;
             document.getElementById('exportAllPagesText').innerText = `全 ${state.totalPages} 頁`;
+
+            // Default to 'all' if multiple pages, else sync with state.exportPageMode
+            const mode = state.exportPageMode || (state.totalPages > 1 ? 'all' : 'current');
+            const targetRadio = document.querySelector(`input[name="exportModeRadio"][value="${mode}"]`);
+            if (targetRadio) {
+                targetRadio.checked = true;
+                handleExportRadioChange();
+            }
+
+            selectExportFormat(state.exportSelectedFormat || 'csv');
             document.getElementById('exportModal').classList.remove('hidden');
         }
 
@@ -2045,34 +2079,122 @@
 
         function selectExportFormat(fmt) {
             state.exportSelectedFormat = fmt;
-            const btnPdf = document.getElementById('expFormatPdf');
-            const btnPng = document.getElementById('expFormatPng');
-            if (fmt === 'pdf') {
-                btnPdf.className = 'py-1.5 px-2 rounded bg-indigo-900/60 border border-indigo-500 text-indigo-200 font-bold text-center flex items-center justify-center';
-                btnPng.className = 'py-1.5 px-2 rounded bg-slate-900 border border-slate-700 text-slate-300 font-bold text-center hover:border-slate-600 flex items-center justify-center';
-            } else {
-                btnPng.className = 'py-1.5 px-2 rounded bg-indigo-900/60 border border-indigo-500 text-indigo-200 font-bold text-center flex items-center justify-center';
-                btnPdf.className = 'py-1.5 px-2 rounded bg-slate-900 border border-slate-700 text-slate-300 font-bold text-center hover:border-slate-600 flex items-center justify-center';
+            ['Pdf', 'Png', 'Excel', 'Csv'].forEach(type => {
+                const btn = document.getElementById('expFormat' + type);
+                if (!btn) return;
+                const isSelected = fmt.toLowerCase() === type.toLowerCase();
+                if (isSelected) {
+                    btn.className = 'py-1.5 px-1.5 rounded bg-indigo-900/60 border border-indigo-500 text-indigo-200 font-bold text-center flex items-center justify-center text-xs transition';
+                } else {
+                    btn.className = 'py-1.5 px-1.5 rounded bg-slate-900 border border-slate-700 text-slate-300 font-medium text-center hover:border-slate-600 flex items-center justify-center text-xs transition';
+                }
+            });
+
+            const btnExec = document.getElementById('btnExecuteExport');
+            if (btnExec) {
+                const labels = {
+                    pdf: '<i class="fa-solid fa-file-pdf me-1.5"></i>PDFを出力',
+                    png: '<i class="fa-solid fa-image me-1.5"></i>PNGを出力',
+                    excel: '<i class="fa-solid fa-file-excel me-1.5"></i>Excelを出力',
+                    csv: '<i class="fa-solid fa-file-csv me-1.5"></i>CSVを出力'
+                };
+                btnExec.innerHTML = labels[fmt] || '<i class="fa-solid fa-download me-1.5"></i>エクスポート';
             }
         }
 
         function handleExportRadioChange() {
-            const radioVal = document.querySelector('input[name="exportModeRadio"]:checked').value;
+            const radio = document.querySelector('input[name="exportModeRadio"]:checked');
+            const radioVal = radio ? radio.value : 'all';
             state.exportPageMode = radioVal;
             const rangeInput = document.getElementById('exportPageRangeInput');
-            rangeInput.classList.toggle('hidden', radioVal !== 'selected');
-            if (radioVal === 'selected') rangeInput.focus();
+            if (rangeInput) {
+                rangeInput.classList.toggle('hidden', radioVal !== 'selected');
+                if (radioVal === 'selected') rangeInput.focus();
+            }
         }
 
         function executeExportFromModal() {
-            const radioVal = document.querySelector('input[name="exportModeRadio"]:checked').value;
+            const radio = document.querySelector('input[name="exportModeRadio"]:checked');
+            const radioVal = radio ? radio.value : 'all';
             state.exportPageMode = radioVal;
+            const targetPages = getTargetPages();
+            if (!targetPages || targetPages.length === 0) return;
+
             closeExportModal();
+
             if (state.exportSelectedFormat === 'pdf') {
-                exportPDF();
-            } else {
-                exportPNG();
+                exportPDF(targetPages);
+            } else if (state.exportSelectedFormat === 'png') {
+                exportPNG(targetPages);
+            } else if (state.exportSelectedFormat === 'excel') {
+                exportExcel(targetPages);
+            } else if (state.exportSelectedFormat === 'csv') {
+                exportCSV(targetPages);
             }
+        }
+
+        // ================= SIDEBAR EXPORT SCOPE HELPERS =================
+        function parsePageRange(input, totalPages) {
+            if (!input || !input.trim()) return null;
+            const pages = new Set();
+            for (const part of input.split(',').map(value => value.trim()).filter(Boolean)) {
+                const range = part.match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+                if (!range) return null;
+                const start = Number(range[1]);
+                const end = Number(range[2] || range[1]);
+                if (start < 1 || end < start || (totalPages > 0 && end > totalPages)) return null;
+                for (let page = start; page <= end; page++) pages.add(page);
+            }
+            return [...pages].sort((a, b) => a - b);
+        }
+
+        function handleSidebarExportScopeChange(scope) {
+            state.sidebarExportScope = scope;
+            const rangeContainer = document.getElementById('sidebarExportRangeContainer');
+            if (rangeContainer) {
+                rangeContainer.classList.toggle('hidden', scope !== 'custom');
+                if (scope === 'custom') {
+                    const input = document.getElementById('sidebarExportRangeInput');
+                    if (input) input.focus();
+                }
+            }
+            updateSidebarExportButtonsText();
+        }
+
+        function getSidebarTargetPages() {
+            const scope = state.sidebarExportScope || (state.totalPages > 1 ? 'all' : 'current');
+            if (scope === 'current') {
+                return [state.currentPage];
+            } else if (scope === 'all') {
+                const maxP = Math.max(1, state.totalPages || 1);
+                return Array.from({ length: maxP }, (_, i) => i + 1);
+            } else if (scope === 'custom') {
+                const inputVal = document.getElementById('sidebarExportRangeInput')?.value || '';
+                const parsed = parsePageRange(inputVal, state.totalPages);
+                if (!parsed || parsed.length === 0) {
+                    showToast('有効なページ番号を指定してください（例: 1, 3, 5-10）');
+                    return null;
+                }
+                return parsed;
+            }
+            return [state.currentPage];
+        }
+
+        function updateSidebarExportButtonsText() {
+            const scope = state.sidebarExportScope || (state.totalPages > 1 ? 'all' : 'current');
+            let scopeLabel = '';
+            if (scope === 'all') {
+                scopeLabel = state.totalPages > 1 ? ` (全${state.totalPages}頁)` : '';
+            } else if (scope === 'current') {
+                scopeLabel = ` (P.${state.currentPage})`;
+            } else if (scope === 'custom') {
+                const inputVal = document.getElementById('sidebarExportRangeInput')?.value.trim() || '';
+                scopeLabel = inputVal ? ` (${inputVal})` : ' (指定頁)';
+            }
+            const excelText = document.getElementById('btnExportExcelText');
+            if (excelText) excelText.innerText = `集計Excelダウンロード${scopeLabel}`;
+            const csvText = document.getElementById('btnExportCsvText');
+            if (csvText) csvText.innerText = `CSVダウンロード${scopeLabel}`;
         }
 
         function updateSelectedWireActionBar() {
@@ -2104,7 +2226,14 @@
                         state.pdfDoc = pdf;
                         state.totalPages = pdf.numPages;
                         state.currentPage = 1;
+                        if (state.totalPages > 1) {
+                            state.exportPageMode = 'all';
+                            state.sidebarExportScope = 'all';
+                            const scopeSel = document.getElementById('sidebarExportScopeSelect');
+                            if (scopeSel) scopeSel.value = 'all';
+                        }
                         renderPdfPage(1);
+                        updateSidebarExportButtonsText();
                     });
                 };
                 fileReader.readAsArrayBuffer(file);
@@ -4224,6 +4353,7 @@
             document.getElementById('totalTubeCount').innerText = `${state.wires.length * 2} 個`;
             document.getElementById('totalTerminalCount').innerText = `${totalTerminalPoints} 点`;
             updateMultiSelectUI();
+            updateSidebarExportButtonsText();
         }
 
         function selectWireFromList(wireId) {
@@ -4282,41 +4412,31 @@
         function getTargetPages() {
             if (state.exportPageMode === 'current') return [state.currentPage];
             if (state.exportPageMode === 'all') {
-                return Array.from({ length: state.totalPages }, (_, i) => i + 1);
+                return Array.from({ length: Math.max(1, state.totalPages || 1) }, (_, i) => i + 1);
             }
 
-            const input = document.getElementById('exportPageRangeInput').value.trim();
+            const input = document.getElementById('exportPageRangeInput')?.value.trim() || '';
             if (!input) {
-                showToast('出力するページを指定してください（例: 1,3,5-7）');
+                showToast('出力するページを指定してください（例: 1, 3, 5-7）');
                 return null;
             }
 
-            const pages = new Set();
-            for (const part of input.split(',').map(value => value.trim()).filter(Boolean)) {
-                const range = part.match(/^(\d+)(?:\s*-\s*(\d+))?$/);
-                if (!range) {
-                    showToast('ページ指定の形式が正しくありません（例: 1,3,5-7）');
-                    return null;
-                }
-                const start = Number(range[1]);
-                const end = Number(range[2] || range[1]);
-                if (start < 1 || end < start || end > state.totalPages) {
-                    showToast(`ページは 1 ～ ${state.totalPages} の範囲で指定してください`);
-                    return null;
-                }
-                for (let page = start; page <= end; page++) pages.add(page);
+            const pages = parsePageRange(input, state.totalPages);
+            if (!pages || pages.length === 0) {
+                showToast(`ページ指定の形式が正しくありません（1 ～ ${state.totalPages} の範囲、例: 1, 3, 5-7）`);
+                return null;
             }
-            return [...pages].sort((a, b) => a - b);
+            return pages;
         }
 
-        async function exportPNG() {
+        async function exportPNG(customPages) {
             if (!state.bgImage && state.wires.length === 0) {
                 showToast('出力対象の図面がありません');
                 return;
             }
 
             const originalPage = state.currentPage;
-            const targetPages = getTargetPages();
+            const targetPages = customPages || getTargetPages();
             if (!targetPages) return;
             const exportMultiplePages = state.pdfDoc && targetPages.length > 1;
 
@@ -4372,7 +4492,7 @@
             }
         }
 
-        async function exportPDF() {
+        async function exportPDF(customPages) {
             if (!state.bgImage && state.wires.length === 0) {
                 showToast('出力対象の図面がありません');
                 return;
@@ -4387,7 +4507,7 @@
             showToast('PDF 出力処理中...');
 
             try {
-                const targetPages = getTargetPages();
+                const targetPages = customPages || getTargetPages();
                 if (!targetPages) return;
 
                 let pdf = null;
@@ -4499,21 +4619,23 @@
             return { items, excludedWireCount };
         }
 
-        function getMarkTubeExportData() {
+        function getMarkTubeExportData(customPages) {
             if (state.wires.length === 0) {
                 showToast('集計対象の配線データがありません');
                 return null;
             }
-            const targetPages = getTargetPages();
-            return targetPages ? createMarkTubeSummary(targetPages) : null;
+            const targetPages = customPages || getSidebarTargetPages();
+            if (!targetPages || targetPages.length === 0) return null;
+            const summary = createMarkTubeSummary(targetPages);
+            return { ...summary, targetPages };
         }
 
-        function exportExcel() {
+        function exportExcel(customPages) {
             if (!window.XLSX) {
                 showToast('Excel 出力ライブラリが読み込まれていません');
                 return;
             }
-            const data = getMarkTubeExportData();
+            const data = getMarkTubeExportData(customPages);
             if (!data) return;
 
             const totalTermPoints = data.items.reduce((sum, item) => sum + item.terminalPoints, 0);
@@ -4530,40 +4652,67 @@
             ];
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, 'マークチューブ集計');
-            XLSX.writeFile(workbook, `MarkTube_Summary_${new Date().toISOString().slice(0,10)}.xlsx`);
+
+            const isAll = (data.targetPages.length === state.totalPages && state.totalPages > 1);
+            const isSingle = data.targetPages.length === 1;
+            const pageSuffix = isAll
+                ? '_AllPages'
+                : (isSingle ? `_Page${data.targetPages[0]}` : `_SelectedPages`);
+            const dateStr = new Date().toISOString().slice(0, 10);
+            const fileName = `MarkTube_Summary${pageSuffix}_${dateStr}.xlsx`;
+
+            XLSX.writeFile(workbook, fileName);
+
+            const pageDesc = isAll
+                ? `全 ${data.targetPages.length} ページ`
+                : (isSingle ? `ページ ${data.targetPages[0]}` : `指定 ${data.targetPages.length} ページ`);
+
             showToast(data.excludedWireCount > 0
-                ? `集計Excelを出力しました（5.5 SQ以上 ${data.excludedWireCount} 本を除外）`
-                : '集計Excelを出力しました');
+                ? `${pageDesc}の集計Excelを出力しました（5.5 SQ以上 ${data.excludedWireCount} 本を除外）`
+                : `${pageDesc}の集計Excelを出力しました`);
         }
 
-        function exportCSV() {
-            const data = getMarkTubeExportData();
+        function exportCSV(customPages) {
+            const data = getMarkTubeExportData(customPages);
             if (!data) return;
 
             const totalTermPoints = data.items.reduce((sum, item) => sum + item.terminalPoints, 0);
 
             let csvContent = "\uFEFFマークチューブ印字,端子台接続,マークチューブ尺寸,対象電線サイズ(SQ),必要数(個),端子必要数(点),対象頁\n";
             data.items.forEach(item => {
-                    csvContent += [
-                        escapeCSV(item.markText),
-                        escapeCSV(item.isTerminalText),
-                        item.tubeSize,
-                        escapeCSV(item.sqs),
-                        item.quantity,
-                        item.terminalPoints,
-                        escapeCSV(item.pages)
-                    ].join(',') + '\n';
+                csvContent += [
+                    escapeCSV(item.markText),
+                    escapeCSV(item.isTerminalText),
+                    item.tubeSize,
+                    escapeCSV(item.sqs),
+                    item.quantity,
+                    item.terminalPoints,
+                    escapeCSV(item.pages)
+                ].join(',') + '\n';
             });
             csvContent += `合計,,,,,"${totalTermPoints}",\n`;
+
+            const isAll = (data.targetPages.length === state.totalPages && state.totalPages > 1);
+            const isSingle = data.targetPages.length === 1;
+            const pageSuffix = isAll
+                ? '_AllPages'
+                : (isSingle ? `_Page${data.targetPages[0]}` : `_SelectedPages`);
+            const dateStr = new Date().toISOString().slice(0, 10);
+            const fileName = `MarkTube_Summary${pageSuffix}_${dateStr}.csv`;
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `MarkTube_Summary_${new Date().toISOString().slice(0,10)}.csv`;
+            link.download = fileName;
             link.click();
+
+            const pageDesc = isAll
+                ? `全 ${data.targetPages.length} ページ`
+                : (isSingle ? `ページ ${data.targetPages[0]}` : `指定 ${data.targetPages.length} ページ`);
+
             showToast(data.excludedWireCount > 0
-                ? `集計CSVを出力しました（5.5 SQ以上 ${data.excludedWireCount} 本を除外）`
-                : '集計CSVを出力しました');
+                ? `${pageDesc}の集計CSVを出力しました（5.5 SQ以上 ${data.excludedWireCount} 本を除外）`
+                : `${pageDesc}の集計CSVを出力しました`);
         }
 
         function showToast(msg) {
