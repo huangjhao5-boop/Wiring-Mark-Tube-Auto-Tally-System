@@ -2356,6 +2356,10 @@
         function isSegmentOnBaseLine(from, to) {
             const length = Math.hypot(to.x - from.x, to.y - from.y);
             if (length < 2) return true;
+            const dx = Math.abs(to.x - from.x);
+            const dy = Math.abs(to.y - from.y);
+            const isVertical = dx < 6 && dy >= 6;
+
             const steps = Math.max(2, Math.ceil(length / 2));
             let matched = 0;
             let longestGap = 0;
@@ -2374,11 +2378,17 @@
             }
             const gapPx = longestGap * 2;
             const matchRatio = matched / (steps + 1);
-            if (length <= 35) {
-                return gapPx <= 30;
+
+            // 垂直線（匯流排/電源母線）：圖面垂直線絕無字框中斷，要求嚴格連續（最大間隙不得超過 8px）
+            if (isVertical) {
+                return matchRatio >= 0.70 && gapPx <= 8;
             }
-            // Allow passing through standard wire label boxes (e.g. [P24], [24], [SOL360] up to ~55px wide)
-            return matchRatio >= 0.28 && gapPx <= 58;
+
+            // 水平線（負載階梯支線）：容許橫越印刷字框，但間隙收緊至 26px，絕不誤穿空白區
+            if (length <= 35) {
+                return gapPx <= 18;
+            }
+            return matchRatio >= 0.40 && gapPx <= 26;
         }
 
         function isRouteOnBaseLine(points) {
