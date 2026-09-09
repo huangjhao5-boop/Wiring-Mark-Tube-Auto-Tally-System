@@ -190,39 +190,22 @@
                         </div>
                     </div>
 
-                    <!-- Default Mark Text & Quick Presets -->
+                    <!-- Default Mark Text & Dynamic Memory Presets -->
                     <div>
                         <div class="flex items-center justify-between mb-1">
                             <label class="block text-xs text-slate-300">印字文字 (初期値)</label>
-                            <span class="text-[9px] text-indigo-400 font-medium"><i class="fa-solid fa-bolt me-0.5"></i>常用快捷</span>
+                            <span class="text-[9px] text-indigo-400 font-medium"><i class="fa-solid fa-clock-rotate-left me-0.5"></i>使用頻度順記憶</span>
                         </div>
-                        <input type="text" id="sidebarMarkText" value="101" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono">
+                        <input type="text" id="sidebarMarkText" value="" placeholder="線号を入力 (例: 101, COM)" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono">
                         
-                        <!-- Quick Preset Buttons -->
-                        <div class="mt-1.5 space-y-1 bg-slate-900/40 p-1.5 rounded border border-slate-700/60" id="quickMarkTags">
-                            <!-- AC 3-Phase & Motor Output -->
-                            <div class="flex items-center gap-1 flex-wrap">
-                                <span class="text-[9px] text-slate-400 shrink-0 font-medium">電源:</span>
-                                <button type="button" data-preset="R" class="quick-mark-btn px-1.5 py-0.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-[10px] font-mono border border-slate-600/50">R</button>
-                                <button type="button" data-preset="S" class="quick-mark-btn px-1.5 py-0.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-[10px] font-mono border border-slate-600/50">S</button>
-                                <button type="button" data-preset="T" class="quick-mark-btn px-1.5 py-0.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-[10px] font-mono border border-slate-600/50">T</button>
-                                <button type="button" data-preset="N" class="quick-mark-btn px-1.5 py-0.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-[10px] font-mono border border-slate-600/50">N</button>
-                                <span class="text-slate-600 text-[10px] mx-0.5">|</span>
-                                <button type="button" data-preset="U" class="quick-mark-btn px-1.5 py-0.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-[10px] font-mono border border-slate-600/50">U</button>
-                                <button type="button" data-preset="V" class="quick-mark-btn px-1.5 py-0.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-[10px] font-mono border border-slate-600/50">V</button>
-                                <button type="button" data-preset="W" class="quick-mark-btn px-1.5 py-0.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-[10px] font-mono border border-slate-600/50">W</button>
+                        <!-- Dynamic Quick Memory Tags (Top 15~20) -->
+                        <div class="mt-1.5 space-y-1 bg-slate-900/40 p-1.5 rounded border border-slate-700/60">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[9px] text-slate-400 font-medium">常用印字履歴 (最大20件):</span>
+                                <button type="button" onclick="clearMarkTextHistory()" class="text-[9px] text-slate-500 hover:text-red-400 transition" title="記憶履歴をクリア">クリア</button>
                             </div>
-                            <!-- DC Control, Ground & Series Starters -->
-                            <div class="flex items-center gap-1 flex-wrap">
-                                <span class="text-[9px] text-slate-400 shrink-0 font-medium">制御:</span>
-                                <button type="button" data-preset="+24V" class="quick-mark-btn px-1.5 py-0.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-[10px] font-mono border border-slate-600/50">+24V</button>
-                                <button type="button" data-preset="0V" class="quick-mark-btn px-1.5 py-0.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-[10px] font-mono border border-slate-600/50">0V</button>
-                                <button type="button" data-preset="COM" class="quick-mark-btn px-1.5 py-0.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-[10px] font-mono border border-slate-600/50">COM</button>
-                                <button type="button" data-preset="FG" class="quick-mark-btn px-1.5 py-0.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-[10px] font-mono border border-slate-600/50">FG</button>
-                                <button type="button" data-preset="E" class="quick-mark-btn px-1.5 py-0.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-[10px] font-mono border border-slate-600/50">E</button>
-                                <span class="text-slate-600 text-[10px] mx-0.5">|</span>
-                                <button type="button" data-preset="101" class="quick-mark-btn px-1.5 py-0.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-[10px] font-mono border border-slate-600/50">101</button>
-                                <button type="button" data-preset="A" class="quick-mark-btn px-1.5 py-0.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-[10px] font-mono border border-slate-600/50">A</button>
+                            <div id="quickMarkTags" class="flex items-center gap-1 flex-wrap min-h-[26px]">
+                                <span class="text-[9px] text-slate-500 italic py-0.5">（入力した線号が使用頻度順に自動記憶されます）</span>
                             </div>
                         </div>
                     </div>
@@ -253,6 +236,19 @@
                     <div class="flex items-center justify-between bg-slate-900/50 p-2 rounded border border-slate-700">
                         <span class="text-xs text-slate-300 font-medium">連続作図モード</span>
                         <input type="checkbox" id="chkContinuous" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer">
+                    </div>
+
+                    <!-- Fixed Point A Mode Switch (A点固定・連続B点追加) -->
+                    <div class="bg-slate-900/50 p-2 rounded border border-slate-700 space-y-1">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-xs text-amber-200 font-medium block flex items-center">
+                                    <i class="fa-solid fa-thumbtack text-amber-400 me-1.5 text-[11px]"></i>A点固定 (連続B点)
+                                </span>
+                                <span class="text-[9px] text-amber-300/80 block">A点共用でB点のみ連続追加 (Alt/Aキー)</span>
+                            </div>
+                            <input type="checkbox" id="chkLockPointA" class="w-4 h-4 accent-amber-500 rounded cursor-pointer">
+                        </div>
                     </div>
                 </div>
 
@@ -298,6 +294,7 @@
                 <div class="space-y-0.5 border-b border-slate-700/60 pb-1">
                     <div class="text-indigo-300 font-bold text-[10px]">【パソコン操作】</div>
                     <div><span class="text-slate-200 font-semibold">クリック:</span> A点 / B点 設置</div>
+                    <div><span class="text-amber-300 font-semibold">Alt / Aキー:</span> 📌 A点固定 (連続B点)</div>
                     <div><span class="text-slate-200 font-semibold">ダブルクリック:</span> 折点の追加 / 削除</div>
                     <div><span class="text-slate-200 font-semibold">Ctrl+Z / Ctrl+Y:</span> 復原 / 重做</div>
                     <div><span class="text-slate-200 font-semibold">右クリック / ESC:</span> A点解除</div>
@@ -308,6 +305,7 @@
                 <div class="space-y-0.5 pt-0.5">
                     <div class="text-emerald-300 font-bold text-[10px]">【iPad / 觸控筆操作】</div>
                     <div><span class="text-slate-200 font-semibold">ペン/指タップ:</span> A点 / B点 設置 (即時)</div>
+                    <div><span class="text-amber-300 font-semibold">📌 固定ボタン:</span> A点固定 (連續B點)</div>
                     <div><span class="text-amber-300 font-semibold">長押し (0.5秒):</span> 📍 折点追加 / 削除</div>
                     <div><span class="text-amber-300 font-semibold">ダブルタップ:</span> 📍 折点追加 / 削除</div>
                     <div><span class="text-amber-300 font-semibold">指ホールド + ペン:</span> 📍 折点追加</div>
@@ -335,6 +333,9 @@
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
                 <span id="statusText" class="truncate">始点 (A点) を導線上タップして指定してください</span>
                 <div id="statusActions" class="hidden items-center space-x-1.5 pl-1 shrink-0">
+                    <button id="btnLockPointA" type="button" class="px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-[10px] sm:text-xs font-semibold shadow transition flex items-center" title="A点を固定したまま連続でB点を追加 (Altキー / 快捷 A)">
+                        <i class="fa-solid fa-thumbtack me-1 text-[9px] text-amber-400"></i><span id="btnLockPointAText">A点固定: OFF</span>
+                    </button>
                     <button id="btnMobileAddWp" type="button" class="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[10px] sm:text-xs font-semibold shadow transition flex items-center">
                         <i class="fa-solid fa-plus me-1 text-[9px]"></i>折点追加
                     </button>
@@ -375,33 +376,17 @@
 
                     <!-- Modal Body -->
                     <div class="space-y-2 text-xs">
-                        <!-- Mark Text & Frequency Chips -->
+                        <!-- Mark Text & Dynamic Memory Chips (Top 20) -->
                         <div>
                             <div class="flex items-center justify-between mb-1">
                                 <label class="block text-slate-300 font-medium text-[11px]">マークチューブ印字</label>
-                                <span class="text-[9px] text-indigo-400 font-medium"><i class="fa-solid fa-bolt me-0.5"></i>常用快捷</span>
+                                <span class="text-[9px] text-indigo-400 font-medium"><i class="fa-solid fa-clock-rotate-left me-0.5"></i>常用記憶 (上位20件)</span>
                             </div>
-                            <input type="text" id="modalMarkText" list="markTextSuggestions" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white font-mono text-xs focus:border-indigo-500 focus:outline-none">
+                            <input type="text" id="modalMarkText" list="markTextSuggestions" autocomplete="off" placeholder="線号を入力 (例: 101, COM)" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white font-mono text-xs focus:border-indigo-500 focus:outline-none">
                             <datalist id="markTextSuggestions"></datalist>
 
-                            <!-- Quick Preset Buttons in Modal -->
-                            <div class="flex items-center gap-1 flex-wrap mt-1" id="modalQuickPresets">
-                                <button type="button" data-modal-preset="R" class="modal-quick-preset px-1.5 py-0.5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-[9px] font-mono border border-slate-700">R</button>
-                                <button type="button" data-modal-preset="S" class="modal-quick-preset px-1.5 py-0.5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-[9px] font-mono border border-slate-700">S</button>
-                                <button type="button" data-modal-preset="T" class="modal-quick-preset px-1.5 py-0.5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-[9px] font-mono border border-slate-700">T</button>
-                                <button type="button" data-modal-preset="N" class="modal-quick-preset px-1.5 py-0.5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-[9px] font-mono border border-slate-700">N</button>
-                                <button type="button" data-modal-preset="U" class="modal-quick-preset px-1.5 py-0.5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-[9px] font-mono border border-slate-700">U</button>
-                                <button type="button" data-modal-preset="V" class="modal-quick-preset px-1.5 py-0.5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-[9px] font-mono border border-slate-700">V</button>
-                                <button type="button" data-modal-preset="W" class="modal-quick-preset px-1.5 py-0.5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-[9px] font-mono border border-slate-700">W</button>
-                                <button type="button" data-modal-preset="+24V" class="modal-quick-preset px-1.5 py-0.5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-[9px] font-mono border border-slate-700">+24V</button>
-                                <button type="button" data-modal-preset="0V" class="modal-quick-preset px-1.5 py-0.5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-[9px] font-mono border border-slate-700">0V</button>
-                                <button type="button" data-modal-preset="COM" class="modal-quick-preset px-1.5 py-0.5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-[9px] font-mono border border-slate-700">COM</button>
-                                <button type="button" data-modal-preset="FG" class="modal-quick-preset px-1.5 py-0.5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-[9px] font-mono border border-slate-700">FG</button>
-                                <button type="button" data-modal-preset="E" class="modal-quick-preset px-1.5 py-0.5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-[9px] font-mono border border-slate-700">E</button>
-                                <button type="button" data-modal-preset="101" class="modal-quick-preset px-1.5 py-0.5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-[9px] font-mono border border-slate-700">101</button>
-                                <button type="button" data-modal-preset="A" class="modal-quick-preset px-1.5 py-0.5 rounded bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white text-[9px] font-mono border border-slate-700">A</button>
-                            </div>
-                            <div id="markTextHistory" class="flex flex-wrap gap-1 mt-1"></div>
+                            <!-- Dynamic Memory Chips in Modal -->
+                            <div id="markTextHistory" class="flex flex-wrap gap-1 mt-1.5 min-h-[24px]"></div>
                         </div>
 
                         <!-- SQ Selection (Compact 1 Row of 6 Buttons) -->
@@ -798,12 +783,13 @@
             lastLongPressTimestamp: 0,
 
             // Default Wire Parameters
-            defaultMarkText: '101',
+            defaultMarkText: '',
             defaultSq: '1.25',
             defaultColor: '#dc2626',
             defaultColorName: '赤',
             defaultIsTerminal: false,
             isContinuous: false,
+            isLockPointA: false,
             isAutoIncrement: false,
             incrementMode: 'hex', // 'hex' (16進 PLC), 'dec' (10進 DEC), 'alpha' (A~Z 連番)
             lastWaypointDeleteTimestamp: 0,
@@ -822,12 +808,13 @@
             redoStack: [],
             maxHistory: 30,
 
-            // Input Usage Frequency Tracking & History
-            markTextCounts: { 'COM': 6, '101': 5, '102': 4, '103': 3, 'PE': 2, '201': 1 },
-            markTextLastUsed: { 'COM': 6, '101': 5, '102': 4, '103': 3, 'PE': 2, '201': 1 },
+            // Input Usage Frequency Tracking & History (Dynamic Memory - Top 15~20)
+            markTextCounts: {},
+            markTextLastUsed: {},
 
             // Active Interactive Wiring
             activePointA: null,
+            pendingLockPointA: false,
             activeWaypoints: [],
             activeMousePos: null,
             selectedWireId: null,
@@ -885,8 +872,10 @@
         }
 
         window.onload = function() {
+            loadMarkHistoryFromStorage();
             initEventListeners();
             updateUIState();
+            renderQuickMarkTags();
             drawDiagram();
             checkLocalStorageAutoRecovery();
         };
@@ -968,6 +957,7 @@
                             if (data.markTextCounts) state.markTextCounts = data.markTextCounts;
                             if (data.markTextLastUsed) state.markTextLastUsed = data.markTextLastUsed;
                             saveHistoryState('Auto-Recovery');
+                            renderQuickMarkTags();
                             drawDiagram();
                             updateTablesAndStats();
                             showToast('自動バックアップデータを復元しました');
@@ -1004,9 +994,9 @@
         }
 
         function getNextIncrementedMarkText(text) {
-            if (!text || typeof text !== 'string') return '101';
+            if (!text || typeof text !== 'string') return '';
             const trimmed = text.trim();
-            if (!trimmed) return '101';
+            if (!trimmed) return '';
 
             const mode = state.incrementMode || 'hex';
 
@@ -1095,6 +1085,46 @@
             try {
                 localStorage.setItem('hw_wiring_increment_mode', state.incrementMode);
             } catch (e) {}
+        }
+
+        // ================= POINT A LOCK CONTROLLER (A点固定・連続B点追加) =================
+        function toggleLockPointA(forcedState = null) {
+            state.isLockPointA = (forcedState !== null) ? !!forcedState : !state.isLockPointA;
+            updateLockPointAUI();
+            if (state.isLockPointA) {
+                showToast('📌 A点固定モードを有効にしました (連続B点追加)');
+                if (state.activePointA) {
+                    document.getElementById('statusText').innerHTML = '📌 <span class="text-amber-300 font-bold">A点固定中</span>：続けて次のB点をクリックしてください (Escで解除)';
+                    const statusActions = document.getElementById('statusActions');
+                    if (statusActions) {
+                        statusActions.classList.remove('hidden');
+                        statusActions.classList.add('flex');
+                    }
+                }
+            } else {
+                showToast('A点固定モードを解除しました');
+                if (state.activePointA) {
+                    document.getElementById('statusText').innerText = '終点 (B点) を指定してください';
+                }
+            }
+            drawDiagram();
+        }
+
+        function updateLockPointAUI() {
+            const chk = document.getElementById('chkLockPointA');
+            if (chk) chk.checked = !!state.isLockPointA;
+
+            const btn = document.getElementById('btnLockPointA');
+            const txt = document.getElementById('btnLockPointAText');
+            if (btn && txt) {
+                if (state.isLockPointA) {
+                    btn.className = 'px-2 py-0.5 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded text-[10px] sm:text-xs font-bold shadow transition flex items-center ring-2 ring-amber-300';
+                    txt.innerText = 'A点固定: ON 📌';
+                } else {
+                    btn.className = 'px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-[10px] sm:text-xs font-semibold shadow transition flex items-center';
+                    txt.innerText = 'A点固定: OFF';
+                }
+            }
         }
 
         // Quick Preset Highlights in Sidebar
@@ -1300,6 +1330,11 @@
                     }
                 } else if (e.key === 'Escape') {
                     cancelActivePointA();
+                } else if ((e.key === 'a' || e.key === 'A') && !e.ctrlKey && !e.metaKey) {
+                    if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                        e.preventDefault();
+                        toggleLockPointA();
+                    }
                 } else if (e.key === ' ') {
                     state.isSpacePressed = true;
                 }
@@ -1362,18 +1397,6 @@
                 };
             }
 
-            const modalQuickPresets = document.getElementById('modalQuickPresets');
-            if (modalQuickPresets) {
-                modalQuickPresets.onclick = (e) => {
-                    const btn = e.target.closest('.modal-quick-preset');
-                    if (!btn) return;
-                    const val = btn.getAttribute('data-modal-preset');
-                    const input = document.getElementById('modalMarkText');
-                    input.value = val;
-                    input.focus();
-                    input.select();
-                };
-            }
 
             document.getElementById('chkDefaultTerminal').onchange = (e) => {
                 state.defaultIsTerminal = e.target.checked;
@@ -1382,6 +1405,18 @@
             document.getElementById('chkContinuous').onchange = (e) => {
                 state.isContinuous = e.target.checked;
             };
+
+            document.getElementById('chkLockPointA').onchange = (e) => {
+                toggleLockPointA(e.target.checked);
+            };
+
+            const btnLockPointA = document.getElementById('btnLockPointA');
+            if (btnLockPointA) {
+                btnLockPointA.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleLockPointA();
+                };
+            }
 
             // Modal Enter Key Confirm
             document.getElementById('wireModal').addEventListener('keydown', (e) => {
@@ -1485,6 +1520,7 @@
                         if (data.settings.brightness !== undefined) state.brightness = data.settings.brightness;
                         if (data.settings.invertColors !== undefined) state.invertColors = data.settings.invertColors;
                     }
+                    renderQuickMarkTags();
                     drawDiagram();
                     updateTablesAndStats();
                     showToast(`プロジェクトを読み込みました (${state.wires.length}本の配線)`);
@@ -2611,25 +2647,26 @@
         function drawHandleNode(x, y, type, isSelected) {
             if (type === 'A') {
                 ctx.save();
+                const isLocked = !!state.isLockPointA;
                 // Glowing outer halo
                 ctx.beginPath();
-                ctx.arc(x, y, 13, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(34, 197, 94, 0.35)';
+                ctx.arc(x, y, isLocked ? 16 : 13, 0, Math.PI * 2);
+                ctx.fillStyle = isLocked ? 'rgba(245, 158, 11, 0.45)' : 'rgba(34, 197, 94, 0.35)';
                 ctx.fill();
                 // Solid center pin
                 ctx.beginPath();
-                ctx.arc(x, y, 7.5, 0, Math.PI * 2);
-                ctx.fillStyle = '#22c55e';
+                ctx.arc(x, y, isLocked ? 9 : 7.5, 0, Math.PI * 2);
+                ctx.fillStyle = isLocked ? '#f59e0b' : '#22c55e';
                 ctx.fill();
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 2;
                 ctx.stroke();
-                // Label 'A'
+                // Label 'A' or 'A📌'
                 ctx.font = 'bold 9px sans-serif';
                 ctx.fillStyle = '#ffffff';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText('A', x, y);
+                ctx.fillText(isLocked ? 'A📌' : 'A', x, y);
                 ctx.restore();
                 return;
             }
@@ -3263,15 +3300,16 @@
             if (e.button === 0 && state.pendingClickPos && !wasPanning) {
                 const clickPos = state.pendingClickPos;
                 const addWaypoint = state.pendingClickAddWaypoint;
+                const isAlt = !!e.altKey;
                 
                 // If Shift key is pressed -> Execute add waypoint immediately!
                 if (addWaypoint) {
-                    processCanvasClick(clickPos, true);
+                    processCanvasClick(clickPos, true, isAlt);
                 } else {
                     // Delay single click slightly (210ms) so double click can intercept and add waypoint cleanly!
                     clearTimeout(state.clickDelayTimer);
                     state.clickDelayTimer = setTimeout(() => {
-                        processCanvasClick(clickPos, false);
+                        processCanvasClick(clickPos, false, isAlt);
                     }, 210);
                 }
             }
@@ -3310,7 +3348,7 @@
             return { dist: Math.hypot(px - projX, py - projY), t };
         }
 
-        function processCanvasClick(pos, addWaypoint = false) {
+        function processCanvasClick(pos, addWaypoint = false, isAlt = false) {
             // If in Insert Waypoint Mode on a selected wire
             if (state.insertWaypointMode && state.selectedWireId) {
                 state.insertWaypointMode = false;
@@ -3364,7 +3402,11 @@
                 const waypoints = state.activeWaypoints.length > 0
                     ? [...state.activeWaypoints]
                     : calculateOrthogonalRoute(state.activePointA, pointB);
-                if (state.isContinuous) {
+
+                const isLockA = state.isLockPointA || isAlt;
+                const shouldAddDirectly = (state.isContinuous || isLockA) && state.defaultMarkText && state.defaultMarkText.trim();
+
+                if (shouldAddDirectly) {
                     saveHistoryState('Add-Wire-Continuous');
                     const newWire = {
                         id: 'wire_' + Date.now(), page: state.currentPage,
@@ -3384,21 +3426,38 @@
                         updateQuickPresetHighlights();
                     }
 
-                    state.activePointA = null;
-                    state.activeWaypoints = [];
-                    state.mobileAddWaypointPending = false;
-                    document.getElementById('angleHint').classList.add('hidden');
-                    document.getElementById('statusText').innerText = '始点 (A点) を導線上タップして指定してください';
-                    const statusActions = document.getElementById('statusActions');
-                    if (statusActions) {
-                        statusActions.classList.add('hidden');
-                        statusActions.classList.remove('flex');
+                    if (isLockA) {
+                        // Point A stays firmly fixed!
+                        state.activeWaypoints = [];
+                        state.mobileAddWaypointPending = false;
+                        document.getElementById('angleHint').classList.add('hidden');
+                        document.getElementById('statusText').innerHTML = '📌 <span class="text-amber-300 font-bold">A点固定中</span>：続けて次のB点をクリックしてください (Escで解除)';
+                        const statusActions = document.getElementById('statusActions');
+                        if (statusActions) {
+                            statusActions.classList.remove('hidden');
+                            statusActions.classList.add('flex');
+                        }
+                        updateLockPointAUI();
+                        drawDiagram();
+                        updateTablesAndStats();
+                        showToast(`配線を追加しました（A点固定中: ${newWire.markText}）`);
+                    } else {
+                        state.activePointA = null;
+                        state.activeWaypoints = [];
+                        state.mobileAddWaypointPending = false;
+                        document.getElementById('angleHint').classList.add('hidden');
+                        document.getElementById('statusText').innerText = '始点 (A点) を導線上タップして指定してください';
+                        const statusActions = document.getElementById('statusActions');
+                        if (statusActions) {
+                            statusActions.classList.add('hidden');
+                            statusActions.classList.remove('flex');
+                        }
+                        drawDiagram();
+                        updateTablesAndStats();
+                        showToast('配線を追加しました');
                     }
-                    drawDiagram();
-                    updateTablesAndStats();
-                    showToast('配線を追加しました');
                 } else {
-                    openWireModalForAdd(state.activePointA, pointB, waypoints);
+                    openWireModalForAdd(state.activePointA, pointB, waypoints, isLockA);
                 }
                 return;
             }
@@ -3463,13 +3522,20 @@
             state.lastPointATimestamp = Date.now();
             updateSelectedWireActionBar();
 
-            document.getElementById('statusText').innerText = '終点 (B点) を指定してください';
+            if (state.isLockPointA || isAlt) {
+                state.isLockPointA = true;
+                updateLockPointAUI();
+                document.getElementById('statusText').innerHTML = '📌 <span class="text-amber-300 font-bold">A点固定中</span>：終点 (B点) を指定してください (連続追加可能)';
+                showToast('📌 A点を固定設定しました（B点を連続追加可能）');
+            } else {
+                document.getElementById('statusText').innerText = '終点 (B点) を指定してください';
+                showToast('A点を設定しました');
+            }
             const statusActions = document.getElementById('statusActions');
             if (statusActions) {
                 statusActions.classList.remove('hidden');
                 statusActions.classList.add('flex');
             }
-            showToast('A点を設定しました');
         }
 
         function findHandleAt(pos) {
@@ -3523,27 +3589,37 @@
             showToast('A点を解除しました');
         }
 
-        function addMarkTextToHistory(text) {
-            if (!text) return;
-            if (!state.markTextCounts) state.markTextCounts = {};
-            if (!state.markTextLastUsed) state.markTextLastUsed = {};
-            state.markTextCounts[text] = (state.markTextCounts[text] || 0) + 1;
-            state.markTextLastUsed[text] = Date.now();
-            renderMarkTextHistory();
-            updateMarkTextSuggestions();
+        // ================= DYNAMIC MARK TEXT MEMORY (TOP 15~20) =================
+        function saveMarkHistoryToStorage() {
+            try {
+                const data = {
+                    counts: state.markTextCounts || {},
+                    lastUsed: state.markTextLastUsed || {}
+                };
+                localStorage.setItem('hw_wiring_mark_history', JSON.stringify(data));
+            } catch (e) {}
         }
 
-        function renderMarkTextHistory() {
-            const container = document.getElementById('markTextHistory');
-            if (!container) return;
-            container.innerHTML = '';
+        function loadMarkHistoryFromStorage() {
+            try {
+                const saved = localStorage.getItem('hw_wiring_mark_history');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    if (data && data.counts && typeof data.counts === 'object') {
+                        state.markTextCounts = data.counts;
+                        state.markTextLastUsed = data.lastUsed || {};
+                    }
+                }
+            } catch (e) {}
+        }
 
+        function getTopMarkTextList(limit = 20) {
             const allKeys = new Set([
                 ...Object.keys(state.markTextCounts || {}),
-                ...state.wires.map(w => w.markText)
+                ...state.wires.map(w => w.markText).filter(Boolean)
             ]);
 
-            const list = Array.from(allKeys).map(text => {
+            const list = Array.from(allKeys).filter(Boolean).map(text => {
                 const wireOccurrences = state.wires.filter(w => w.markText === text).length;
                 const recordedCount = (state.markTextCounts && state.markTextCounts[text]) || 0;
                 const totalCount = Math.max(recordedCount, wireOccurrences, 1);
@@ -3556,13 +3632,84 @@
                 return b.lastUsed - a.lastUsed;
             });
 
-            const top6 = list.slice(0, 6);
-            top6.forEach(item => {
+            return list.slice(0, limit);
+        }
+
+        function addMarkTextToHistory(text) {
+            if (!text) return;
+            const trimmed = text.trim();
+            if (!trimmed) return;
+            if (!state.markTextCounts) state.markTextCounts = {};
+            if (!state.markTextLastUsed) state.markTextLastUsed = {};
+            state.markTextCounts[trimmed] = (state.markTextCounts[trimmed] || 0) + 1;
+            state.markTextLastUsed[trimmed] = Date.now();
+            saveMarkHistoryToStorage();
+            renderQuickMarkTags();
+            renderMarkTextHistory();
+            updateMarkTextSuggestions();
+        }
+
+        function clearMarkTextHistory() {
+            if (confirm('常用印字履歴の記憶をクリアしますか？')) {
+                state.markTextCounts = {};
+                state.markTextLastUsed = {};
+                try {
+                    localStorage.removeItem('hw_wiring_mark_history');
+                } catch (e) {}
+                renderQuickMarkTags();
+                renderMarkTextHistory();
+                updateMarkTextSuggestions();
+                showToast('常用印字履歴をクリアしました');
+            }
+        }
+
+        function renderQuickMarkTags() {
+            const container = document.getElementById('quickMarkTags');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const topList = getTopMarkTextList(20);
+            if (topList.length === 0) {
+                container.innerHTML = '<span class="text-[9px] text-slate-500 italic py-0.5">（入力した線号が使用頻度順に自動記憶されます）</span>';
+                return;
+            }
+
+            topList.forEach(item => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'px-1.5 py-0.5 rounded bg-slate-700 hover:bg-indigo-600 text-slate-200 hover:text-white text-[10px] font-mono transition flex items-center gap-1';
-                btn.title = `使用回数: ${item.count}回`;
-                btn.innerHTML = `<span>${item.text}</span><span class="text-[9px] text-indigo-300 font-sans">(${item.count})</span>`;
+                btn.className = 'quick-mark-btn px-1.5 py-0.5 rounded bg-slate-700/80 hover:bg-slate-600 text-slate-200 hover:text-white text-[10px] font-mono transition border border-slate-600/50 flex items-center gap-1';
+                btn.setAttribute('data-preset', item.text);
+                btn.title = `使用回数: ${item.count}回 (クリックで設定)`;
+                btn.innerHTML = `<span>${item.text}</span><span class="text-[8px] text-indigo-300 font-sans opacity-80">(${item.count})</span>`;
+                btn.onclick = () => {
+                    state.defaultMarkText = item.text;
+                    const input = document.getElementById('sidebarMarkText');
+                    if (input) input.value = item.text;
+                    updateQuickPresetHighlights();
+                    showToast(`印字文字を「${item.text}」に設定しました`);
+                };
+                container.appendChild(btn);
+            });
+            updateQuickPresetHighlights();
+        }
+
+        function renderMarkTextHistory() {
+            const container = document.getElementById('markTextHistory');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const topList = getTopMarkTextList(20);
+            if (topList.length === 0) {
+                container.innerHTML = '<span class="text-[9px] text-slate-500 italic py-0.5">（入力した線号が自動記憶されます）</span>';
+                return;
+            }
+
+            topList.forEach(item => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'px-1.5 py-0.5 rounded bg-slate-700 hover:bg-indigo-600 text-slate-200 hover:text-white text-[10px] font-mono transition flex items-center gap-1 border border-slate-600/40';
+                btn.title = `使用回数: ${item.count}回 (クリックで入力)`;
+                btn.innerHTML = `<span>${item.text}</span><span class="text-[8px] text-indigo-300 font-sans">(${item.count})</span>`;
                 btn.onclick = () => {
                     const input = document.getElementById('modalMarkText');
                     input.value = item.text;
@@ -3578,33 +3725,17 @@
             if (!datalist) return;
             datalist.innerHTML = '';
 
-            const allKeys = new Set([
-                ...Object.keys(state.markTextCounts || {}),
-                ...state.wires.map(w => w.markText)
-            ]);
-
-            const list = Array.from(allKeys).map(text => {
-                const wireOccurrences = state.wires.filter(w => w.markText === text).length;
-                const recordedCount = (state.markTextCounts && state.markTextCounts[text]) || 0;
-                const totalCount = Math.max(recordedCount, wireOccurrences, 1);
-                const lastUsed = (state.markTextLastUsed && state.markTextLastUsed[text]) || 0;
-                return { text, count: totalCount, lastUsed };
-            });
-
-            list.sort((a, b) => {
-                if (b.count !== a.count) return b.count - a.count;
-                return b.lastUsed - a.lastUsed;
-            });
-
-            list.forEach(item => {
+            const topList = getTopMarkTextList(20);
+            topList.forEach(item => {
                 const option = document.createElement('option');
                 option.value = item.text;
                 datalist.appendChild(option);
             });
         }
 
-        function openWireModalForAdd(pointA, pointB, waypoints) {
+        function openWireModalForAdd(pointA, pointB, waypoints, isLockA = false) {
             state.editingWireId = null;
+            state.pendingLockPointA = isLockA || state.isLockPointA;
             document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen-to-square text-indigo-400 me-1.5"></i>配線パラメータ確認';
             document.getElementById('modalMarkText').value = state.defaultMarkText;
             document.getElementById('modalTerminalConnection').checked = state.defaultIsTerminal;
@@ -3648,7 +3779,12 @@
         }
 
         function handleModalConfirm() {
-            const markText = document.getElementById('modalMarkText').value.trim() || '101';
+            const markText = document.getElementById('modalMarkText').value.trim();
+            if (!markText) {
+                showToast('⚠️ 線号（マーク印字）を入力してください');
+                document.getElementById('modalMarkText').focus();
+                return;
+            }
             const sq = modalTempSq;
             const color = modalTempColor;
             const isTerminal = document.getElementById('modalTerminalConnection').checked;
@@ -3690,15 +3826,32 @@
                 state.wires.push(newWire);
                 state.selectedWireId = newWire.id;
                 updateSelectedWireActionBar();
-                state.activePointA = null;
-                state.activeWaypoints = [];
-                state.mobileAddWaypointPending = false;
-                document.getElementById('angleHint').classList.add('hidden');
-                document.getElementById('statusText').innerText = '始点 (A点) を導線上タップして指定してください';
-                const statusActions = document.getElementById('statusActions');
-                if (statusActions) {
-                    statusActions.classList.add('hidden');
-                    statusActions.classList.remove('flex');
+
+                if (state.isLockPointA || state.pendingLockPointA) {
+                    state.activePointA = state.pendingWireData.pointA;
+                    state.activeWaypoints = [];
+                    state.mobileAddWaypointPending = false;
+                    document.getElementById('angleHint').classList.add('hidden');
+                    document.getElementById('statusText').innerHTML = '📌 <span class="text-amber-300 font-bold">A点固定中</span>：続けて次のB点をクリックしてください (Escで解除)';
+                    const statusActions = document.getElementById('statusActions');
+                    if (statusActions) {
+                        statusActions.classList.remove('hidden');
+                        statusActions.classList.add('flex');
+                    }
+                    updateLockPointAUI();
+                    showToast(`配線を追加しました（A点固定中: ${markText}）`);
+                } else {
+                    state.activePointA = null;
+                    state.activeWaypoints = [];
+                    state.mobileAddWaypointPending = false;
+                    document.getElementById('angleHint').classList.add('hidden');
+                    document.getElementById('statusText').innerText = '始点 (A点) を導線上タップして指定してください';
+                    const statusActions = document.getElementById('statusActions');
+                    if (statusActions) {
+                        statusActions.classList.add('hidden');
+                        statusActions.classList.remove('flex');
+                    }
+                    showToast('配線を追加しました');
                 }
 
                 // Auto-Increment
@@ -3886,6 +4039,7 @@
             document.getElementById('pageIndicator').innerText = `${state.currentPage}/${state.totalPages}`;
             applyCanvasTransform();
             updateQuickPresetHighlights();
+            updateLockPointAUI();
         }
 
         function getTargetPages() {
