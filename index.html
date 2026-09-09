@@ -227,13 +227,20 @@
                         </div>
                     </div>
 
-                    <!-- Auto-Increment Switch -->
-                    <div class="flex items-center justify-between bg-slate-900/50 p-2 rounded border border-slate-700">
-                        <div>
-                            <span class="text-xs text-slate-200 font-medium block">連番自動インクリメント</span>
-                            <span class="text-[9px] text-slate-400 block">(101→102 / A→B / 101A→101B)</span>
+                    <!-- Auto-Increment Switch & Mode Selector -->
+                    <div class="bg-slate-900/50 p-2 rounded border border-slate-700 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-xs text-slate-200 font-medium block">連番自動インクリメント</span>
+                                <span id="incrementModeDesc" class="text-[9px] text-indigo-300 block">16進 PLC (109→10A→10B...10F→110)</span>
+                            </div>
+                            <input type="checkbox" id="chkAutoIncrement" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer">
                         </div>
-                        <input type="checkbox" id="chkAutoIncrement" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer">
+                        <div id="incrementModeGroup" class="grid grid-cols-3 gap-1 pt-1 border-t border-slate-700/60 text-[10px]">
+                            <button type="button" data-mode="hex" id="btnIncModeHex" class="increment-mode-btn py-0.5 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm">16進 (PLC)</button>
+                            <button type="button" data-mode="dec" id="btnIncModeDec" class="increment-mode-btn py-0.5 px-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-center border border-slate-600">10進 (DEC)</button>
+                            <button type="button" data-mode="alpha" id="btnIncModeAlpha" class="increment-mode-btn py-0.5 px-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-center border border-slate-600">A~Z 連番</button>
+                        </div>
                     </div>
 
                     <!-- Default Terminal Block Switch -->
@@ -667,6 +674,7 @@
             defaultIsTerminal: false,
             isContinuous: false,
             isAutoIncrement: false,
+            incrementMode: 'hex', // 'hex' (16進 PLC), 'dec' (10進 DEC), 'alpha' (A~Z 連番)
             lastWaypointDeleteTimestamp: 0,
             lastWaypointDeletedPos: null,
 
@@ -865,27 +873,93 @@
             const trimmed = text.trim();
             if (!trimmed) return '101';
 
-            // Check if string ends with numbers: (prefix)(digits)
-            const numMatch = trimmed.match(/^(.*?)(\d+)$/);
-            // Check if string ends with English alphabets: (prefix)(letters)
-            const letterMatch = trimmed.match(/^(.*?)([a-zA-Z]+)$/);
+            const mode = state.incrementMode || 'hex';
 
-            // If it ends with letters (e.g. "A", "101A", "TB-A", "z")
-            if (letterMatch && (!numMatch || trimmed.search(/[a-zA-Z]+$/) > trimmed.search(/\d+$/))) {
-                const prefix = letterMatch[1];
-                const letters = letterMatch[2];
-                return prefix + incrementAlphabetString(letters);
+            if (mode === 'hex') {
+                // 16進 (HEX / PLC) mode: 0..9, A..F (109 -> 10A -> 10B ... 10F -> 110)
+                // Match trailing hex sequence: [0-9A-Fa-f]+
+                const hexMatch = trimmed.match(/^(.*?)([0-9A-Fa-f]+)$/);
+                if (hexMatch) {
+                    const prefix = hexMatch[1];
+                    const hexStr = hexMatch[2];
+                    const numVal = parseInt(hexStr, 16) + 1;
+                    const isAllLower = (hexStr === hexStr.toLowerCase()) && /[a-f]/.test(hexStr);
+                    const hexValStr = numVal.toString(16);
+                    let formattedHex = isAllLower ? hexValStr.toLowerCase() : hexValStr.toUpperCase();
+                    // Preserve leading zeros if original had them
+                    if (formattedHex.length < hexStr.length) {
+                        formattedHex = formattedHex.padStart(hexStr.length, '0');
+                    }
+                    return prefix + formattedHex;
+                }
+                // Fallback for non-hex letters (e.g. "R" -> "S", "U" -> "V", "TB-Z" -> "TB-AA")
+                const letterMatch = trimmed.match(/^(.*?)([a-zA-Z]+)$/);
+                if (letterMatch) {
+                    const prefix = letterMatch[1];
+                    const letters = letterMatch[2];
+                    return prefix + incrementAlphabetString(letters);
+                }
+                return trimmed;
+            } else if (mode === 'dec') {
+                // 10進 (DEC) standard decimal mode: (109 -> 110 -> 111)
+                const numMatch = trimmed.match(/^(.*?)(\d+)$/);
+                if (numMatch) {
+                    const prefix = numMatch[1];
+                    const numStr = numMatch[2];
+                    const numVal = parseInt(numStr, 10) + 1;
+                    const paddedNum = String(numVal).padStart(numStr.length, '0');
+                    return prefix + paddedNum;
+                }
+                const letterMatch = trimmed.match(/^(.*?)([a-zA-Z]+)$/);
+                if (letterMatch) {
+                    const prefix = letterMatch[1];
+                    const letters = letterMatch[2];
+                    return prefix + incrementAlphabetString(letters);
+                }
+                return trimmed;
+            } else {
+                // 'alpha' mode: prioritize trailing letters (A -> B ... Z -> AA, 101A -> 101B)
+                const letterMatch = trimmed.match(/^(.*?)([a-zA-Z]+)$/);
+                const numMatch = trimmed.match(/^(.*?)(\d+)$/);
+                if (letterMatch && (!numMatch || trimmed.search(/[a-zA-Z]+$/) > trimmed.search(/\d+$/))) {
+                    const prefix = letterMatch[1];
+                    const letters = letterMatch[2];
+                    return prefix + incrementAlphabetString(letters);
+                } else if (numMatch) {
+                    const prefix = numMatch[1];
+                    const numStr = numMatch[2];
+                    const numVal = parseInt(numStr, 10) + 1;
+                    const paddedNum = String(numVal).padStart(numStr.length, '0');
+                    return prefix + paddedNum;
+                }
+                return trimmed;
             }
-            // If it ends with numbers (e.g. "101", "A01", "001", "TB-1")
-            else if (numMatch) {
-                const prefix = numMatch[1];
-                const numStr = numMatch[2];
-                const numVal = parseInt(numStr, 10) + 1;
-                const paddedNum = String(numVal).padStart(numStr.length, '0');
-                return prefix + paddedNum;
-            }
+        }
 
-            return trimmed;
+        // Auto-Increment Mode Management
+        function setIncrementMode(mode) {
+            state.incrementMode = mode || 'hex';
+            const desc = document.getElementById('incrementModeDesc');
+            if (desc) {
+                if (state.incrementMode === 'hex') {
+                    desc.innerText = '16進 PLC (109→10A→10B...10F→110)';
+                } else if (state.incrementMode === 'dec') {
+                    desc.innerText = '10進 DEC (109→110→111)';
+                } else if (state.incrementMode === 'alpha') {
+                    desc.innerText = '英字 連番 (A→B...Z→AA / 101A→101B)';
+                }
+            }
+            document.querySelectorAll('#incrementModeGroup .increment-mode-btn').forEach(btn => {
+                const btnMode = btn.getAttribute('data-mode');
+                if (btnMode === state.incrementMode) {
+                    btn.className = 'increment-mode-btn py-0.5 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm';
+                } else {
+                    btn.className = 'increment-mode-btn py-0.5 px-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-center border border-slate-600';
+                }
+            });
+            try {
+                localStorage.setItem('hw_wiring_increment_mode', state.incrementMode);
+            } catch (e) {}
         }
 
         // Quick Preset Highlights in Sidebar
@@ -1014,10 +1088,22 @@
                 drawDiagram();
             };
 
-            // Auto-Increment switch
+            // Auto-Increment switch & Mode Selector
             document.getElementById('chkAutoIncrement').onchange = (e) => {
                 state.isAutoIncrement = e.target.checked;
             };
+            document.querySelectorAll('#incrementModeGroup .increment-mode-btn').forEach(btn => {
+                btn.onclick = () => {
+                    const mode = btn.getAttribute('data-mode');
+                    setIncrementMode(mode);
+                };
+            });
+            const savedIncMode = localStorage.getItem('hw_wiring_increment_mode');
+            if (savedIncMode) {
+                setIncrementMode(savedIncMode);
+            } else {
+                setIncrementMode('hex');
+            }
 
             // Mobile Action Bar Buttons (Drawing Mode)
             document.getElementById('btnMobileCancelA').onclick = (e) => {
@@ -1217,6 +1303,7 @@
                     defaultIsTerminal: state.defaultIsTerminal,
                     isContinuous: state.isContinuous,
                     isAutoIncrement: state.isAutoIncrement,
+                    incrementMode: state.incrementMode,
                     contrast: state.contrast,
                     brightness: state.brightness,
                     invertColors: state.invertColors
@@ -1256,6 +1343,9 @@
                         state.defaultIsTerminal = data.settings.defaultIsTerminal !== false;
                         state.isContinuous = !!data.settings.isContinuous;
                         state.isAutoIncrement = data.settings.isAutoIncrement !== false;
+                        if (data.settings.incrementMode) {
+                            setIncrementMode(data.settings.incrementMode);
+                        }
                         if (data.settings.contrast !== undefined) state.contrast = data.settings.contrast;
                         if (data.settings.brightness !== undefined) state.brightness = data.settings.brightness;
                         if (data.settings.invertColors !== undefined) state.invertColors = data.settings.invertColors;
