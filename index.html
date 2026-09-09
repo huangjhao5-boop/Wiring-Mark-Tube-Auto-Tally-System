@@ -238,16 +238,20 @@
                         <input type="checkbox" id="chkContinuous" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer">
                     </div>
 
-                    <!-- Fixed Point A Mode Switch (A点固定・連続B点追加) -->
-                    <div class="bg-slate-900/50 p-2 rounded border border-slate-700 space-y-1">
+                    <!-- Continuous Wiring & Point A Mode Switch (渡り配線 / 同点固定) -->
+                    <div class="bg-slate-900/50 p-2 rounded border border-slate-700 space-y-1.5">
                         <div class="flex items-center justify-between">
                             <div>
-                                <span class="text-xs text-amber-200 font-medium block flex items-center">
-                                    <i class="fa-solid fa-thumbtack text-amber-400 me-1.5 text-[11px]"></i>A点固定 (連続B点)
+                                <span class="text-xs text-indigo-200 font-medium block flex items-center">
+                                    <i class="fa-solid fa-link text-indigo-400 me-1.5 text-[11px]"></i>連続配線 (自動A点)
                                 </span>
-                                <span class="text-[9px] text-amber-300/80 block">A点共用でB点のみ連続追加 (Alt/Aキー)</span>
+                                <span id="lockModeDesc" class="text-[9px] text-indigo-300/90 block">渡り配線 (前線交点を新A点に自動接續)</span>
                             </div>
-                            <input type="checkbox" id="chkLockPointA" class="w-4 h-4 accent-amber-500 rounded cursor-pointer">
+                            <input type="checkbox" id="chkLockPointA" class="w-4 h-4 accent-indigo-500 rounded cursor-pointer">
+                        </div>
+                        <div id="lockModeGroup" class="grid grid-cols-2 gap-1 pt-1 border-t border-slate-700/60 text-[10px]">
+                            <button type="button" data-lockmode="chain" id="btnModeChain" class="py-0.5 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm" title="前一條線的母線交點(黑點)自動成為新A點，避免重疊並正確計長">🔗 渡り (串接)</button>
+                            <button type="button" data-lockmode="same" id="btnModeSame" class="py-0.5 px-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-center border border-slate-600" title="始終固定在同一個起始A點(放射狀)">📌 同点 (放射)</button>
                         </div>
                     </div>
                 </div>
@@ -294,7 +298,7 @@
                 <div class="space-y-0.5 border-b border-slate-700/60 pb-1">
                     <div class="text-indigo-300 font-bold text-[10px]">【パソコン操作】</div>
                     <div><span class="text-slate-200 font-semibold">クリック:</span> A点 / B点 設置</div>
-                    <div><span class="text-amber-300 font-semibold">Alt / Aキー:</span> 📌 A点固定 (連続B点)</div>
+                    <div><span class="text-indigo-300 font-semibold">W / Aキー:</span> 🔗 渡り配線 (串接) / 📌 同点固定</div>
                     <div><span class="text-slate-200 font-semibold">ダブルクリック:</span> 折点の追加 / 削除</div>
                     <div><span class="text-slate-200 font-semibold">Ctrl+Z / Ctrl+Y:</span> 復原 / 重做</div>
                     <div><span class="text-slate-200 font-semibold">右クリック / ESC:</span> A点解除</div>
@@ -305,7 +309,7 @@
                 <div class="space-y-0.5 pt-0.5">
                     <div class="text-emerald-300 font-bold text-[10px]">【iPad / 觸控筆操作】</div>
                     <div><span class="text-slate-200 font-semibold">ペン/指タップ:</span> A点 / B点 設置 (即時)</div>
-                    <div><span class="text-amber-300 font-semibold">📌 固定ボタン:</span> A点固定 (連續B點)</div>
+                    <div><span class="text-indigo-300 font-semibold">🔗 連続ボタン:</span> 渡り配線 / 同点固定 切替</div>
                     <div><span class="text-amber-300 font-semibold">長押し (0.5秒):</span> 📍 折点追加 / 削除</div>
                     <div><span class="text-amber-300 font-semibold">ダブルタップ:</span> 📍 折点追加 / 削除</div>
                     <div><span class="text-amber-300 font-semibold">指ホールド + ペン:</span> 📍 折点追加</div>
@@ -333,8 +337,8 @@
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
                 <span id="statusText" class="truncate">始点 (A点) を導線上タップして指定してください</span>
                 <div id="statusActions" class="hidden items-center space-x-1.5 pl-1 shrink-0">
-                    <button id="btnLockPointA" type="button" class="px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-[10px] sm:text-xs font-semibold shadow transition flex items-center" title="A点を固定したまま連続でB点を追加 (Altキー / 快捷 A)">
-                        <i class="fa-solid fa-thumbtack me-1 text-[9px] text-amber-400"></i><span id="btnLockPointAText">A点固定: OFF</span>
+                    <button id="btnLockPointA" type="button" class="px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-[10px] sm:text-xs font-semibold shadow transition flex items-center" title="連続配線モードの切替 (W/Aキー: 渡り配線 / 同点固定 / OFF)">
+                        <i id="btnLockPointAIcon" class="fa-solid fa-link me-1 text-[9px] text-indigo-400"></i><span id="btnLockPointAText">連続配線: OFF</span>
                     </button>
                     <button id="btnMobileAddWp" type="button" class="px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[10px] sm:text-xs font-semibold shadow transition flex items-center">
                         <i class="fa-solid fa-plus me-1 text-[9px]"></i>折点追加
@@ -790,6 +794,7 @@
             defaultIsTerminal: false,
             isContinuous: false,
             isLockPointA: false,
+            lockPointAMode: 'chain', // 'chain' (渡り配線・前線交点接續), 'same' (同点固定・放射状)
             isAutoIncrement: false,
             incrementMode: 'hex', // 'hex' (16進 PLC), 'dec' (10進 DEC), 'alpha' (A~Z 連番)
             lastWaypointDeleteTimestamp: 0,
@@ -1087,22 +1092,43 @@
             } catch (e) {}
         }
 
-        // ================= POINT A LOCK CONTROLLER (A点固定・連続B点追加) =================
-        function toggleLockPointA(forcedState = null) {
-            state.isLockPointA = (forcedState !== null) ? !!forcedState : !state.isLockPointA;
+        // ================= CONTINUOUS WIRING CONTROLLER (渡り配線 / 同点固定) =================
+        function getNextChainPointA(wire) {
+            if (wire.waypoints && wire.waypoints.length > 0) {
+                // Return the last junction/corner where the bus meets the component branch!
+                return { ...wire.waypoints[wire.waypoints.length - 1] };
+            }
+            // If direct line, continue from Point B
+            return { ...wire.pointB };
+        }
+
+        function toggleLockPointA(forcedState = null, mode = null) {
+            if (mode) {
+                state.lockPointAMode = mode;
+                state.isLockPointA = true;
+            } else if (forcedState !== null) {
+                state.isLockPointA = !!forcedState;
+            } else {
+                // Tri-state cycle: OFF -> chain (渡り) -> same (同点) -> OFF
+                if (!state.isLockPointA) {
+                    state.isLockPointA = true;
+                    state.lockPointAMode = 'chain';
+                } else if (state.lockPointAMode === 'chain') {
+                    state.lockPointAMode = 'same';
+                } else {
+                    state.isLockPointA = false;
+                    state.lockPointAMode = 'chain';
+                }
+            }
             updateLockPointAUI();
             if (state.isLockPointA) {
-                showToast('📌 A点固定モードを有効にしました (連続B点追加)');
+                const modeName = state.lockPointAMode === 'chain' ? '🔗 渡り配線モード (前線交点接續)' : '📌 同点固定モード (放射状)';
+                showToast(`${modeName}を有効にしました`);
                 if (state.activePointA) {
-                    document.getElementById('statusText').innerHTML = '📌 <span class="text-amber-300 font-bold">A点固定中</span>：続けて次のB点をクリックしてください (Escで解除)';
-                    const statusActions = document.getElementById('statusActions');
-                    if (statusActions) {
-                        statusActions.classList.remove('hidden');
-                        statusActions.classList.add('flex');
-                    }
+                    updateStatusTextForLockedA();
                 }
             } else {
-                showToast('A点固定モードを解除しました');
+                showToast('連続配線モードを解除しました');
                 if (state.activePointA) {
                     document.getElementById('statusText').innerText = '終点 (B点) を指定してください';
                 }
@@ -1110,19 +1136,79 @@
             drawDiagram();
         }
 
+        function setLockPointAMode(mode) {
+            state.lockPointAMode = mode;
+            state.isLockPointA = true;
+            updateLockPointAUI();
+            const modeName = state.lockPointAMode === 'chain' ? '🔗 渡り配線モード (前線交点接續)' : '📌 同点固定モード (放射状)';
+            showToast(`${modeName}に設定しました`);
+            if (state.activePointA) {
+                updateStatusTextForLockedA();
+            }
+            drawDiagram();
+        }
+
+        function updateStatusTextForLockedA() {
+            if (state.lockPointAMode === 'chain') {
+                document.getElementById('statusText').innerHTML = '🔗 <span class="text-indigo-300 font-bold">渡り配線中（交点接続）</span>：続けて次のB点をクリックしてください (Escで解除)';
+            } else {
+                document.getElementById('statusText').innerHTML = '📌 <span class="text-amber-300 font-bold">同点固定中（放射状）</span>：続けて次のB点をクリックしてください (Escで解除)';
+            }
+            const statusActions = document.getElementById('statusActions');
+            if (statusActions) {
+                statusActions.classList.remove('hidden');
+                statusActions.classList.add('flex');
+            }
+        }
+
         function updateLockPointAUI() {
             const chk = document.getElementById('chkLockPointA');
             if (chk) chk.checked = !!state.isLockPointA;
 
+            const desc = document.getElementById('lockModeDesc');
+            if (desc) {
+                if (!state.isLockPointA) {
+                    desc.innerText = '連続配線 OFF (通常作図)';
+                } else if (state.lockPointAMode === 'chain') {
+                    desc.innerText = '渡り配線 (前線交点を新A点に自動接續)';
+                } else {
+                    desc.innerText = '同点固定 (同一A点から放射状に連続追加)';
+                }
+            }
+
+            const btnChain = document.getElementById('btnModeChain');
+            const btnSame = document.getElementById('btnModeSame');
+            if (btnChain && btnSame) {
+                if (state.isLockPointA && state.lockPointAMode === 'chain') {
+                    btnChain.className = 'py-0.5 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm';
+                    btnSame.className = 'py-0.5 px-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-center border border-slate-600';
+                } else if (state.isLockPointA && state.lockPointAMode === 'same') {
+                    btnSame.className = 'py-0.5 px-1 rounded bg-amber-600 text-white font-bold text-center border border-amber-400 shadow-sm';
+                    btnChain.className = 'py-0.5 px-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-center border border-slate-600';
+                } else {
+                    btnChain.className = 'py-0.5 px-1 rounded bg-slate-800 text-slate-500 text-center border border-slate-700/60';
+                    btnSame.className = 'py-0.5 px-1 rounded bg-slate-800 text-slate-500 text-center border border-slate-700/60';
+                }
+            }
+
             const btn = document.getElementById('btnLockPointA');
             const txt = document.getElementById('btnLockPointAText');
+            const icon = document.getElementById('btnLockPointAIcon');
             if (btn && txt) {
                 if (state.isLockPointA) {
-                    btn.className = 'px-2 py-0.5 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded text-[10px] sm:text-xs font-bold shadow transition flex items-center ring-2 ring-amber-300';
-                    txt.innerText = 'A点固定: ON 📌';
+                    if (state.lockPointAMode === 'chain') {
+                        btn.className = 'px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[10px] sm:text-xs font-bold shadow transition flex items-center ring-2 ring-indigo-400';
+                        txt.innerText = '渡り配線: ON 🔗';
+                        if (icon) icon.className = 'fa-solid fa-link me-1 text-[9px] text-white';
+                    } else {
+                        btn.className = 'px-2 py-0.5 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded text-[10px] sm:text-xs font-bold shadow transition flex items-center ring-2 ring-amber-300';
+                        txt.innerText = '同点固定: ON 📌';
+                        if (icon) icon.className = 'fa-solid fa-thumbtack me-1 text-[9px] text-slate-900';
+                    }
                 } else {
                     btn.className = 'px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-[10px] sm:text-xs font-semibold shadow transition flex items-center';
-                    txt.innerText = 'A点固定: OFF';
+                    txt.innerText = '連続配線: OFF';
+                    if (icon) icon.className = 'fa-solid fa-link me-1 text-[9px] text-indigo-400';
                 }
             }
         }
@@ -1335,6 +1421,15 @@
                         e.preventDefault();
                         toggleLockPointA();
                     }
+                } else if ((e.key === 'w' || e.key === 'W') && !e.ctrlKey && !e.metaKey) {
+                    if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                        e.preventDefault();
+                        if (state.isLockPointA && state.lockPointAMode === 'chain') {
+                            toggleLockPointA(false);
+                        } else {
+                            setLockPointAMode('chain');
+                        }
+                    }
                 } else if (e.key === ' ') {
                     state.isSpacePressed = true;
                 }
@@ -1409,6 +1504,16 @@
             document.getElementById('chkLockPointA').onchange = (e) => {
                 toggleLockPointA(e.target.checked);
             };
+
+            const btnModeChain = document.getElementById('btnModeChain');
+            if (btnModeChain) {
+                btnModeChain.onclick = () => setLockPointAMode('chain');
+            }
+
+            const btnModeSame = document.getElementById('btnModeSame');
+            if (btnModeSame) {
+                btnModeSame.onclick = () => setLockPointAMode('same');
+            }
 
             const btnLockPointA = document.getElementById('btnLockPointA');
             if (btnLockPointA) {
@@ -2159,7 +2264,7 @@
                     const support = lineSupportScore(x, y);
                     if (support < 3) continue;
                     const distance = Math.hypot(x - pos.x, y - pos.y);
-                    const score = distance - support * 1.5;
+                    const score = distance * 2.0 - support * 1.0;
                     if (!best || score < best.score) best = { x, y, score };
                 }
             }
@@ -2209,13 +2314,13 @@
             
             const autoWps = calculateOrthogonalRoute(previous, target);
             if (autoWps.length > 0) {
-                const score = getRouteBaseLineScore([previous, ...autoWps, target]);
-                showAngleHint(e, `⚡ 90° 直角正交吸附`, score >= 0.25 || !state.bgImageData);
+                const isValid = isRouteOnBaseLine([previous, ...autoWps, target]);
+                showAngleHint(e, isValid ? `⚡ 導線正交吸附 (90°一致)` : `⚠️ 導線未検知 (直角)`, isValid || !state.bgImageData);
             } else {
                 const allowedAngles = e.shiftKey && state.activeWaypoints.length > 0 ? [0, 90] : ENDPOINT_SNAP_ANGLES;
                 const angle = getNearestAllowedAngle(previous, target, allowedAngles);
                 const followsBaseLine = isSegmentOnBaseLine(previous, target);
-                showAngleHint(e, `∠ ${Math.round(angle.actual)}° → ${angle.snapped}°`, angle.isAllowed && followsBaseLine);
+                showAngleHint(e, followsBaseLine ? `⚡ 直線吸附 (∠ ${Math.round(angle.actual)}° → ${angle.snapped}°)` : `∠ ${Math.round(angle.actual)}° → ${angle.snapped}°`, angle.isAllowed && followsBaseLine);
             }
         }
 
@@ -2246,7 +2351,7 @@
 
         function isSegmentOnBaseLine(from, to) {
             const length = Math.hypot(to.x - from.x, to.y - from.y);
-            if (length < 2) return false;
+            if (length < 2) return true;
             const steps = Math.max(2, Math.ceil(length / 2));
             let matched = 0;
             let longestGap = 0;
@@ -2263,7 +2368,23 @@
                     longestGap = Math.max(longestGap, currentGap);
                 }
             }
-            return matched / (steps + 1) >= 0.55 && longestGap <= 12;
+            const gapPx = longestGap * 2;
+            const matchRatio = matched / (steps + 1);
+            if (length <= 35) {
+                return gapPx <= 28;
+            }
+            return matchRatio >= 0.38 && gapPx <= 32;
+        }
+
+        function isRouteOnBaseLine(points) {
+            if (!state.bgImageData) return false;
+            if (!points || points.length < 2) return false;
+            for (let i = 0; i < points.length - 1; i++) {
+                if (!isSegmentOnBaseLine(points[i], points[i + 1])) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         function isValidBaseSegment(from, to, allowedAngles) {
@@ -2337,62 +2458,93 @@
             // 1. If almost straight horizontal or vertical line (within 6px)
             if (dx <= 6 || dy <= 6) return [];
 
-            // 2. Generate L-shape candidates (90-degree single bend)
+            // If no background image, fallback to standard geometric orthogonal route
+            if (!state.bgImageData) {
+                const rawCornerHV = { x: pointB.x, y: pointA.y };
+                const rawCornerVH = { x: pointA.x, y: pointB.y };
+                return dx >= dy ? [rawCornerHV] : [rawCornerVH];
+            }
+
+            // 2. Candidate 1-bend L-routes (Must be 100% verified on circuit lines)
             // Candidate 1 (H-then-V): Horizontal from A to B's X, then Vertical to B
             const rawCornerHV = { x: pointB.x, y: pointA.y };
             const snappedCornerHV = snapToCircuitLine(rawCornerHV) || rawCornerHV;
-            const routeHV = [snappedCornerHV];
-            const scoreHV = getRouteBaseLineScore([pointA, snappedCornerHV, pointB]);
+            const isHVValid = isRouteOnBaseLine([pointA, snappedCornerHV, pointB]);
 
             // Candidate 2 (V-then-H): Vertical from A to B's Y, then Horizontal to B
             const rawCornerVH = { x: pointA.x, y: pointB.y };
             const snappedCornerVH = snapToCircuitLine(rawCornerVH) || rawCornerVH;
-            const routeVH = [snappedCornerVH];
-            const scoreVH = getRouteBaseLineScore([pointA, snappedCornerVH, pointB]);
+            const isVHValid = isRouteOnBaseLine([pointA, snappedCornerVH, pointB]);
 
-            // If background image exists, evaluate dark circuit line scores
-            if (state.bgImageData) {
-                // If one candidate clearly matches on circuit lines
-                if (scoreHV >= 0.25 || scoreVH >= 0.25) {
-                    return (scoreHV >= scoreVH) ? routeHV : routeVH;
+            if (isHVValid && isVHValid) {
+                const scoreHV = getRouteBaseLineScore([pointA, snappedCornerHV, pointB]);
+                const scoreVH = getRouteBaseLineScore([pointA, snappedCornerVH, pointB]);
+                return (scoreHV >= scoreVH) ? [snappedCornerHV] : [snappedCornerVH];
+            } else if (isHVValid) {
+                return [snappedCornerHV];
+            } else if (isVHValid) {
+                return [snappedCornerVH];
+            }
+
+            // 3. Candidate 2-bend Z-routes (Common Busbar / Trunk Search)
+            // Case 3A: Vertical Busbar Trunk (X_trunk)
+            const minX = Math.min(pointA.x, pointB.x) - 40;
+            const maxX = Math.max(pointA.x, pointB.x) + 40;
+            let bestTrunkRoute = null;
+            let bestTrunkScore = 0;
+
+            for (let x = minX; x <= maxX; x += 3) {
+                const midY = (pointA.y + pointB.y) / 2;
+                if (!isDarkNear(x, pointA.y, 3) && !isDarkNear(x, pointB.y, 3) && !isDarkNear(x, midY, 3)) {
+                    continue;
                 }
+                const c1 = { x, y: pointA.y };
+                const c2 = { x, y: pointB.y };
+                if (!isSegmentOnBaseLine(pointA, c1)) continue;
+                if (!isSegmentOnBaseLine(c1, c2)) continue;
+                if (!isSegmentOnBaseLine(c2, pointB)) continue;
 
-                // If neither L-route directly matches well (e.g. stepped parallel lines),
-                // test stepped Z-routes
-                const midX = Math.round((pointA.x + pointB.x) / 2);
-                const midY = Math.round((pointA.y + pointB.y) / 2);
-                const offsets = [0, -30, 30, -60, 60];
-                let bestZ = null;
-                let bestZScore = Math.max(scoreHV, scoreVH);
-                for (const offset of offsets) {
-                    const x = midX + offset;
-                    const cX1 = snapToCircuitLine({ x, y: pointA.y }) || { x, y: pointA.y };
-                    const cX2 = snapToCircuitLine({ x, y: pointB.y }) || { x, y: pointB.y };
-                    const zX = [cX1, cX2];
-                    const sX = getRouteBaseLineScore([pointA, ...zX, pointB]);
-                    if (sX > bestZScore) {
-                        bestZScore = sX;
-                        bestZ = zX;
-                    }
-
-                    const y = midY + offset;
-                    const cY1 = snapToCircuitLine({ x: pointA.x, y }) || { x: pointA.x, y };
-                    const cY2 = snapToCircuitLine({ x: pointB.x, y }) || { x: pointB.x, y };
-                    const zY = [cY1, cY2];
-                    const sY = getRouteBaseLineScore([pointA, ...zY, pointB]);
-                    if (sY > bestZScore) {
-                        bestZScore = sY;
-                        bestZ = zY;
-                    }
-                }
-
-                if (bestZ && bestZScore >= 0.35) {
-                    return bestZ;
+                const candidateRoute = [pointA, c1, c2, pointB];
+                const score = getRouteBaseLineScore(candidateRoute);
+                if (score > bestTrunkScore) {
+                    bestTrunkScore = score;
+                    bestTrunkRoute = [c1, c2];
                 }
             }
 
-            // Fallback (when no background image or blank canvas):
-            return dx >= dy ? routeHV : routeVH;
+            if (bestTrunkRoute) {
+                return bestTrunkRoute;
+            }
+
+            // Case 3B: Horizontal Busbar Trunk (Y_trunk)
+            const minY = Math.min(pointA.y, pointB.y) - 40;
+            const maxY = Math.max(pointA.y, pointB.y) + 40;
+            for (let y = minY; y <= maxY; y += 3) {
+                const midX = (pointA.x + pointB.x) / 2;
+                if (!isDarkNear(pointA.x, y, 3) && !isDarkNear(pointB.x, y, 3) && !isDarkNear(midX, y, 3)) {
+                    continue;
+                }
+                const c1 = { x: pointA.x, y };
+                const c2 = { x: pointB.x, y };
+                if (!isSegmentOnBaseLine(pointA, c1)) continue;
+                if (!isSegmentOnBaseLine(c1, c2)) continue;
+                if (!isSegmentOnBaseLine(c2, pointB)) continue;
+
+                const candidateRoute = [pointA, c1, c2, pointB];
+                const score = getRouteBaseLineScore(candidateRoute);
+                if (score > bestTrunkScore) {
+                    bestTrunkScore = score;
+                    bestTrunkRoute = [c1, c2];
+                }
+            }
+
+            if (bestTrunkRoute) {
+                return bestTrunkRoute;
+            }
+
+            // 4. If no route on actual circuit lines exists:
+            // NEVER invent fake corners through empty white space!
+            return [];
         }
 
         function getWireTagPosition(wire) {
@@ -2405,17 +2557,18 @@
             }
 
             // In multi-segment routes (e.g. L-shaped or Z-shaped):
-            // If the first segment from Point A has sufficient length (>= 30px),
-            // put the label on the first segment (closest to the source terminal/device).
-            // Otherwise, put the label on the longest segment.
-            const seg0Len = Math.hypot(allPts[1].x - allPts[0].x, allPts[1].y - allPts[0].y);
-            if (seg0Len >= 30) {
+            // Place the tag on the terminal branch leading to Point B (the connected device),
+            // so that wire labels do not bunch up on the shared busbar/origin A point!
+            const lastIdx = allPts.length - 1;
+            const branchLen = Math.hypot(allPts[lastIdx].x - allPts[lastIdx - 1].x, allPts[lastIdx].y - allPts[lastIdx - 1].y);
+            if (branchLen >= 14) {
                 return {
-                    x: (allPts[0].x + allPts[1].x) / 2,
-                    y: (allPts[0].y + allPts[1].y) / 2
+                    x: (allPts[lastIdx - 1].x + allPts[lastIdx].x) / 2,
+                    y: (allPts[lastIdx - 1].y + allPts[lastIdx].y) / 2
                 };
             }
 
+            // If the terminal branch is very short, put on the longest segment
             let maxLen = -1;
             let bestSeg = { p1: allPts[0], p2: allPts[1] };
             for (let i = 0; i < allPts.length - 1; i++) {
@@ -2578,11 +2731,13 @@
                     ctx.lineTo(tempB.x, tempB.y);
 
                     const previewAllPts = [lastPt, ...autoWps, tempB];
-                    const isSnappedOnBase = getRouteBaseLineScore(previewAllPts) >= 0.25 || !state.bgImageData;
+                    const isSnappedOnBase = autoWps.length > 0
+                        ? isRouteOnBaseLine(previewAllPts)
+                        : (isSegmentOnBaseLine(lastPt, tempB) || !state.bgImageData);
 
-                    ctx.strokeStyle = isSnappedOnBase ? state.defaultColor : (state.defaultColor || '#3b82f6');
+                    ctx.strokeStyle = isSnappedOnBase ? state.defaultColor : '#94a3b8';
                     ctx.lineWidth = Math.max(2, parseFloat(state.defaultSq) * 2);
-                    ctx.setLineDash([5, 4]);
+                    ctx.setLineDash(isSnappedOnBase ? [5, 4] : [3, 4]);
                     ctx.stroke();
                     ctx.setLineDash([]);
 
@@ -2590,7 +2745,7 @@
                     autoWps.forEach(wp => {
                         ctx.beginPath();
                         ctx.arc(wp.x, wp.y, 4, 0, Math.PI * 2);
-                        ctx.fillStyle = '#a855f7';
+                        ctx.fillStyle = isSnappedOnBase ? '#a855f7' : '#94a3b8';
                         ctx.fill();
                         ctx.strokeStyle = '#ffffff';
                         ctx.lineWidth = 1.5;
@@ -2648,25 +2803,28 @@
             if (type === 'A') {
                 ctx.save();
                 const isLocked = !!state.isLockPointA;
+                const isChain = isLocked && state.lockPointAMode === 'chain';
                 // Glowing outer halo
                 ctx.beginPath();
                 ctx.arc(x, y, isLocked ? 16 : 13, 0, Math.PI * 2);
-                ctx.fillStyle = isLocked ? 'rgba(245, 158, 11, 0.45)' : 'rgba(34, 197, 94, 0.35)';
+                ctx.fillStyle = isChain
+                    ? 'rgba(99, 102, 241, 0.45)'
+                    : (isLocked ? 'rgba(245, 158, 11, 0.45)' : 'rgba(34, 197, 94, 0.35)');
                 ctx.fill();
                 // Solid center pin
                 ctx.beginPath();
                 ctx.arc(x, y, isLocked ? 9 : 7.5, 0, Math.PI * 2);
-                ctx.fillStyle = isLocked ? '#f59e0b' : '#22c55e';
+                ctx.fillStyle = isChain ? '#6366f1' : (isLocked ? '#f59e0b' : '#22c55e');
                 ctx.fill();
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 2;
                 ctx.stroke();
-                // Label 'A' or 'A📌'
+                // Label 'A', 'A🔗' (渡り配線), or 'A📌' (同点固定)
                 ctx.font = 'bold 9px sans-serif';
                 ctx.fillStyle = '#ffffff';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(isLocked ? 'A📌' : 'A', x, y);
+                ctx.fillText(isChain ? 'A🔗' : (isLocked ? 'A📌' : 'A'), x, y);
                 ctx.restore();
                 return;
             }
@@ -3427,20 +3585,20 @@
                     }
 
                     if (isLockA) {
-                        // Point A stays firmly fixed!
+                        if (state.lockPointAMode === 'chain') {
+                            // Daisy-Chain: Automatically set next Point A to the junction point/dot on this wire!
+                            state.activePointA = getNextChainPointA(newWire);
+                        }
+                        // If mode is 'same', state.activePointA remains at the original Point A!
                         state.activeWaypoints = [];
                         state.mobileAddWaypointPending = false;
                         document.getElementById('angleHint').classList.add('hidden');
-                        document.getElementById('statusText').innerHTML = '📌 <span class="text-amber-300 font-bold">A点固定中</span>：続けて次のB点をクリックしてください (Escで解除)';
-                        const statusActions = document.getElementById('statusActions');
-                        if (statusActions) {
-                            statusActions.classList.remove('hidden');
-                            statusActions.classList.add('flex');
-                        }
+                        updateStatusTextForLockedA();
                         updateLockPointAUI();
                         drawDiagram();
                         updateTablesAndStats();
-                        showToast(`配線を追加しました（A点固定中: ${newWire.markText}）`);
+                        const toastMode = state.lockPointAMode === 'chain' ? '渡り配線・交点接續' : 'A点固定中';
+                        showToast(`配線を追加しました（${toastMode}: ${newWire.markText}）`);
                     } else {
                         state.activePointA = null;
                         state.activeWaypoints = [];
@@ -3525,8 +3683,9 @@
             if (state.isLockPointA || isAlt) {
                 state.isLockPointA = true;
                 updateLockPointAUI();
-                document.getElementById('statusText').innerHTML = '📌 <span class="text-amber-300 font-bold">A点固定中</span>：終点 (B点) を指定してください (連続追加可能)';
-                showToast('📌 A点を固定設定しました（B点を連続追加可能）');
+                updateStatusTextForLockedA();
+                const toastMode = state.lockPointAMode === 'chain' ? '渡り配線（前線交点接續）' : 'A点固定（同点放射状）';
+                showToast(`🔗 ${toastMode}を開始しました`);
             } else {
                 document.getElementById('statusText').innerText = '終点 (B点) を指定してください';
                 showToast('A点を設定しました');
@@ -3828,18 +3987,18 @@
                 updateSelectedWireActionBar();
 
                 if (state.isLockPointA || state.pendingLockPointA) {
-                    state.activePointA = state.pendingWireData.pointA;
+                    if (state.lockPointAMode === 'chain') {
+                        state.activePointA = getNextChainPointA(newWire);
+                    } else {
+                        state.activePointA = state.pendingWireData.pointA;
+                    }
                     state.activeWaypoints = [];
                     state.mobileAddWaypointPending = false;
                     document.getElementById('angleHint').classList.add('hidden');
-                    document.getElementById('statusText').innerHTML = '📌 <span class="text-amber-300 font-bold">A点固定中</span>：続けて次のB点をクリックしてください (Escで解除)';
-                    const statusActions = document.getElementById('statusActions');
-                    if (statusActions) {
-                        statusActions.classList.remove('hidden');
-                        statusActions.classList.add('flex');
-                    }
+                    updateStatusTextForLockedA();
                     updateLockPointAUI();
-                    showToast(`配線を追加しました（A点固定中: ${markText}）`);
+                    const toastMode = state.lockPointAMode === 'chain' ? '渡り配線・交点接續' : 'A点固定中';
+                    showToast(`配線を追加しました（${toastMode}: ${markText}）`);
                 } else {
                     state.activePointA = null;
                     state.activeWaypoints = [];
