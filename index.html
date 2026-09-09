@@ -79,7 +79,7 @@
             <span class="font-bold text-white text-xs sm:text-sm tracking-tight flex items-center gap-1.5">
                 <span class="hidden sm:inline">ハード図面配線 & マークチューブ自動集計系統</span>
                 <span class="sm:hidden">配線集計</span>
-                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded tracking-normal">v2.5 (C型配線修復版)</span>
+                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded tracking-normal">v2.6 (C型正交匯流排修復版)</span>
             </span>
         </div>
 
@@ -2456,14 +2456,31 @@
             return totalLen > 0 ? (totalDark / totalLen) : 0;
         }
 
+        function isStrictDirectLine(from, to) {
+            const length = Math.hypot(to.x - from.x, to.y - from.y);
+            if (length < 4) return true;
+            const steps = Math.max(2, Math.ceil(length / 2));
+            let matched = 0;
+            let longestGap = 0;
+            let currentGap = 0;
+            for (let step = 0; step <= steps; step++) {
+                const ratio = step / steps;
+                const x = from.x + (to.x - from.x) * ratio;
+                const y = from.y + (to.y - from.y) * ratio;
+                if (isDarkNear(x, y, 2)) {
+                    matched++;
+                    currentGap = 0;
+                } else {
+                    currentGap++;
+                    longestGap = Math.max(longestGap, currentGap);
+                }
+            }
+            return (matched / (steps + 1)) >= 0.70 && (longestGap * 2) <= 8;
+        }
+
         function calculateOrthogonalRoute(pointA, pointB) {
             const dx = Math.abs(pointB.x - pointA.x);
             const dy = Math.abs(pointB.y - pointA.y);
-
-            // 1. If almost straight horizontal or vertical line (within 6px),
-            // ONLY return [] if there is an ACTUAL circuit line directly connecting pointA and pointB!
-            if (dx <= 6 && isSegmentOnBaseLine(pointA, pointB)) return [];
-            if (dy <= 6 && isSegmentOnBaseLine(pointA, pointB)) return [];
 
             // If no background image, fallback to standard geometric orthogonal route
             if (!state.bgImageData) {
@@ -2472,44 +2489,22 @@
                 return dx >= dy ? [rawCornerHV] : [rawCornerVH];
             }
 
-            // 2. Candidate 1-bend L-routes (only if both dx and dy are meaningful > 6px)
-            if (dx > 6 && dy > 6) {
-                // Candidate 1 (H-then-V): Horizontal from A to B's X, then Vertical to B
-                const rawCornerHV = { x: pointB.x, y: pointA.y };
-                const snappedCornerHV = snapToCircuitLine(rawCornerHV) || rawCornerHV;
-                const isHVValid = isRouteOnBaseLine([pointA, snappedCornerHV, pointB]);
-
-                // Candidate 2 (V-then-H): Vertical from A to B's Y, then Horizontal to B
-                const rawCornerVH = { x: pointA.x, y: pointB.y };
-                const snappedCornerVH = snapToCircuitLine(rawCornerVH) || rawCornerVH;
-                const isVHValid = isRouteOnBaseLine([pointA, snappedCornerVH, pointB]);
-
-                if (isHVValid && isVHValid) {
-                    const scoreHV = getRouteBaseLineScore([pointA, snappedCornerHV, pointB]);
-                    const scoreVH = getRouteBaseLineScore([pointA, snappedCornerVH, pointB]);
-                    return (scoreHV >= scoreVH) ? [snappedCornerHV] : [snappedCornerVH];
-                } else if (isHVValid) {
-                    return [snappedCornerHV];
-                } else if (isVHValid) {
-                    return [snappedCornerVH];
-                }
-            }
-
-            // 3. Candidate 2-bend Z-routes / Trunk Routes (Busbar / Common Rail Search)
-            // Handles both C-shaped routes (connecting through side busbar, e.g. SOL360 -> SOL361)
-            // and Z-shaped routes (connecting through intermediate busbar).
+            // 1. Candidate 2-bend Trunk / Busbar Search (HIGHEST PRIORITY)
+            // When connecting coils or terminals (e.g. SOL360 -> SOL361), they are wired
+            // via the common busbar trunk (C-shape or Z-shape). Never short-cut across blank space!
             const imgW = state.bgImageData.width;
             const imgH = state.bgImageData.height;
             const searchDist = 350;
 
-            // Case 3A: Vertical Busbar Trunk (X_trunk)
+            // Case 1A: Vertical Busbar Trunk (X_trunk)
             const minX = Math.max(0, Math.min(pointA.x, pointB.x) - searchDist);
             const maxX = Math.min(imgW - 1, Math.max(pointA.x, pointB.x) + searchDist);
             let bestTrunkRoute = null;
             let bestTrunkScore = -Infinity;
 
             for (let x = minX; x <= maxX; x += 2) {
-                // Fast filter: Both horizontal branches must meet this column on circuit lines
+                // Must be an actual trunk at least 8px away from the direct vertical path
+                if (Math.abs(x - pointA.x) < 8 && Math.abs(x - pointB.x) < 8) continue;
                 if (!isDarkNear(x, pointA.y, 4) || !isDarkNear(x, pointB.y, 4)) {
                     continue;
                 }
@@ -2548,12 +2543,12 @@
                 return bestTrunkRoute;
             }
 
-            // Case 3B: Horizontal Busbar Trunk (Y_trunk)
+            // Case 1B: Horizontal Busbar Trunk (Y_trunk)
             const minY = Math.max(0, Math.min(pointA.y, pointB.y) - searchDist);
             const maxY = Math.min(imgH - 1, Math.max(pointA.y, pointB.y) + searchDist);
 
             for (let y = minY; y <= maxY; y += 2) {
-                // Fast filter: Both vertical branches must meet this row on circuit lines
+                if (Math.abs(y - pointA.y) < 8 && Math.abs(y - pointB.y) < 8) continue;
                 if (!isDarkNear(pointA.x, y, 4) || !isDarkNear(pointB.x, y, 4)) {
                     continue;
                 }
@@ -2592,8 +2587,31 @@
                 return bestTrunkRoute;
             }
 
-            // 4. If no route on actual circuit lines exists:
-            // NEVER invent fake corners through empty white space!
+            // 2. Candidate 1-bend L-routes (only if both dx and dy are meaningful > 8px)
+            if (dx > 8 && dy > 8) {
+                const rawCornerHV = { x: pointB.x, y: pointA.y };
+                const snappedCornerHV = snapToCircuitLine(rawCornerHV) || rawCornerHV;
+                const isHVValid = isRouteOnBaseLine([pointA, snappedCornerHV, pointB]);
+
+                const rawCornerVH = { x: pointA.x, y: pointB.y };
+                const snappedCornerVH = snapToCircuitLine(rawCornerVH) || rawCornerVH;
+                const isVHValid = isRouteOnBaseLine([pointA, snappedCornerVH, pointB]);
+
+                if (isHVValid && isVHValid) {
+                    const scoreHV = getRouteBaseLineScore([pointA, snappedCornerHV, pointB]);
+                    const scoreVH = getRouteBaseLineScore([pointA, snappedCornerVH, pointB]);
+                    return (scoreHV >= scoreVH) ? [snappedCornerHV] : [snappedCornerVH];
+                } else if (isHVValid) {
+                    return [snappedCornerHV];
+                } else if (isVHValid) {
+                    return [snappedCornerVH];
+                }
+            }
+
+            // 3. Direct straight line (ONLY if truly solid continuous line with no gaps)
+            if (dx <= 4 && isStrictDirectLine(pointA, pointB)) return [];
+            if (dy <= 4 && isSegmentOnBaseLine(pointA, pointB)) return [];
+
             return [];
         }
 
