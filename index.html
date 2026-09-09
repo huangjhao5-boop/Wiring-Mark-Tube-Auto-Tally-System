@@ -2360,7 +2360,7 @@
                 const ratio = step / steps;
                 const x = from.x + (to.x - from.x) * ratio;
                 const y = from.y + (to.y - from.y) * ratio;
-                if (isDarkNear(x, y, 2)) {
+                if (isDarkNear(x, y, 3)) {
                     matched++;
                     currentGap = 0;
                 } else {
@@ -2371,9 +2371,10 @@
             const gapPx = longestGap * 2;
             const matchRatio = matched / (steps + 1);
             if (length <= 35) {
-                return gapPx <= 28;
+                return gapPx <= 30;
             }
-            return matchRatio >= 0.38 && gapPx <= 32;
+            // Allow passing through standard wire label boxes (e.g. [P24], [24], [SOL360] up to ~55px wide)
+            return matchRatio >= 0.28 && gapPx <= 58;
         }
 
         function isRouteOnBaseLine(points) {
@@ -2455,8 +2456,10 @@
             const dx = Math.abs(pointB.x - pointA.x);
             const dy = Math.abs(pointB.y - pointA.y);
 
-            // 1. If almost straight horizontal or vertical line (within 6px)
-            if (dx <= 6 || dy <= 6) return [];
+            // 1. If almost straight horizontal or vertical line (within 6px),
+            // ONLY return [] if there is an ACTUAL circuit line directly connecting pointA and pointB!
+            if (dx <= 6 && isSegmentOnBaseLine(pointA, pointB)) return [];
+            if (dy <= 6 && isSegmentOnBaseLine(pointA, pointB)) return [];
 
             // If no background image, fallback to standard geometric orthogonal route
             if (!state.bgImageData) {
@@ -2465,47 +2468,72 @@
                 return dx >= dy ? [rawCornerHV] : [rawCornerVH];
             }
 
-            // 2. Candidate 1-bend L-routes (Must be 100% verified on circuit lines)
-            // Candidate 1 (H-then-V): Horizontal from A to B's X, then Vertical to B
-            const rawCornerHV = { x: pointB.x, y: pointA.y };
-            const snappedCornerHV = snapToCircuitLine(rawCornerHV) || rawCornerHV;
-            const isHVValid = isRouteOnBaseLine([pointA, snappedCornerHV, pointB]);
+            // 2. Candidate 1-bend L-routes (only if both dx and dy are meaningful > 6px)
+            if (dx > 6 && dy > 6) {
+                // Candidate 1 (H-then-V): Horizontal from A to B's X, then Vertical to B
+                const rawCornerHV = { x: pointB.x, y: pointA.y };
+                const snappedCornerHV = snapToCircuitLine(rawCornerHV) || rawCornerHV;
+                const isHVValid = isRouteOnBaseLine([pointA, snappedCornerHV, pointB]);
 
-            // Candidate 2 (V-then-H): Vertical from A to B's Y, then Horizontal to B
-            const rawCornerVH = { x: pointA.x, y: pointB.y };
-            const snappedCornerVH = snapToCircuitLine(rawCornerVH) || rawCornerVH;
-            const isVHValid = isRouteOnBaseLine([pointA, snappedCornerVH, pointB]);
+                // Candidate 2 (V-then-H): Vertical from A to B's Y, then Horizontal to B
+                const rawCornerVH = { x: pointA.x, y: pointB.y };
+                const snappedCornerVH = snapToCircuitLine(rawCornerVH) || rawCornerVH;
+                const isVHValid = isRouteOnBaseLine([pointA, snappedCornerVH, pointB]);
 
-            if (isHVValid && isVHValid) {
-                const scoreHV = getRouteBaseLineScore([pointA, snappedCornerHV, pointB]);
-                const scoreVH = getRouteBaseLineScore([pointA, snappedCornerVH, pointB]);
-                return (scoreHV >= scoreVH) ? [snappedCornerHV] : [snappedCornerVH];
-            } else if (isHVValid) {
-                return [snappedCornerHV];
-            } else if (isVHValid) {
-                return [snappedCornerVH];
+                if (isHVValid && isVHValid) {
+                    const scoreHV = getRouteBaseLineScore([pointA, snappedCornerHV, pointB]);
+                    const scoreVH = getRouteBaseLineScore([pointA, snappedCornerVH, pointB]);
+                    return (scoreHV >= scoreVH) ? [snappedCornerHV] : [snappedCornerVH];
+                } else if (isHVValid) {
+                    return [snappedCornerHV];
+                } else if (isVHValid) {
+                    return [snappedCornerVH];
+                }
             }
 
-            // 3. Candidate 2-bend Z-routes (Common Busbar / Trunk Search)
-            // Case 3A: Vertical Busbar Trunk (X_trunk)
-            const minX = Math.min(pointA.x, pointB.x) - 40;
-            const maxX = Math.max(pointA.x, pointB.x) + 40;
-            let bestTrunkRoute = null;
-            let bestTrunkScore = 0;
+            // 3. Candidate 2-bend Z-routes / Trunk Routes (Busbar / Common Rail Search)
+            // Handles both C-shaped routes (connecting through side busbar, e.g. SOL360 -> SOL361)
+            // and Z-shaped routes (connecting through intermediate busbar).
+            const imgW = state.bgImageData.width;
+            const imgH = state.bgImageData.height;
+            const searchDist = 350;
 
-            for (let x = minX; x <= maxX; x += 3) {
-                const midY = (pointA.y + pointB.y) / 2;
-                if (!isDarkNear(x, pointA.y, 3) && !isDarkNear(x, pointB.y, 3) && !isDarkNear(x, midY, 3)) {
+            // Case 3A: Vertical Busbar Trunk (X_trunk)
+            const minX = Math.max(0, Math.min(pointA.x, pointB.x) - searchDist);
+            const maxX = Math.min(imgW - 1, Math.max(pointA.x, pointB.x) + searchDist);
+            let bestTrunkRoute = null;
+            let bestTrunkScore = -Infinity;
+
+            for (let x = minX; x <= maxX; x += 2) {
+                // Fast filter: Both horizontal branches must meet this column on circuit lines
+                if (!isDarkNear(x, pointA.y, 4) || !isDarkNear(x, pointB.y, 4)) {
                     continue;
                 }
-                const c1 = { x, y: pointA.y };
-                const c2 = { x, y: pointB.y };
+
+                // Snap x locally to vertical line center
+                let bestX = x;
+                let bestDark = 0;
+                for (let ox = -2; ox <= 2; ox++) {
+                    const tx = x + ox;
+                    if (tx < 0 || tx >= imgW) continue;
+                    let darkCount = 0;
+                    if (isDarkNear(tx, pointA.y, 2)) darkCount++;
+                    if (isDarkNear(tx, pointB.y, 2)) darkCount++;
+                    if (isDarkNear(tx, (pointA.y + pointB.y) / 2, 2)) darkCount++;
+                    if (darkCount > bestDark) {
+                        bestDark = darkCount;
+                        bestX = tx;
+                    }
+                }
+
+                const c1 = { x: bestX, y: pointA.y };
+                const c2 = { x: bestX, y: pointB.y };
                 if (!isSegmentOnBaseLine(pointA, c1)) continue;
                 if (!isSegmentOnBaseLine(c1, c2)) continue;
                 if (!isSegmentOnBaseLine(c2, pointB)) continue;
 
                 const candidateRoute = [pointA, c1, c2, pointB];
-                const score = getRouteBaseLineScore(candidateRoute);
+                const score = getRouteBaseLineScore(candidateRoute) - (Math.abs(bestX - pointA.x) * 0.0003);
                 if (score > bestTrunkScore) {
                     bestTrunkScore = score;
                     bestTrunkRoute = [c1, c2];
@@ -2517,21 +2545,39 @@
             }
 
             // Case 3B: Horizontal Busbar Trunk (Y_trunk)
-            const minY = Math.min(pointA.y, pointB.y) - 40;
-            const maxY = Math.max(pointA.y, pointB.y) + 40;
-            for (let y = minY; y <= maxY; y += 3) {
-                const midX = (pointA.x + pointB.x) / 2;
-                if (!isDarkNear(pointA.x, y, 3) && !isDarkNear(pointB.x, y, 3) && !isDarkNear(midX, y, 3)) {
+            const minY = Math.max(0, Math.min(pointA.y, pointB.y) - searchDist);
+            const maxY = Math.min(imgH - 1, Math.max(pointA.y, pointB.y) + searchDist);
+
+            for (let y = minY; y <= maxY; y += 2) {
+                // Fast filter: Both vertical branches must meet this row on circuit lines
+                if (!isDarkNear(pointA.x, y, 4) || !isDarkNear(pointB.x, y, 4)) {
                     continue;
                 }
-                const c1 = { x: pointA.x, y };
-                const c2 = { x: pointB.x, y };
+
+                // Snap y locally to horizontal line center
+                let bestY = y;
+                let bestDark = 0;
+                for (let oy = -2; oy <= 2; oy++) {
+                    const ty = y + oy;
+                    if (ty < 0 || ty >= imgH) continue;
+                    let darkCount = 0;
+                    if (isDarkNear(pointA.x, ty, 2)) darkCount++;
+                    if (isDarkNear(pointB.x, ty, 2)) darkCount++;
+                    if (isDarkNear((pointA.x + pointB.x) / 2, ty, 2)) darkCount++;
+                    if (darkCount > bestDark) {
+                        bestDark = darkCount;
+                        bestY = ty;
+                    }
+                }
+
+                const c1 = { x: pointA.x, y: bestY };
+                const c2 = { x: pointB.x, y: bestY };
                 if (!isSegmentOnBaseLine(pointA, c1)) continue;
                 if (!isSegmentOnBaseLine(c1, c2)) continue;
                 if (!isSegmentOnBaseLine(c2, pointB)) continue;
 
                 const candidateRoute = [pointA, c1, c2, pointB];
-                const score = getRouteBaseLineScore(candidateRoute);
+                const score = getRouteBaseLineScore(candidateRoute) - (Math.abs(bestY - pointA.y) * 0.0003);
                 if (score > bestTrunkScore) {
                     bestTrunkScore = score;
                     bestTrunkRoute = [c1, c2];
