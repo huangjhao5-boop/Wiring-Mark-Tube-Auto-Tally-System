@@ -79,7 +79,7 @@
             <span class="font-bold text-white text-xs sm:text-sm tracking-tight flex items-center gap-1.5">
                 <span class="hidden sm:inline">ハード図面配線 & マークチューブ自動集計系統</span>
                 <span class="sm:hidden">配線集計</span>
-                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded tracking-normal">v2.7 (多頁CSV・Excel集計対応)</span>
+                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded tracking-normal">v2.8 (跨頁配線雷達感應・智慧合併版)</span>
             </span>
         </div>
 
@@ -435,6 +435,17 @@
                         </div>
                     </div>
 
+                    <!-- Cross-Page Link Status in Modal -->
+                    <div id="modalCrossPageInfo" class="hidden bg-indigo-950/70 border border-indigo-500/60 p-2 rounded text-xs text-indigo-200 flex items-center justify-between mt-1">
+                        <div class="flex items-center space-x-1.5">
+                            <i class="fa-solid fa-link text-indigo-400"></i>
+                            <span>跨頁電線 (對應 P.<span id="modalLinkedPageText" class="font-bold text-amber-300"></span>)</span>
+                        </div>
+                        <button type="button" id="btnModalUnlinkCrossPage" onclick="if(state.editingWireId) unlinkCrossPageWire(state.editingWireId);" class="px-2 py-0.5 bg-slate-700 hover:bg-red-900/60 text-slate-200 hover:text-red-200 border border-slate-600 rounded text-[10px] transition">
+                            解除合併
+                        </button>
+                    </div>
+
                     <!-- Footer Buttons -->
                     <div class="flex items-center space-x-2 pt-2 border-t border-slate-700 shrink-0 mt-2">
                         <button id="btnModalCancel" class="flex-1 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs font-medium transition">キャンセル</button>
@@ -770,6 +781,30 @@
         </aside>
     </div>
 
+    <!-- Cross-Page Radar Capsule (Non-blocking Pill Alert) -->
+    <div id="radarCapsule" class="hidden fixed bottom-16 right-4 z-40 bg-slate-900/95 border border-indigo-500/80 rounded-xl shadow-2xl p-2.5 flex items-center space-x-2 text-xs text-white backdrop-blur-md animate-in slide-in-from-bottom duration-200">
+        <i class="fa-solid fa-satellite-dish text-indigo-400 animate-pulse text-sm"></i>
+        <span>發現「<strong id="radarMarkText" class="font-mono text-amber-300">Y070</strong>」在 P.<span id="radarPageText" class="font-mono text-indigo-400">16</span> 已存在</span>
+        <button id="btnRadarMerge" onclick="mergeRadarCrossPageWire()" class="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-bold text-[11px] shadow transition flex items-center">
+            <i class="fa-solid fa-link me-1"></i>一鍵合併跨頁線
+        </button>
+        <button id="btnRadarJump" onclick="jumpToRadarTargetPage()" class="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-[11px] transition flex items-center">
+            <i class="fa-solid fa-eye me-1"></i>查看 P.<span id="radarJumpPageText">16</span>
+        </button>
+        <button id="btnRadarIgnoreMark" onclick="ignoreRadarCurrentMark()" class="text-[10px] text-slate-400 hover:text-red-300 underline" title="此專案不再提醒此線號">不再提醒</button>
+        <button id="btnRadarDismiss" onclick="dismissRadarCapsule()" class="p-1 text-slate-400 hover:text-white text-xs ml-1" title="關閉"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <!-- Return to Previous Page Floating Bar (after jumping to inspect) -->
+    <div id="radarReturnBar" class="hidden fixed top-14 left-1/2 -translate-x-1/2 z-40 bg-indigo-900/90 border border-indigo-400 text-white px-3 py-1.5 rounded-full shadow-2xl text-xs font-bold flex items-center space-x-2 backdrop-blur-sm animate-in fade-in duration-200">
+        <i class="fa-solid fa-arrow-left text-indigo-300"></i>
+        <span>正在檢視跨頁對應頁 (P.<span id="radarCurrentInspectedPage">16</span>)</span>
+        <button id="btnRadarReturn" onclick="returnFromRadarJump()" class="px-2.5 py-0.5 bg-white text-indigo-900 font-bold rounded-full text-[11px] hover:bg-indigo-50 shadow transition flex items-center">
+            ↩ 返回 P.<span id="radarReturnPageNum">30</span>
+        </button>
+        <button id="btnRadarReturnClose" onclick="document.getElementById('radarReturnBar').classList.add('hidden')" class="p-0.5 text-indigo-300 hover:text-white"><i class="fa-solid fa-xmark text-[11px]"></i></button>
+    </div>
+
     <!-- Toast Notification Banner -->
     <div id="toast" class="fixed bottom-4 right-4 bg-slate-800 border border-indigo-500 text-white px-4 py-2.5 rounded-lg shadow-xl text-xs font-medium translate-y-10 opacity-0 transition-all duration-300 flex items-center space-x-2 z-50 pointer-events-none">
         <i class="fa-solid fa-circle-info text-indigo-400 text-sm"></i>
@@ -865,7 +900,14 @@
             // Export Page Mode ('current', 'all', or 'selected')
             exportPageMode: 'all',
             exportSelectedFormat: 'csv',
-            sidebarExportScope: 'all'
+            sidebarExportScope: 'all',
+
+            // Cross-Page Wire Radar & Linking (v2.8)
+            ignoredRadarMarks: new Set(['P24', 'N24', '+24V', '0V', 'COM', 'GND', 'FG', 'PE', '100V', '200V', 'E', 'R', 'S', 'T', 'U', 'V', 'W', '+12V', '-12V', '+5V', '0V24', '0V12']),
+            pagePromptedMarks: {}, // { [pageNo]: Set<markText> }
+            dismissedRadarMarks: new Set(),
+            radarCandidate: null, // { markText, sourceWire, targetWire, targetPage }
+            radarReturnPage: null
         };
 
         let modalTempSq = '1.25';
@@ -2302,14 +2344,192 @@
             });
         }
 
+        function goToPdfPage(pageNo) {
+            if (pageNo < 1 || (state.totalPages && pageNo > state.totalPages)) return;
+            state.currentPage = pageNo;
+            if (state.pdfDoc) {
+                renderPdfPage(pageNo);
+            }
+            updateTablesAndStats();
+            drawDiagram();
+        }
+
         function changePdfPage(delta) {
             if (!state.pdfDoc) return;
             const newPage = state.currentPage + delta;
             if (newPage >= 1 && newPage <= state.totalPages) {
-                state.currentPage = newPage;
-                renderPdfPage(newPage);
-                updateTablesAndStats();
+                goToPdfPage(newPage);
             }
+        }
+
+        // ================= CROSS-PAGE RADAR & LINKING SYSTEM (v2.8) =================
+        function isIgnoredRadarMark(mark) {
+            if (!mark) return true;
+            const upper = mark.trim().toUpperCase();
+            if (state.dismissedRadarMarks && state.dismissedRadarMarks.has(upper)) return true;
+            if (state.ignoredRadarMarks && state.ignoredRadarMarks.has(upper)) return true;
+            if (/^(P\d+|N\d+|\+V|-V|COM\d*|GND\d*|0V\d*|24V\d*|100V\d*|200V\d*)$/i.test(upper)) return true;
+            return false;
+        }
+
+        let radarDismissTimer = null;
+
+        function triggerCrossPageRadar(wire) {
+            if (!wire || wire.crossPageLinkId) return;
+            const mark = (wire.markText || '').trim();
+            if (!mark) return;
+            if (isIgnoredRadarMark(mark)) return;
+
+            // Once per page per number rule
+            if (!state.pagePromptedMarks) state.pagePromptedMarks = {};
+            if (!state.pagePromptedMarks[wire.page]) state.pagePromptedMarks[wire.page] = new Set();
+            if (state.pagePromptedMarks[wire.page].has(mark.toUpperCase())) return;
+
+            // Search in other pages for matching markText
+            const matchWires = state.wires.filter(w => 
+                w.id !== wire.id && 
+                w.page !== wire.page && 
+                w.markText && 
+                w.markText.trim().toUpperCase() === mark.toUpperCase() && 
+                !w.crossPageLinkId
+            );
+
+            if (matchWires.length === 0) return;
+
+            const targetWire = matchWires[matchWires.length - 1];
+            state.pagePromptedMarks[wire.page].add(mark.toUpperCase());
+            state.radarCandidate = {
+                markText: mark,
+                sourceWire: wire,
+                targetWire: targetWire,
+                targetPage: targetWire.page
+            };
+
+            const capsule = document.getElementById('radarCapsule');
+            if (capsule) {
+                document.getElementById('radarMarkText').innerText = mark;
+                document.getElementById('radarPageText').innerText = targetWire.page;
+                document.getElementById('radarJumpPageText').innerText = targetWire.page;
+                capsule.classList.remove('hidden');
+
+                if (radarDismissTimer) clearTimeout(radarDismissTimer);
+                radarDismissTimer = setTimeout(() => {
+                    capsule.classList.add('hidden');
+                }, 10000);
+            }
+        }
+
+        function mergeRadarCrossPageWire() {
+            if (!state.radarCandidate) return;
+            const { sourceWire, targetWire, markText } = state.radarCandidate;
+            const linkId = 'cplink_' + Date.now();
+
+            saveHistoryState('Merge-CrossPage-Wire');
+
+            sourceWire.crossPageLinkId = linkId;
+            sourceWire.linkedPage = targetWire.page;
+
+            targetWire.crossPageLinkId = linkId;
+            targetWire.linkedPage = sourceWire.page;
+
+            dismissRadarCapsule();
+            drawDiagram();
+            updateTablesAndStats();
+            autoSaveToLocalStorage();
+            showToast(`🔗 跨頁線「${markText}」(P.${sourceWire.page} ⇄ P.${targetWire.page}) 已成功合併！`);
+        }
+
+        function jumpToRadarTargetPage() {
+            if (!state.radarCandidate) return;
+            const { targetWire, targetPage } = state.radarCandidate;
+
+            state.radarReturnPage = state.currentPage;
+            const returnBar = document.getElementById('radarReturnBar');
+            if (returnBar) {
+                document.getElementById('radarCurrentInspectedPage').innerText = targetPage;
+                document.getElementById('radarReturnPageNum').innerText = state.radarReturnPage;
+                returnBar.classList.remove('hidden');
+            }
+
+            goToPdfPage(targetPage);
+
+            const midX = (targetWire.pointA.x + targetWire.pointB.x) / 2;
+            const midY = (targetWire.pointA.y + targetWire.pointB.y) / 2;
+            const rect = canvasWrapper.getBoundingClientRect();
+            state.panX = rect.width / 2 - midX * state.scale;
+            state.panY = rect.height / 2 - midY * state.scale;
+            state.selectedWireId = targetWire.id;
+            applyCanvasTransform();
+            drawDiagram();
+            updateSelectedWireActionBar();
+
+            showToast(`已跳轉至第 ${targetPage} 頁（點擊上方可返回第 ${state.radarReturnPage} 頁）`);
+        }
+
+        function returnFromRadarJump() {
+            if (!state.radarReturnPage) return;
+            const returnPage = state.radarReturnPage;
+            state.radarReturnPage = null;
+            const returnBar = document.getElementById('radarReturnBar');
+            if (returnBar) returnBar.classList.add('hidden');
+
+            goToPdfPage(returnPage);
+            showToast(`已返回第 ${returnPage} 頁`);
+        }
+
+        function dismissRadarCapsule() {
+            const capsule = document.getElementById('radarCapsule');
+            if (capsule) capsule.classList.add('hidden');
+            if (radarDismissTimer) clearTimeout(radarDismissTimer);
+        }
+
+        function ignoreRadarCurrentMark() {
+            if (!state.radarCandidate) return;
+            const mark = state.radarCandidate.markText;
+            state.dismissedRadarMarks.add(mark.toUpperCase());
+            dismissRadarCapsule();
+            showToast(`線號「${mark}」已加入免打擾名單，不再提示`);
+        }
+
+        function unlinkCrossPageWire(wireId) {
+            const wire = state.wires.find(w => w.id === wireId);
+            if (!wire || !wire.crossPageLinkId) return;
+            const linkId = wire.crossPageLinkId;
+            saveHistoryState('Unlink-CrossPage-Wire');
+            state.wires.forEach(w => {
+                if (w.crossPageLinkId === linkId) {
+                    delete w.crossPageLinkId;
+                    delete w.linkedPage;
+                }
+            });
+            drawDiagram();
+            updateTablesAndStats();
+            closeModal();
+            showToast('已解除跨頁電線關聯');
+        }
+
+        function drawCrossPageBadge(x, y, linkedPage) {
+            ctx.save();
+            const text = linkedPage ? `⇄ P.${linkedPage}` : '⇄ 跨頁';
+            ctx.font = 'bold 9px sans-serif';
+            const w = ctx.measureText(text).width + 8;
+            const h = 13;
+            const badgeX = x;
+            const badgeY = y - 13;
+
+            ctx.beginPath();
+            ctx.roundRect(badgeX - w/2, badgeY - h/2, w, h, 3);
+            ctx.fillStyle = '#3730a3'; // indigo-800
+            ctx.fill();
+            ctx.strokeStyle = '#818cf8'; // indigo-400
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, badgeX, badgeY);
+            ctx.restore();
         }
 
         function cacheBgImageData() {
@@ -2906,6 +3126,9 @@
 
                 const tagPos = getWireTagPosition(wire);
                 drawMarkTubeTag(tagPos.x, tagPos.y, wire.markText, isSelected && !isExport, wire.isTerminal !== false, isSearchMatch);
+                if (wire.crossPageLinkId) {
+                    drawCrossPageBadge(tagPos.x, tagPos.y, wire.linkedPage);
+                }
 
                 if (!isExport && isSelected) {
                     drawHandleNode(wire.pointA.x, wire.pointA.y, 'A', isSelected);
@@ -3783,6 +4006,7 @@
                     state.selectedWireId = newWire.id;
                     updateSelectedWireActionBar();
                     addMarkTextToHistory(state.defaultMarkText);
+                    triggerCrossPageRadar(newWire);
 
                     // Auto-Increment
                     if (state.isAutoIncrement) {
@@ -4175,6 +4399,7 @@
                     wire.sq = sq;
                     wire.color = color;
                     wire.isTerminal = isTerminal;
+                    triggerCrossPageRadar(wire);
                     showToast('配線パラメータを更新しました');
                 }
             } else if (state.pendingWireData) {
@@ -4192,6 +4417,7 @@
                 state.wires.push(newWire);
                 state.selectedWireId = newWire.id;
                 updateSelectedWireActionBar();
+                triggerCrossPageRadar(newWire);
 
                 if (state.isLockPointA || state.pendingLockPointA) {
                     if (state.lockPointAMode === 'chain') {
@@ -4250,6 +4476,16 @@
             renderMarkTextHistory();
             updateMarkTextSuggestions();
 
+            const crossPageInfo = document.getElementById('modalCrossPageInfo');
+            if (crossPageInfo) {
+                if (wire.crossPageLinkId) {
+                    document.getElementById('modalLinkedPageText').innerText = wire.linkedPage || '別頁';
+                    crossPageInfo.classList.remove('hidden');
+                } else {
+                    crossPageInfo.classList.add('hidden');
+                }
+            }
+
             wireModal.classList.remove('hidden');
 
             const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.innerWidth <= 768;
@@ -4268,6 +4504,8 @@
             wireModal.classList.add('hidden');
             state.editingWireId = null;
             state.pendingWireData = null;
+            const crossPageInfo = document.getElementById('modalCrossPageInfo');
+            if (crossPageInfo) crossPageInfo.classList.add('hidden');
         }
 
         function deleteWire(wireId) {
@@ -4315,6 +4553,10 @@
                         ? `<span class="bg-amber-900/60 text-amber-300 text-[9px] font-semibold px-1.5 py-0.5 rounded border border-amber-500/40">端子台</span>`
                         : `<span class="bg-slate-800 text-slate-400 text-[9px] px-1.5 py-0.5 rounded border border-slate-700">直結</span>`;
 
+                    const crossPageBadge = wire.crossPageLinkId
+                        ? `<span class="bg-indigo-950/90 text-indigo-300 text-[9px] font-mono px-1.5 py-0.5 rounded border border-indigo-500/50 flex items-center gap-0.5 shrink-0" title="跨頁電線 (對應 P.${wire.linkedPage})"><i class="fa-solid fa-link text-[8px]"></i>P.${wire.linkedPage}</span>`
+                        : '';
+
                     const checkboxHtml = state.isMultiSelectMode ? `
                         <input type="checkbox" ${isMultiSelected ? 'checked' : ''} class="w-4 h-4 accent-indigo-600 rounded cursor-pointer shrink-0 mr-2" onclick="event.stopPropagation(); toggleWireSelection('${wire.id}', event);">
                     ` : '';
@@ -4323,10 +4565,11 @@
                         <div class="flex items-center space-x-1 flex-1 min-w-0" onclick="if(state.isMultiSelectMode){ toggleWireSelection('${wire.id}', event); } else { selectWireFromList('${wire.id}'); }">
                             ${checkboxHtml}
                             <div class="space-y-0.5 flex-1 min-w-0">
-                                <div class="flex items-center space-x-2">
+                                <div class="flex items-center space-x-1.5 flex-wrap">
                                     <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${wire.color}"></span>
                                     <span class="font-bold text-white font-mono text-xs ${query && wire.markText.toLowerCase().includes(query) ? 'text-amber-300 bg-amber-950/60 px-1 rounded' : ''}">${wire.markText}</span>
                                     ${terminalBadge}
+                                    ${crossPageBadge}
                                 </div>
                                 <div class="text-[10px] text-slate-400">
                                     <span>${wire.sq} SQ</span> | <span>${colorName}</span>
@@ -4346,11 +4589,25 @@
                 });
             }
 
+            // Calculate total unique logical wires (merged cross-page pairs count as 1 wire)
+            const accountedCrossPageLinks = new Set();
+            let totalLogicalWireCount = 0;
+            state.wires.forEach(w => {
+                if (w.crossPageLinkId) {
+                    if (!accountedCrossPageLinks.has(w.crossPageLinkId)) {
+                        accountedCrossPageLinks.add(w.crossPageLinkId);
+                        totalLogicalWireCount++;
+                    }
+                } else {
+                    totalLogicalWireCount++;
+                }
+            });
+
             const totalTerminalPoints = state.wires.filter(w => w.isTerminal !== false).length;
 
             document.getElementById('wireCountBadge').innerText = `${pageWires.length} 本`;
-            document.getElementById('totalWireCount').innerText = `${state.wires.length} 本`;
-            document.getElementById('totalTubeCount').innerText = `${state.wires.length * 2} 個`;
+            document.getElementById('totalWireCount').innerText = `${totalLogicalWireCount} 本`;
+            document.getElementById('totalTubeCount').innerText = `${totalLogicalWireCount * 2} 個`;
             document.getElementById('totalTerminalCount').innerText = `${totalTerminalPoints} 点`;
             updateMultiSelectUI();
             updateSidebarExportButtonsText();
@@ -4572,6 +4829,7 @@
             const pageSet = new Set(targetPages);
             const summaryByKey = new Map();
             let excludedWireCount = 0;
+            const processedLinkIds = new Set();
 
             state.wires
                 .filter(w => pageSet.has(w.page))
@@ -4593,12 +4851,25 @@
                             sqs: new Set(),
                             quantity: 0,
                             terminalPoints: 0,
-                            pages: new Set()
+                            pages: new Set(),
+                            isCrossPage: false
                         });
                     }
                     const item = summaryByKey.get(key);
                     item.sqs.add(wire.sq);
-                    item.quantity += 2;
+
+                    // Cross-page handling:
+                    if (wire.crossPageLinkId) {
+                        item.isCrossPage = true;
+                        // If this linkId hasn't been counted for tubes yet:
+                        if (!processedLinkIds.has(wire.crossPageLinkId)) {
+                            processedLinkIds.add(wire.crossPageLinkId);
+                            item.quantity += 2; // 1 wire = 2 tubes
+                        }
+                    } else {
+                        item.quantity += 2;
+                    }
+
                     if (wire.isTerminal !== false) {
                         item.terminalPoints += 1;
                     }
@@ -4607,15 +4878,21 @@
 
             const items = [...summaryByKey.values()]
                 .sort((a, b) => a.markText.localeCompare(b.markText, 'ja') || a.tubeSize.localeCompare(b.tubeSize))
-                .map(item => ({
-                    markText: item.markText,
-                    isTerminalText: item.isTerminalText,
-                    tubeSize: item.tubeSize,
-                    sqs: [...item.sqs].sort((a, b) => Number(a) - Number(b)).join(' / '),
-                    quantity: item.quantity,
-                    terminalPoints: item.terminalPoints,
-                    pages: [...item.pages].sort((a, b) => a - b).join(', ')
-                }));
+                .map(item => {
+                    const pageList = [...item.pages].sort((a, b) => a - b).join(', ');
+                    const pageDisplay = (item.isCrossPage && item.pages.size > 1)
+                        ? `${pageList} (跨頁)`
+                        : pageList;
+                    return {
+                        markText: item.markText,
+                        isTerminalText: item.isTerminalText,
+                        tubeSize: item.tubeSize,
+                        sqs: [...item.sqs].sort((a, b) => Number(a) - Number(b)).join(' / '),
+                        quantity: item.quantity,
+                        terminalPoints: item.terminalPoints,
+                        pages: pageDisplay
+                    };
+                });
             return { items, excludedWireCount };
         }
 
