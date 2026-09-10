@@ -996,6 +996,19 @@
                         <span id="totalTerminalCount" class="font-bold text-amber-400">0 点</span>
                     </div>
 
+                    <!-- Size Breakdown Details in Right Sidebar -->
+                    <details class="text-[11px] text-slate-400 pt-1.5 border-t border-slate-800 group">
+                        <summary class="cursor-pointer hover:text-slate-200 flex items-center justify-between select-none py-0.5" title="點擊展開查看各電線尺寸 (SQ) 與字管口徑之個數明細">
+                            <span class="text-indigo-300 font-semibold flex items-center gap-1">
+                                <i class="fa-solid fa-chart-pie text-[10px]"></i>サイズ別集計 (口径/個数)
+                            </span>
+                            <i class="fa-solid fa-chevron-down text-[9px] transition-transform group-open:rotate-180"></i>
+                        </summary>
+                        <div id="sidebarSizeBreakdownList" class="pt-1.5 space-y-1 text-[10px] font-mono">
+                            <!-- Dynamically generated size breakdown rows -->
+                        </div>
+                    </details>
+
                     <!-- Cross-Page Link Manager Button -->
                     <button type="button" onclick="openCrossPageModal()" class="w-full py-1.5 px-2 bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/60 rounded text-xs text-indigo-200 flex items-center justify-between transition shadow-sm">
                         <span class="flex items-center">
@@ -1311,6 +1324,14 @@
             '#f8fafc': '白',
             '#9333ea': '紫',
             '#ea580c': '橙'
+        };
+
+        const MARK_TUBE_SIZE_BY_SQ = {
+            '0.5': '3.2Φ',
+            '0.75': '3.2Φ',
+            '1.25': '3.2Φ',
+            '2.0': '3.6Φ',
+            '3.5': '4.2Φ'
         };
 
         // Application State
@@ -6873,6 +6894,53 @@
             document.getElementById('totalWireCount').innerText = `${totalLogicalWireCount} 本`;
             document.getElementById('totalTubeCount').innerText = `${totalLogicalWireCount * 2} 個`;
             document.getElementById('totalTerminalCount').innerText = `${totalTerminalPoints} 点`;
+
+            // Calculate size breakdown for sidebar
+            const breakdownEl = document.getElementById('sidebarSizeBreakdownList');
+            if (breakdownEl) {
+                const standardSizes = ['0.5', '0.75', '1.25', '2.0', '3.5'];
+                const sizeCounts = {};
+                standardSizes.forEach(sq => {
+                    sizeCounts[sq] = { sq, tubeSize: MARK_TUBE_SIZE_BY_SQ[sq] || '', tubes: 0, terms: 0, wires: 0 };
+                });
+                const processedSideLinks = new Set();
+                state.wires.forEach(w => {
+                    const tubeSize = MARK_TUBE_SIZE_BY_SQ[w.sq];
+                    if (!tubeSize) return;
+                    if (!sizeCounts[w.sq]) {
+                        sizeCounts[w.sq] = { sq: w.sq, tubeSize, tubes: 0, terms: 0, wires: 0 };
+                    }
+                    if (w.crossPageLinkId) {
+                        if (!processedSideLinks.has(w.crossPageLinkId)) {
+                            processedSideLinks.add(w.crossPageLinkId);
+                            sizeCounts[w.sq].wires += 1;
+                            sizeCounts[w.sq].tubes += 2;
+                        }
+                    } else {
+                        sizeCounts[w.sq].wires += 1;
+                        sizeCounts[w.sq].tubes += 2;
+                    }
+                    if (w.isTerminal !== false) {
+                        sizeCounts[w.sq].terms += 1;
+                    }
+                });
+
+                const rowsHtml = Object.values(sizeCounts)
+                    .sort((a, b) => Number(a.sq) - Number(b.sq))
+                    .map(sz => {
+                        const isZero = sz.tubes === 0;
+                        const textClass = isZero ? 'text-slate-500' : 'text-slate-200 font-medium';
+                        const badgeClass = isZero ? 'text-slate-600 font-mono' : 'text-indigo-300 font-bold font-mono';
+                        return `
+                            <div class="flex items-center justify-between py-0.5 border-b border-slate-800/60 text-[10px]">
+                                <span class="${textClass}">${sz.sq} SQ <span class="text-[9px] text-slate-500">(${sz.tubeSize})</span></span>
+                                <span class="${badgeClass}">${sz.tubes} 個 <span class="text-[9px] ${isZero ? 'text-slate-600' : 'text-amber-400/90'} font-normal font-sans">/ 端子${sz.terms}点</span></span>
+                            </div>
+                        `;
+                    }).join('');
+                breakdownEl.innerHTML = rowsHtml;
+            }
+
             updateMultiSelectUI();
             updateSidebarExportButtonsText();
             updateCrossPageBadges();
@@ -7089,14 +7157,6 @@
             }
         }
 
-        const MARK_TUBE_SIZE_BY_SQ = {
-            '0.5': '3.2Φ',
-            '0.75': '3.2Φ',
-            '1.25': '3.2Φ',
-            '2.0': '3.6Φ',
-            '3.5': '4.2Φ'
-        };
-
         function escapeCSV(value) {
             return `"${String(value).replace(/"/g, '""')}"`;
         }
@@ -7109,6 +7169,21 @@
             const processedLinkIds = new Set();
             const query = (filterQuery || '').trim().toLowerCase();
 
+            // Prepare size summary breakdown
+            const standardSizes = ['0.5', '0.75', '1.25', '2.0', '3.5'];
+            const sizeMap = new Map();
+            standardSizes.forEach(sq => {
+                sizeMap.set(sq, {
+                    sq,
+                    sqLabel: `${sq} SQ`,
+                    tubeSize: MARK_TUBE_SIZE_BY_SQ[sq] || '',
+                    wireCount: 0,
+                    quantity: 0,
+                    terminalPoints: 0
+                });
+            });
+            const processedSizeLinkIds = new Set();
+
             state.wires
                 .filter(w => pageSet.has(w.page))
                 .filter(w => !query || (w.markText && w.markText.toLowerCase().includes(query)))
@@ -7119,6 +7194,33 @@
                         return;
                     }
 
+                    // Size summary calculation
+                    if (!sizeMap.has(wire.sq)) {
+                        sizeMap.set(wire.sq, {
+                            sq: wire.sq,
+                            sqLabel: `${wire.sq} SQ`,
+                            tubeSize,
+                            wireCount: 0,
+                            quantity: 0,
+                            terminalPoints: 0
+                        });
+                    }
+                    const sItem = sizeMap.get(wire.sq);
+                    if (wire.crossPageLinkId) {
+                        if (!processedSizeLinkIds.has(wire.crossPageLinkId)) {
+                            processedSizeLinkIds.add(wire.crossPageLinkId);
+                            sItem.wireCount += 1;
+                            sItem.quantity += 2;
+                        }
+                    } else {
+                        sItem.wireCount += 1;
+                        sItem.quantity += 2;
+                    }
+                    if (wire.isTerminal !== false) {
+                        sItem.terminalPoints += 1;
+                    }
+
+                    // Mark text summary calculation
                     const isTerminalText = wire.isTerminal !== false ? 'あり' : 'なし';
                     const key = `${wire.markText}\u0000${tubeSize}\u0000${isTerminalText}`;
                     
@@ -7173,7 +7275,11 @@
                         pages: pageDisplay
                     };
                 });
-            return { items, excludedWireCount };
+
+            const sizeSummary = [...sizeMap.values()]
+                .sort((a, b) => Number(a.sq) - Number(b.sq));
+
+            return { items, sizeSummary, excludedWireCount };
         }
 
         function getMarkTubeExportData(customPages) {
@@ -7199,22 +7305,33 @@
 
             const totalTubeQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
             const totalTermPoints = data.items.reduce((sum, item) => sum + item.terminalPoints, 0);
+            const totalWireCount = data.sizeSummary.reduce((sum, sz) => sum + sz.wireCount, 0);
 
-            // Data rows, followed by blank separator row, then summary total row
-            const rows = [
-                ['マークチューブ印字', '端子台接続', 'マークチューブ尺寸', '対象電線サイズ(SQ)', '必要数(個)', '端子必要数(点)', '対象頁'],
+            const workbook = XLSX.utils.book_new();
+
+            // Sheet 1: サイズ別集計 (Size & Tube Diameter Summary)
+            const summaryRows = [
+                ['対象電線サイズ(SQ)', 'マークチューブ口径', '配線本数', 'マークチューブ必要数(個)', '端子必要数(点)'],
+                ...data.sizeSummary.map(sz => [sz.sqLabel, sz.tubeSize, sz.wireCount, sz.quantity, sz.terminalPoints]),
+                ['総合計', '', totalWireCount, totalTubeQuantity, totalTermPoints]
+            ];
+            const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
+            wsSummary['!cols'] = [{ wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 24 }, { wch: 18 }];
+            XLSX.utils.book_append_sheet(workbook, wsSummary, 'サイズ別集計');
+
+            // Sheet 2: マークチューブ印字明細 (Detailed mark tube list with AutoFilter)
+            const detailRows = [
+                ['マークチューブ印字', '端子台接続', 'マークチューブ口径', '対象電線サイズ(SQ)', '必要数(個)', '端子必要数(点)', '対象頁'],
                 ...data.items.map(item => [item.markText, item.isTerminalText, item.tubeSize, item.sqs, item.quantity, item.terminalPoints, item.pages]),
                 ['', '', '', '', '', '', ''],
-                ['合計', '', '', '', totalTubeQuantity, totalTermPoints, '']
+                ['明細合計', '', '', '', totalTubeQuantity, totalTermPoints, '']
             ];
-            const worksheet = XLSX.utils.aoa_to_sheet(rows);
-            // Autofilter covers only the data table rows (excluding blank row and totals), preventing totals from being filtered/sorted!
-            worksheet['!autofilter'] = { ref: `A1:G${Math.max(data.items.length + 1, 2)}` };
-            worksheet['!cols'] = [
+            const wsDetail = XLSX.utils.aoa_to_sheet(detailRows);
+            wsDetail['!autofilter'] = { ref: `A1:G${Math.max(data.items.length + 1, 2)}` };
+            wsDetail['!cols'] = [
                 { wch: 22 }, { wch: 14 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 16 }, { wch: 16 }
             ];
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'マークチューブ集計');
+            XLSX.utils.book_append_sheet(workbook, wsDetail, 'マークチューブ印字明細');
 
             const isAll = (data.targetPages.length === state.totalPages && state.totalPages > 1);
             const isSingle = data.targetPages.length === 1;
@@ -7240,8 +7357,24 @@
             const totalTubeQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
             const totalTermPoints = data.items.reduce((sum, item) => sum + item.terminalPoints, 0);
 
-            // Clean CSV formatting: Data rows first, followed by an empty line boundary before totals so Excel AutoFilter doesn't scramble totals
-            let csvContent = "\uFEFFマークチューブ印字,端子台接続,マークチューブ尺寸,対象電線サイズ(SQ),必要数(個),端子必要数(点),対象頁\n";
+            // Clean CSV formatting:
+            // 1. 【サイズ・口径別集計表】(Size & Gauge Breakdown Table at the top - permanent and unaffected by Excel AutoFilter)
+            let csvContent = "\uFEFF";
+            csvContent += "【電線サイズ・マークチューブ口径別 集計】,,,\n";
+            csvContent += "対象電線サイズ(SQ),マークチューブ口径,必要数(個),端子必要数(点)\n";
+            data.sizeSummary.forEach(sz => {
+                csvContent += [
+                    escapeCSV(sz.sqLabel),
+                    escapeCSV(sz.tubeSize),
+                    sz.quantity,
+                    sz.terminalPoints
+                ].join(',') + '\n';
+            });
+            csvContent += `総合計,,${totalTubeQuantity},${totalTermPoints}\n\n`;
+
+            // 2. 【マークチューブ印字明細】(Detail Table with clean boundary)
+            csvContent += "【マークチューブ印字明細】,,,,,,\n";
+            csvContent += "マークチューブ印字,端子台接続,マークチューブ口径,対象電線サイズ(SQ),必要数(個),端子必要数(点),対象頁\n";
             data.items.forEach(item => {
                 csvContent += [
                     escapeCSV(item.markText),
@@ -7253,9 +7386,8 @@
                     escapeCSV(item.pages)
                 ].join(',') + '\n';
             });
-            // Empty line acts as table boundary in Excel so user can freely click Data -> Filter without affecting totals
             csvContent += '\n';
-            csvContent += `合計,,,,${totalTubeQuantity},${totalTermPoints},\n`;
+            csvContent += `明細合計,,,,${totalTubeQuantity},${totalTermPoints},\n`;
 
             const isAll = (data.targetPages.length === state.totalPages && state.totalPages > 1);
             const isSingle = data.targetPages.length === 1;
