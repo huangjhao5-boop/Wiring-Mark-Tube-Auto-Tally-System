@@ -230,12 +230,15 @@
 
                     <!-- Auto-Increment Switch & Mode Selector -->
                     <div class="bg-slate-900/50 p-2 rounded border border-slate-700 space-y-1.5">
-                        <div class="flex items-center justify-between">
+                        <div class="flex items-center justify-between cursor-pointer" onclick="toggleAutoIncrement()">
                             <div>
-                                <span class="text-xs text-slate-200 font-medium block">連番自動インクリメント</span>
-                                <span id="incrementModeDesc" class="text-[9px] text-indigo-300 block">16進 PLC (109→10A→10B...10F→110)</span>
+                                <span class="text-xs text-slate-200 font-medium block flex items-center gap-1">
+                                    連番自動インクリメント
+                                    <kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-indigo-300 font-mono text-[9px]">I</kbd>
+                                </span>
+                                <span id="incrementModeDesc" class="text-[9px] text-indigo-300 block">16進 PLC (<kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-indigo-300 font-mono text-[9px]">M</kbd> で切替)</span>
                             </div>
-                            <input type="checkbox" id="chkAutoIncrement" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer">
+                            <input type="checkbox" id="chkAutoIncrement" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer" onclick="event.stopPropagation();">
                         </div>
                         <div id="incrementModeGroup" class="grid grid-cols-3 gap-1 pt-1 border-t border-slate-700/60 text-[10px]">
                             <button type="button" data-mode="hex" id="btnIncModeHex" class="increment-mode-btn py-0.5 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm">16進 (PLC)</button>
@@ -245,15 +248,21 @@
                     </div>
 
                     <!-- Default Terminal Block Switch -->
-                    <div class="flex items-center justify-between bg-slate-900/50 p-2 rounded border border-slate-700">
-                        <span class="text-xs text-slate-300 font-medium">端子台接続 (初期値)</span>
-                        <input type="checkbox" id="chkDefaultTerminal" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer">
+                    <div class="flex items-center justify-between bg-slate-900/50 p-2 rounded border border-slate-700 cursor-pointer" onclick="toggleDefaultTerminal()">
+                        <span class="text-xs text-slate-300 font-medium flex items-center gap-1">
+                            端子台接続 (初期値)
+                            <kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-amber-300 font-mono text-[9px]">T</kbd>
+                        </span>
+                        <input type="checkbox" id="chkDefaultTerminal" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer" onclick="event.stopPropagation();">
                     </div>
 
                     <!-- Continuous Mode Switch -->
-                    <div class="flex items-center justify-between bg-slate-900/50 p-2 rounded border border-slate-700">
-                        <span class="text-xs text-slate-300 font-medium">連続作図モード</span>
-                        <input type="checkbox" id="chkContinuous" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer">
+                    <div class="flex items-center justify-between bg-slate-900/50 p-2 rounded border border-slate-700 cursor-pointer" onclick="toggleContinuousMode()">
+                        <span class="text-xs text-slate-300 font-medium flex items-center gap-1">
+                            連続作図モード
+                            <kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-emerald-300 font-mono text-[9px]">C</kbd>
+                        </span>
+                        <input type="checkbox" id="chkContinuous" class="w-4 h-4 accent-indigo-600 rounded cursor-pointer" onclick="event.stopPropagation();">
                     </div>
 
                     <!-- Continuous Wiring & Point A Mode Switch (渡り配線 / 同点固定) -->
@@ -268,8 +277,8 @@
                             <input type="checkbox" id="chkLockPointA" class="w-4 h-4 accent-indigo-500 rounded cursor-pointer">
                         </div>
                         <div id="lockModeGroup" class="grid grid-cols-2 gap-1 pt-1 border-t border-slate-700/60 text-[10px]">
-                            <button type="button" data-lockmode="chain" id="btnModeChain" class="py-0.5 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm" title="前一條線的母線交點(黑點)自動成為新A點，避免重疊並正確計長">🔗 渡り (串接)</button>
-                            <button type="button" data-lockmode="same" id="btnModeSame" class="py-0.5 px-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-center border border-slate-600" title="始終固定在同一個起始A點(放射狀)">📌 同点 (放射)</button>
+                            <button type="button" data-lockmode="chain" id="btnModeChain" class="py-0.5 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm" title="前一條線的母線交點(黑點)自動成為新A點，避免重疊並正確計長 (快捷鍵: W)">🔗 渡り [W]</button>
+                            <button type="button" data-lockmode="same" id="btnModeSame" class="py-0.5 px-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-center border border-slate-600" title="始終固定在同一個起始A點(放射狀) (快捷鍵: A)">📌 同点 [A]</button>
                         </div>
                     </div>
                 </div>
@@ -300,28 +309,74 @@
                     </div>
 
                     <!-- CAD Invert Colors Mode Switch -->
-                    <div class="flex items-center justify-between pt-1 border-t border-slate-700/60">
-                        <span class="text-[11px] text-slate-300">CAD深色模式 (白黒反転)</span>
-                        <input type="checkbox" id="chkInvertColors" class="w-3.5 h-3.5 accent-indigo-500 rounded cursor-pointer">
+                    <div class="flex items-center justify-between pt-1 border-t border-slate-700/60 cursor-pointer" onclick="toggleInvertColors()">
+                        <span class="text-[11px] text-slate-300 flex items-center gap-1">
+                            CAD深色模式 (白黒反転)
+                            <kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-sky-300 font-mono text-[9px]">D</kbd>
+                        </span>
+                        <input type="checkbox" id="chkInvertColors" class="w-3.5 h-3.5 accent-indigo-500 rounded cursor-pointer" onclick="event.stopPropagation();">
                     </div>
                 </div>
             </div>
 
             <!-- Comprehensive Shortcut Guide Box for PC & Touch/Stylus -->
-            <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-700 text-[10px] sm:text-[11px] text-slate-400 space-y-1.5 mt-2 shrink-0">
+            <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-700 text-[10px] sm:text-[11px] text-slate-400 space-y-2 mt-2 shrink-0">
                 <div class="font-bold text-slate-200 border-b border-slate-700 pb-1 flex items-center justify-between">
                     <span><i class="fa-solid fa-keyboard me-1 text-indigo-400"></i>操作方法ガイド・快捷鍵指南</span>
-                    <span class="text-[9px] text-indigo-400 font-mono">v3.1</span>
+                    <span class="text-[9px] text-indigo-400 font-mono">v3.2</span>
                 </div>
+
+                <!-- Mode Switching Shortcuts (模式切換快捷鍵) -->
+                <div class="space-y-1 border-b border-slate-700/60 pb-1.5">
+                    <div class="text-amber-300 font-bold text-[10px] flex items-center justify-between">
+                        <span>【模式切換快捷鍵】</span>
+                        <span class="text-[9px] text-slate-500 font-normal">單鍵快速切換</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-amber-300 font-mono text-[9px]">B</kbd> 矩形框選</span>
+                            <span class="text-slate-500">/統一編輯</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-indigo-300 font-mono text-[9px]">W</kbd> 渡り配線</span>
+                            <span class="text-slate-500">交點接續</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-indigo-300 font-mono text-[9px]">A</kbd> 同點固定</span>
+                            <span class="text-slate-500">放射固定</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-emerald-300 font-mono text-[9px]">C</kbd> 連續作圖</span>
+                            <span class="text-slate-500">ON/OFF</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-indigo-300 font-mono text-[9px]">I</kbd> 連番開關</span>
+                            <span class="text-slate-500">ON/OFF</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-indigo-300 font-mono text-[9px]">M</kbd> 進制切換</span>
+                            <span class="text-slate-500">16/10/英</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-amber-300 font-mono text-[9px]">T</kbd> 端子台接続</span>
+                            <span class="text-slate-500">黃框/直結</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-sky-300 font-mono text-[9px]">D</kbd> CAD深色</span>
+                            <span class="text-slate-500">反轉底圖</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- PC Operations -->
                 <div class="space-y-1 border-b border-slate-700/60 pb-1.5">
                     <div class="text-indigo-300 font-bold text-[10px] flex items-center justify-between">
-                        <span>【パソコン / 鍵盤滑鼠操作】</span>
+                        <span>【作圖與常用快捷鍵】</span>
                     </div>
-                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-amber-300 font-mono text-[9px]">Shift</kbd> + 拖曳</span><span class="text-slate-400 font-medium">⬚ 矩形框選圈取多線</span></div>
-                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-amber-300 font-mono text-[9px]">B</kbd> 鍵</span><span class="text-slate-400 font-medium">框選開關 / 圈選後開啟編輯</span></div>
-                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-slate-300 font-mono text-[9px]">ESC</kbd> 鍵</span><span class="text-slate-400">取消圈選 / A點解除</span></div>
-                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-indigo-300 font-mono text-[9px]">W</kbd> / <kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-indigo-300 font-mono text-[9px]">A</kbd> 鍵</span><span class="text-slate-400">🔗 渡り配線 / 📌 同點固定</span></div>
+                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-amber-300 font-mono text-[9px]">Shift</kbd> + 拖曳</span><span class="text-slate-400 font-medium">⬚ 快速矩形框選</span></div>
+                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-slate-300 font-mono text-[9px]">ESC</kbd> 鍵</span><span class="text-slate-400">取消圈選 / A點解除 / 關閉</span></div>
+                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-red-400 font-mono text-[9px]">Del</kbd> / <kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-red-400 font-mono text-[9px]">BS</kbd></span><span class="text-slate-400">刪除選取配線</span></div>
+                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-slate-300 font-mono text-[9px]">[</kbd> / <kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-slate-300 font-mono text-[9px]">]</kbd> 或 PgUp/Dn</span><span class="text-slate-400">上一頁 / 下一頁</span></div>
                     <div class="flex items-center justify-between"><span class="text-slate-300">左鍵點擊</span><span class="text-slate-400">始點 A / 終點 B 設置</span></div>
                     <div class="flex items-center justify-between"><span class="text-slate-300">左鍵雙擊</span><span class="text-slate-400">折點追加 / 刪除折點</span></div>
                     <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-slate-300 font-mono text-[9px]">Ctrl+Z</kbd> / <kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-slate-300 font-mono text-[9px]">Y</kbd></span><span class="text-slate-400">復原 / 重做</span></div>
@@ -343,7 +398,7 @@
                 <!-- Author & Copyright Credit -->
                 <div class="pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-[9px] text-slate-500 font-mono">
                     <span>Author: <strong class="text-slate-400">M.K(TW)</strong></span>
-                    <span>v3.1</span>
+                    <span>v3.2</span>
                 </div>
             </div>
         </aside>
@@ -447,7 +502,10 @@
                         <label class="flex items-center justify-between bg-amber-950/40 px-2.5 py-1 rounded border border-amber-500/50 cursor-pointer">
                             <div class="flex items-center gap-1.5">
                                 <input type="checkbox" id="modalTerminalConnection" class="w-3.5 h-3.5 accent-amber-500 cursor-pointer shrink-0">
-                                <span class="text-amber-200 font-semibold text-[11px]">端子台接続</span>
+                                <span class="text-amber-200 font-semibold text-[11px] flex items-center gap-1">
+                                    端子台接続
+                                    <kbd class="px-1 py-0.2 bg-amber-900/60 border border-amber-500/60 rounded text-amber-300 font-mono text-[9px]">T</kbd>
+                                </span>
                             </div>
                             <span class="text-[9px] text-amber-400">(黃框標記 & 積算+1點)</span>
                         </label>
@@ -457,7 +515,10 @@
                             <div class="flex items-center justify-between cursor-pointer" onclick="toggleModalAutoIncrement()">
                                 <div class="flex items-center gap-1.5">
                                     <input type="checkbox" id="modalAutoIncrement" class="w-3.5 h-3.5 accent-indigo-500 cursor-pointer shrink-0" onclick="event.stopPropagation(); updateModalIncrementUI();">
-                                    <span class="text-indigo-200 font-semibold text-[11px]">連番自動インクリメント</span>
+                                    <span class="text-indigo-200 font-semibold text-[11px] flex items-center gap-1">
+                                        連番自動インクリメント
+                                        <kbd class="px-1 py-0.2 bg-indigo-900/60 border border-indigo-500/60 rounded text-indigo-300 font-mono text-[9px]">I</kbd>
+                                    </span>
                                 </div>
                                 <span id="modalIncrementPreview" class="text-[10px] text-indigo-300 font-mono font-bold bg-indigo-900/60 px-1.5 py-0.5 rounded border border-indigo-500/40">次回: --</span>
                             </div>
@@ -465,6 +526,10 @@
                                 <button type="button" data-mode="hex" onclick="setModalIncrementMode('hex')" id="btnModalIncHex" class="py-0.5 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm transition">16進 (PLC)</button>
                                 <button type="button" data-mode="dec" onclick="setModalIncrementMode('dec')" id="btnModalIncDec" class="py-0.5 px-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-center border border-slate-700 transition">10進 (DEC)</button>
                                 <button type="button" data-mode="alpha" onclick="setModalIncrementMode('alpha')" id="btnModalIncAlpha" class="py-0.5 px-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-center border border-slate-700 transition">A~Z 連番</button>
+                            </div>
+                            <div class="text-[9px] text-indigo-300/80 flex items-center justify-between px-0.5">
+                                <span>快捷鍵: <kbd class="px-1 py-0.2 bg-slate-900 border border-slate-700 rounded text-indigo-300 font-mono text-[9px]">M</kbd> 循環切換進制</span>
+                                <span class="text-slate-400">16進 ➔ 10進 ➔ 英字</span>
                             </div>
                             <!-- Target Part Group (for marks like Y90A, TB1-01A) -->
                             <div id="modalIncrementTargetGroup" class="flex items-center justify-between pt-1 border-t border-indigo-500/20 text-[9px]">
@@ -494,14 +559,37 @@
                     </div>
 
                     <!-- Cross-Page Link Status in Modal -->
-                    <div id="modalCrossPageInfo" class="hidden bg-indigo-950/70 border border-indigo-500/60 p-2 rounded text-xs text-indigo-200 flex items-center justify-between mt-1">
-                        <div class="flex items-center space-x-1.5">
-                            <i class="fa-solid fa-link text-indigo-400"></i>
-                            <span>跨頁電線 (對應 P.<span id="modalLinkedPageText" class="font-bold text-amber-300"></span>)</span>
+                    <div id="modalCrossPageInfo" class="hidden bg-indigo-950/80 border border-indigo-500/60 p-2.5 rounded-lg text-xs text-indigo-200 space-y-2 mt-1 shadow-inner">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-1.5">
+                                <i class="fa-solid fa-link text-indigo-400"></i>
+                                <span class="font-bold text-white">跨頁電線 (對應 P.<span id="modalLinkedPageText" class="font-bold text-amber-300"></span>)</span>
+                            </div>
+                            <button type="button" id="btnModalUnlinkCrossPage" onclick="if(state.editingWireId) unlinkCrossPageWire(state.editingWireId);" class="px-2 py-0.5 bg-slate-800 hover:bg-red-900/60 text-slate-300 hover:text-red-200 border border-slate-600 rounded text-[10px] transition">
+                                解除合併
+                            </button>
                         </div>
-                        <button type="button" id="btnModalUnlinkCrossPage" onclick="if(state.editingWireId) unlinkCrossPageWire(state.editingWireId);" class="px-2 py-0.5 bg-slate-700 hover:bg-red-900/60 text-slate-200 hover:text-red-200 border border-slate-600 rounded text-[10px] transition">
-                            解除合併
-                        </button>
+
+                        <!-- Sync Toggle -->
+                        <div class="bg-indigo-900/50 p-1.5 rounded border border-indigo-600/50 flex items-center justify-between">
+                            <label class="flex items-center space-x-2 text-indigo-100 cursor-pointer text-[11px] select-none font-semibold">
+                                <input type="checkbox" id="modalSyncCrossPageWires" checked class="w-3.5 h-3.5 accent-indigo-500 rounded cursor-pointer">
+                                <span>連動更新跨頁配線規格 (P.<span id="modalLinkedPageSyncText" class="text-amber-300 font-bold"></span>)</span>
+                            </label>
+                            <span class="text-[9px] text-amber-300 font-mono">推薦勾選</span>
+                        </div>
+
+                        <!-- Mismatch Alert Banner (shown if mismatch exists) -->
+                        <div id="modalCrossPageMismatchAlert" class="hidden p-2 bg-amber-950/90 border border-amber-500/80 rounded text-[11px] text-amber-200 space-y-1">
+                            <div class="flex items-center gap-1.5 font-bold text-amber-300">
+                                <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
+                                <span>跨頁規格不一致提醒：</span>
+                            </div>
+                            <div id="modalCrossPageMismatchText" class="text-[10px] text-amber-200 font-mono pl-4"></div>
+                            <button type="button" id="btnModalAlignSpecs" class="w-full mt-1 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded text-[10px] font-bold transition flex items-center justify-center gap-1 shadow-sm">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>立即以當前設定同步跨頁配線
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Footer Buttons -->
@@ -761,6 +849,15 @@
                                         <option value="false">直結にする</option>
                                     </select>
                                 </div>
+
+                                <!-- Cross-Page Sync Toggle for Batch Specs -->
+                                <div class="bg-indigo-950/60 p-2 rounded border border-indigo-500/60 flex items-center justify-between">
+                                    <label class="flex items-center space-x-2 cursor-pointer text-indigo-200 text-[11px] font-medium select-none">
+                                        <input type="checkbox" id="batchSyncCrossPageChk" checked class="accent-indigo-500 rounded">
+                                        <span>若包含跨頁配線，自動連動同步更新對應頁面配線規格</span>
+                                    </label>
+                                    <span class="text-[9px] text-amber-300 font-mono">跨頁連動</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -941,6 +1038,7 @@
                             <select id="sidebarExportScopeSelect" onchange="handleSidebarExportScopeChange(this.value)" class="bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-[11px] text-white focus:outline-none focus:border-indigo-500 font-sans">
                                 <option value="all">全ページ一括集計</option>
                                 <option value="current">現在のページのみ</option>
+                                <option value="filtered" id="optSidebarScopeFiltered" class="hidden">🔍 搜尋篩選結果</option>
                                 <option value="custom">ページ指定...</option>
                             </select>
                         </div>
@@ -1030,6 +1128,9 @@
             <div class="flex items-center justify-between pt-3 border-t border-slate-700 mt-3 text-xs">
                 <span class="text-[11px] text-slate-400">💡 跨頁合併後自動算為 1 條線、2 顆字管</span>
                 <div class="flex items-center space-x-2">
+                    <button id="btnBatchAlignAllCrossPage" onclick="alignAllCrossPageMismatches()" class="hidden px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded text-xs transition flex items-center shadow">
+                        <i class="fa-solid fa-wand-magic-sparkles me-1.5"></i>一鍵對齊規格
+                    </button>
                     <button id="btnBatchMergeAllCandidates" onclick="batchMergeAllCrossPageCandidates()" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded text-xs transition flex items-center shadow">
                         <i class="fa-solid fa-check-double me-1.5"></i>一鍵全部合併
                     </button>
@@ -1469,6 +1570,63 @@
             } catch (e) {}
         }
 
+        // ================= MODE SHORTCUT TOGGLE HELPERS =================
+        function cycleIncrementMode() {
+            const modes = ['hex', 'dec', 'alpha'];
+            const names = { 'hex': '16進 (PLC)', 'dec': '10進 (DEC)', 'alpha': '英字 (A~Z)' };
+            const currentIdx = modes.indexOf(state.incrementMode || 'hex');
+            const nextMode = modes[(currentIdx + 1) % modes.length];
+            setIncrementMode(nextMode);
+            if (typeof setModalIncrementMode === 'function') {
+                setModalIncrementMode(nextMode, false);
+            }
+            showToast(`🔄 連番模式切換為：${names[nextMode]}`);
+        }
+
+        function cycleModalIncrementMode() {
+            const modes = ['hex', 'dec', 'alpha'];
+            const names = { 'hex': '16進 (PLC)', 'dec': '10進 (DEC)', 'alpha': '英字 (A~Z)' };
+            const currentIdx = modes.indexOf(state.incrementMode || 'hex');
+            const nextMode = modes[(currentIdx + 1) % modes.length];
+            setModalIncrementMode(nextMode, true);
+            showToast(`🔄 連番模式切換為：${names[nextMode]}`);
+        }
+
+        function toggleAutoIncrement(forcedState) {
+            state.isAutoIncrement = (forcedState !== undefined) ? !!forcedState : !state.isAutoIncrement;
+            const chk = document.getElementById('chkAutoIncrement');
+            if (chk) chk.checked = state.isAutoIncrement;
+            const modalChk = document.getElementById('modalAutoIncrement');
+            if (modalChk) modalChk.checked = state.isAutoIncrement;
+            if (typeof updateModalIncrementPreview === 'function') updateModalIncrementPreview();
+            try {
+                localStorage.setItem('hw_wiring_auto_increment', state.isAutoIncrement ? 'true' : 'false');
+            } catch(e) {}
+            showToast(`🔢 連番自動インクリメント：${state.isAutoIncrement ? '【ON 啟用】' : '【OFF 關閉】'}`);
+        }
+
+        function toggleContinuousMode(forcedState) {
+            state.isContinuous = (forcedState !== undefined) ? !!forcedState : !state.isContinuous;
+            const chk = document.getElementById('chkContinuous');
+            if (chk) chk.checked = state.isContinuous;
+            showToast(`🔄 連続作図モード：${state.isContinuous ? '【ON 啟用】' : '【OFF 關閉】'}`);
+        }
+
+        function toggleDefaultTerminal(forcedState) {
+            state.defaultIsTerminal = (forcedState !== undefined) ? !!forcedState : !state.defaultIsTerminal;
+            const chk = document.getElementById('chkDefaultTerminal');
+            if (chk) chk.checked = state.defaultIsTerminal;
+            showToast(`🏷️ 端子台接続 (初期値)：${state.defaultIsTerminal ? '【端子台 (黃框+1點)】' : '【直結 (無端子)】'}`);
+        }
+
+        function toggleInvertColors(forcedState) {
+            state.invertColors = (forcedState !== undefined) ? !!forcedState : !state.invertColors;
+            const chk = document.getElementById('chkInvertColors');
+            if (chk) chk.checked = state.invertColors;
+            drawDiagram();
+            showToast(`🌓 CAD深色模式 (白黒反転)：${state.invertColors ? '【ON 啟用】' : '【OFF 關閉】'}`);
+        }
+
         // ================= CONTINUOUS WIRING CONTROLLER (渡り配線 / 同点固定) =================
         function getNextChainPointA(wire) {
             if (wire.waypoints && wire.waypoints.length > 0) {
@@ -1703,15 +1861,31 @@
             searchInput.oninput = (e) => {
                 state.searchQuery = e.target.value.trim();
                 clearSearchBtn.classList.toggle('hidden', !state.searchQuery);
+                const optFiltered = document.getElementById('optSidebarScopeFiltered');
+                if (optFiltered) {
+                    optFiltered.classList.toggle('hidden', !state.searchQuery);
+                    optFiltered.innerText = state.searchQuery ? `🔍 搜尋篩選「${state.searchQuery}」` : '🔍 搜尋篩選結果';
+                }
                 drawDiagram();
                 updateTablesAndStats();
+                if (typeof updateSidebarExportButtonsText === 'function') updateSidebarExportButtonsText();
             };
             clearSearchBtn.onclick = () => {
                 searchInput.value = '';
                 state.searchQuery = '';
                 clearSearchBtn.classList.add('hidden');
+                const optFiltered = document.getElementById('optSidebarScopeFiltered');
+                if (optFiltered) {
+                    optFiltered.classList.add('hidden');
+                }
+                if (state.sidebarExportScope === 'filtered') {
+                    state.sidebarExportScope = (state.totalPages > 1 ? 'all' : 'current');
+                    const sel = document.getElementById('sidebarExportScopeSelect');
+                    if (sel) sel.value = state.sidebarExportScope;
+                }
                 drawDiagram();
                 updateTablesAndStats();
+                if (typeof updateSidebarExportButtonsText === 'function') updateSidebarExportButtonsText();
             };
 
             // Image Adjustments
@@ -1804,48 +1978,91 @@
             canvasWrapper.addEventListener('touchend', handleTouchEnd, { passive: false });
             canvasWrapper.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
-            // Keyboard Shortcuts (Ctrl+Z, Ctrl+Y, ESC, Space)
+            // Keyboard Shortcuts (Ctrl+Z, Ctrl+Y, ESC, Space, Mode toggles: B, W, A, C, I, M, T, D, Del, [, ])
             window.addEventListener('keydown', (e) => {
+                const isInput = document.activeElement && (
+                    document.activeElement.tagName === 'INPUT' || 
+                    document.activeElement.tagName === 'TEXTAREA' || 
+                    document.activeElement.tagName === 'SELECT' || 
+                    document.activeElement.isContentEditable
+                );
+
                 if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
-                    if (document.activeElement.tagName !== 'INPUT') {
+                    if (!isInput) {
                         e.preventDefault();
                         undoAction();
                     }
                 } else if ((e.ctrlKey || e.metaKey) && ((e.key === 'y' || e.key === 'Y') || ((e.key === 'z' || e.key === 'Z') && e.shiftKey))) {
-                    if (document.activeElement.tagName !== 'INPUT') {
+                    if (!isInput) {
                         e.preventDefault();
                         redoAction();
                     }
                 } else if (e.key === 'Escape') {
-                    if (state.selectedWireIds && state.selectedWireIds.size > 0) {
+                    if (!wireModal.classList.contains('hidden')) {
+                        closeModal();
+                    } else if (document.getElementById('batchEditModal') && !document.getElementById('batchEditModal').classList.contains('hidden')) {
+                        closeBatchEditModal();
+                    } else if (document.getElementById('crossPageModal') && !document.getElementById('crossPageModal').classList.contains('hidden')) {
+                        closeCrossPageModal();
+                    } else if (state.selectedWireIds && state.selectedWireIds.size > 0) {
                         clearSelectedWires();
                     } else if (state.isMarqueeModeActive) {
                         toggleMarqueeMode(false);
                     } else {
                         cancelActivePointA();
                     }
-                } else if ((e.key === 'b' || e.key === 'B') && !e.ctrlKey && !e.metaKey) {
-                    if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA' && document.activeElement.tagName !== 'SELECT') {
+                } else if (!isInput && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                    // MODE SWITCH & SHORTCUT KEYS (Only when not in input)
+                    if (e.key === 'b' || e.key === 'B') {
                         e.preventDefault();
                         if (state.selectedWireIds && state.selectedWireIds.size > 0) {
                             openBatchEditFromSelection();
                         } else {
                             toggleMarqueeMode();
                         }
-                    }
-                } else if ((e.key === 'a' || e.key === 'A') && !e.ctrlKey && !e.metaKey) {
-                    if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
-                        e.preventDefault();
-                        toggleLockPointA();
-                    }
-                } else if ((e.key === 'w' || e.key === 'W') && !e.ctrlKey && !e.metaKey) {
-                    if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                    } else if (e.key === 'w' || e.key === 'W') {
                         e.preventDefault();
                         if (state.isLockPointA && state.lockPointAMode === 'chain') {
                             toggleLockPointA(false);
                         } else {
                             setLockPointAMode('chain');
                         }
+                    } else if (e.key === 'a' || e.key === 'A') {
+                        e.preventDefault();
+                        if (state.isLockPointA && state.lockPointAMode === 'same') {
+                            toggleLockPointA(false);
+                        } else {
+                            setLockPointAMode('same');
+                        }
+                    } else if (e.key === 'c' || e.key === 'C') {
+                        e.preventDefault();
+                        toggleContinuousMode();
+                    } else if (e.key === 'i' || e.key === 'I') {
+                        e.preventDefault();
+                        toggleAutoIncrement();
+                    } else if (e.key === 'm' || e.key === 'M') {
+                        e.preventDefault();
+                        cycleIncrementMode();
+                    } else if (e.key === 't' || e.key === 'T') {
+                        e.preventDefault();
+                        toggleDefaultTerminal();
+                    } else if (e.key === 'd' || e.key === 'D') {
+                        e.preventDefault();
+                        toggleInvertColors();
+                    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+                        if (state.selectedWireIds && state.selectedWireIds.size > 0) {
+                            e.preventDefault();
+                            batchDeleteSelectedWires();
+                        } else if (state.selectedWireId) {
+                            e.preventDefault();
+                            deleteWire(state.selectedWireId);
+                        }
+                    } else if (e.key === '[' || e.key === 'PageUp') {
+                        e.preventDefault();
+                        changePdfPage(-1);
+                    } else if (e.key === ']' || e.key === 'PageDown') {
+                        e.preventDefault();
+                        changePdfPage(1);
                     }
                 } else if (e.key === ' ') {
                     state.isSpacePressed = true;
@@ -1940,11 +2157,37 @@
                 };
             }
 
-            // Modal Enter Key Confirm
+            // Modal Enter Key Confirm & Shortcuts (Enter, Esc, T, I, M)
             document.getElementById('wireModal').addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closeModal();
+                    return;
+                }
                 if (e.key === 'Enter' && !e.isComposing) {
                     e.preventDefault();
                     handleModalConfirm();
+                    return;
+                }
+                const isMarkInput = (e.target && e.target.id === 'modalMarkText');
+                const keyUpper = e.key.toUpperCase();
+                // When not focused inside text input, or when using Alt key
+                if ((!isMarkInput && !e.ctrlKey && !e.metaKey && !e.altKey) || (e.altKey && !e.ctrlKey && !e.metaKey)) {
+                    if (keyUpper === 'T') {
+                        e.preventDefault();
+                        const chk = document.getElementById('modalTerminalConnection');
+                        if (chk) {
+                            chk.checked = !chk.checked;
+                            showToast(chk.checked ? '⚡ 端子台接続: ON' : '端子台接続: OFF');
+                        }
+                    } else if (keyUpper === 'I') {
+                        e.preventDefault();
+                        toggleModalAutoIncrement();
+                    } else if (keyUpper === 'M') {
+                        e.preventDefault();
+                        cycleModalIncrementMode();
+                    }
                 }
             });
 
@@ -1977,8 +2220,8 @@
 
             // Export Actions
             document.getElementById('btnOpenExportModal').onclick = openExportModal;
-            document.getElementById('btnExportExcel').onclick = exportExcel;
-            document.getElementById('btnExportCsv').onclick = exportCSV;
+            document.getElementById('btnExportExcel').onclick = () => exportExcel();
+            document.getElementById('btnExportCsv').onclick = () => exportCSV();
         }
 
         // ================= PROJECT SAVE & LOAD (JSON) =================
@@ -2735,17 +2978,33 @@
             const newColor = document.getElementById('batchNewColorSelect').value;
             const newTerminal = document.getElementById('batchNewTerminalSelect').value === 'true';
 
+            const syncCrossPageChk = document.getElementById('batchSyncCrossPageChk');
+            const shouldSyncCross = syncCrossPageChk ? syncCrossPageChk.checked : true;
+            let crossSyncedCount = 0;
+
             targetWires.forEach(wire => {
                 if (changeSq) wire.sq = newSq;
                 if (changeColor) wire.color = newColor;
                 if (changeTerminal) wire.isTerminal = newTerminal;
+
+                if (shouldSyncCross && wire.crossPageLinkId) {
+                    state.wires.forEach(w => {
+                        if (w.crossPageLinkId === wire.crossPageLinkId && !targetWires.includes(w)) {
+                            if (changeSq) w.sq = newSq;
+                            if (changeColor) w.color = newColor;
+                            if (changeTerminal) w.isTerminal = newTerminal;
+                            crossSyncedCount++;
+                        }
+                    });
+                }
             });
 
             closeBatchEditModal();
             drawDiagram();
             updateTablesAndStats();
             autoSaveToLocalStorage();
-            showToast(`${targetWires.length} 本の配線を一括変更しました`);
+            const crossMsg = crossSyncedCount > 0 ? `（含連動更新 ${crossSyncedCount} 條跨頁配線）` : '';
+            showToast(`${targetWires.length} 本の配線を一括変更しました${crossMsg}`);
         }
 
         // ================= RIGHT SIDEBAR MULTI-SELECT BAR =================
@@ -2888,16 +3147,26 @@
             }
             saveHistoryState('Batch-Color');
             let count = 0;
+            let crossSyncedCount = 0;
             state.wires.forEach(w => {
                 if (state.selectedWireIds.has(w.id)) {
                     w.color = color;
                     count++;
+                    if (w.crossPageLinkId) {
+                        state.wires.forEach(sibling => {
+                            if (sibling.crossPageLinkId === w.crossPageLinkId && !state.selectedWireIds.has(sibling.id)) {
+                                sibling.color = color;
+                                crossSyncedCount++;
+                            }
+                        });
+                    }
                 }
             });
             drawDiagram();
             updateTablesAndStats();
             autoSaveToLocalStorage();
-            showToast(`${count} 本の電線色を「${COLOR_NAMES[color]||'色'}」に変更しました`);
+            const crossMsg = crossSyncedCount > 0 ? `（含連動更新 ${crossSyncedCount} 條跨頁配線）` : '';
+            showToast(`${count} 本の電線色を「${COLOR_NAMES[color]||'色'}」に変更しました${crossMsg}`);
         }
 
         function batchApplySqToSelected(sq) {
@@ -2907,16 +3176,26 @@
             }
             saveHistoryState('Batch-SQ');
             let count = 0;
+            let crossSyncedCount = 0;
             state.wires.forEach(w => {
                 if (state.selectedWireIds.has(w.id)) {
                     w.sq = sq;
                     count++;
+                    if (w.crossPageLinkId) {
+                        state.wires.forEach(sibling => {
+                            if (sibling.crossPageLinkId === w.crossPageLinkId && !state.selectedWireIds.has(sibling.id)) {
+                                sibling.sq = sq;
+                                crossSyncedCount++;
+                            }
+                        });
+                    }
                 }
             });
             drawDiagram();
             updateTablesAndStats();
             autoSaveToLocalStorage();
-            showToast(`${count} 本の電線サイズを ${sq} SQ に変更しました`);
+            const crossMsg = crossSyncedCount > 0 ? `（含連動更新 ${crossSyncedCount} 條跨頁配線）` : '';
+            showToast(`${count} 本の電線サイズを ${sq} SQ に変更しました${crossMsg}`);
         }
 
         function batchSetTerminal(isTerminal) {
@@ -2926,16 +3205,26 @@
             }
             saveHistoryState('Batch-Terminal');
             let count = 0;
+            let crossSyncedCount = 0;
             state.wires.forEach(w => {
                 if (state.selectedWireIds.has(w.id)) {
                     w.isTerminal = isTerminal;
                     count++;
+                    if (w.crossPageLinkId) {
+                        state.wires.forEach(sibling => {
+                            if (sibling.crossPageLinkId === w.crossPageLinkId && !state.selectedWireIds.has(sibling.id)) {
+                                sibling.isTerminal = isTerminal;
+                                crossSyncedCount++;
+                            }
+                        });
+                    }
                 }
             });
             drawDiagram();
             updateTablesAndStats();
             autoSaveToLocalStorage();
-            showToast(`${count} 本の端子台属性を「${isTerminal ? '端子台' : '直結'}」に変更しました`);
+            const crossMsg = crossSyncedCount > 0 ? `（含連動更新 ${crossSyncedCount} 條跨頁配線）` : '';
+            showToast(`${count} 本の端子台属性を「${isTerminal ? '端子台' : '直結'}」に変更しました${crossMsg}`);
         }
 
         function batchDeleteSelectedWires() {
@@ -3062,7 +3351,10 @@
 
         function getSidebarTargetPages() {
             const scope = state.sidebarExportScope || (state.totalPages > 1 ? 'all' : 'current');
-            if (scope === 'current') {
+            if (scope === 'filtered') {
+                const maxP = Math.max(1, state.totalPages || 1);
+                return Array.from({ length: maxP }, (_, i) => i + 1);
+            } else if (scope === 'current') {
                 return [state.currentPage];
             } else if (scope === 'all') {
                 const maxP = Math.max(1, state.totalPages || 1);
@@ -3082,7 +3374,9 @@
         function updateSidebarExportButtonsText() {
             const scope = state.sidebarExportScope || (state.totalPages > 1 ? 'all' : 'current');
             let scopeLabel = '';
-            if (scope === 'all') {
+            if (scope === 'filtered') {
+                scopeLabel = state.searchQuery ? ` (搜尋: ${state.searchQuery})` : ' (篩選結果)';
+            } else if (scope === 'all') {
                 scopeLabel = state.totalPages > 1 ? ` (全${state.totalPages}頁)` : '';
             } else if (scope === 'current') {
                 scopeLabel = ` (P.${state.currentPage})`;
@@ -3290,12 +3584,21 @@
             targetWire.crossPageLinkId = linkId;
             targetWire.linkedPage = sourceWire.page;
 
+            // Auto-sync specs to sourceWire (current active wire)
+            let syncNotice = '';
+            if (targetWire.sq !== sourceWire.sq || targetWire.color !== sourceWire.color || (targetWire.isTerminal !== false) !== (sourceWire.isTerminal !== false)) {
+                targetWire.sq = sourceWire.sq;
+                targetWire.color = sourceWire.color;
+                targetWire.isTerminal = sourceWire.isTerminal;
+                syncNotice = `（規格已自動統一為 ${sourceWire.sq} SQ / ${COLOR_NAMES[sourceWire.color]||'色'}）`;
+            }
+
             dismissRadarCapsule();
             drawDiagram();
             updateTablesAndStats();
             renderCrossPageModal();
             autoSaveToLocalStorage();
-            showToast(`🔗 跨頁線「${markText}」(P.${sourceWire.page} ⇄ P.${targetWire.page}) 已成功合併！`);
+            showToast(`🔗 跨頁線「${markText}」(P.${sourceWire.page} ⇄ P.${targetWire.page}) 已成功合併！${syncNotice}`);
         }
 
         function jumpToRadarTargetPage() {
@@ -3449,6 +3752,162 @@
             renderCrossPageModal();
         }
 
+        // ================= CROSS-PAGE SPEC SYNC & MISMATCH SYSTEM =================
+        function getCrossPageLinkedWires(wireOrLinkId) {
+            if (!wireOrLinkId) return [];
+            const linkId = typeof wireOrLinkId === 'string' ? wireOrLinkId : wireOrLinkId.crossPageLinkId;
+            if (!linkId) return [];
+            return state.wires.filter(w => w.crossPageLinkId === linkId);
+        }
+
+        function getCrossPageMismatchInfo(wire) {
+            if (!wire || !wire.crossPageLinkId) return null;
+            const linkedWires = getCrossPageLinkedWires(wire);
+            if (linkedWires.length <= 1) return null;
+
+            const mismatches = [];
+            const baseSq = wire.sq;
+            const baseColor = wire.color;
+            const baseTerminal = wire.isTerminal !== false;
+            const baseMark = wire.markText;
+
+            for (const other of linkedWires) {
+                if (other.id === wire.id) continue;
+                const diffs = [];
+                if (other.sq !== baseSq) {
+                    diffs.push(`SQ不一致 (P.${wire.page}: ${baseSq} ≠ P.${other.page}: ${other.sq})`);
+                }
+                if (other.color !== baseColor) {
+                    diffs.push(`顏色不一致 (P.${wire.page}: ${COLOR_NAMES[baseColor]||baseColor} ≠ P.${other.page}: ${COLOR_NAMES[other.color]||other.color})`);
+                }
+                if ((other.isTerminal !== false) !== baseTerminal) {
+                    diffs.push(`端子台連接不一致`);
+                }
+                if (other.markText !== baseMark) {
+                    diffs.push(`線號不一致 (${baseMark} ≠ ${other.markText})`);
+                }
+                if (diffs.length > 0) {
+                    mismatches.push({
+                        otherWire: other,
+                        diffs: diffs,
+                        sqDiff: other.sq !== baseSq,
+                        colorDiff: other.color !== baseColor
+                    });
+                }
+            }
+            return mismatches.length > 0 ? mismatches : null;
+        }
+
+        function getCrossPageMismatchSummary(wire) {
+            if (!wire || !wire.crossPageLinkId) return null;
+            const partners = state.wires.filter(w => w.crossPageLinkId === wire.crossPageLinkId && w.id !== wire.id);
+            if (partners.length === 0) return null;
+            for (const p of partners) {
+                if (p.sq !== wire.sq) {
+                    return `SQ不一致: ${wire.sq}≠${p.sq}`;
+                }
+                if (p.color !== wire.color) {
+                    return `顏色不一致`;
+                }
+                if ((p.isTerminal !== false) !== (wire.isTerminal !== false)) {
+                    return `端子台不一致`;
+                }
+            }
+            return null;
+        }
+
+        function countAllCrossPageMismatches() {
+            const mergedGroups = new Map();
+            state.wires.forEach(w => {
+                if (w.crossPageLinkId) {
+                    if (!mergedGroups.has(w.crossPageLinkId)) mergedGroups.set(w.crossPageLinkId, []);
+                    mergedGroups.get(w.crossPageLinkId).push(w);
+                }
+            });
+            let count = 0;
+            mergedGroups.forEach(wires => {
+                if (wires.length > 1) {
+                    const first = wires[0];
+                    const hasDiff = wires.some(w => w.sq !== first.sq || w.color !== first.color || (w.isTerminal !== false) !== (first.isTerminal !== false));
+                    if (hasDiff) count++;
+                }
+            });
+            return count;
+        }
+
+        function syncCrossPageWireSpecs(sourceWireId, options = { syncSq: true, syncColor: true, syncTerminal: true, syncMark: true }) {
+            const src = state.wires.find(w => w.id === sourceWireId);
+            if (!src || !src.crossPageLinkId) return 0;
+            let count = 0;
+            state.wires.forEach(w => {
+                if (w.crossPageLinkId === src.crossPageLinkId && w.id !== src.id) {
+                    if (options.syncSq) w.sq = src.sq;
+                    if (options.syncColor) w.color = src.color;
+                    if (options.syncTerminal) w.isTerminal = src.isTerminal;
+                    if (options.syncMark) w.markText = src.markText;
+                    count++;
+                }
+            });
+            return count;
+        }
+
+        function alignCrossPageGroupSpecs(linkId, sourceWireId) {
+            const src = state.wires.find(w => w.id === sourceWireId);
+            if (!src) return;
+            saveHistoryState('Align-CrossPage-Specs');
+            let count = 0;
+            state.wires.forEach(w => {
+                if (w.crossPageLinkId === linkId && w.id !== src.id) {
+                    w.sq = src.sq;
+                    w.color = src.color;
+                    w.isTerminal = src.isTerminal;
+                    w.markText = src.markText;
+                    count++;
+                }
+            });
+            drawDiagram();
+            updateTablesAndStats();
+            renderCrossPageModal();
+            autoSaveToLocalStorage();
+            showToast(`✅ 已將跨頁配線規格統一對齊為 P.${src.page} 規格 (${src.sq} SQ, ${COLOR_NAMES[src.color]||'色'})`);
+        }
+
+        function alignAllCrossPageMismatches() {
+            saveHistoryState('Align-All-CrossPage-Mismatches');
+            const mergedGroups = new Map();
+            state.wires.forEach(w => {
+                if (w.crossPageLinkId) {
+                    if (!mergedGroups.has(w.crossPageLinkId)) mergedGroups.set(w.crossPageLinkId, []);
+                    mergedGroups.get(w.crossPageLinkId).push(w);
+                }
+            });
+            let alignedGroups = 0;
+            mergedGroups.forEach((wires) => {
+                if (wires.length > 1) {
+                    const first = wires[0];
+                    const hasDiff = wires.some(w => w.sq !== first.sq || w.color !== first.color || (w.isTerminal !== false) !== (first.isTerminal !== false));
+                    if (hasDiff) {
+                        // Preferred source is wire on currentPage or first
+                        const src = wires.find(w => w.page === state.currentPage) || first;
+                        wires.forEach(w => {
+                            if (w.id !== src.id) {
+                                w.sq = src.sq;
+                                w.color = src.color;
+                                w.isTerminal = src.isTerminal;
+                                w.markText = src.markText;
+                            }
+                        });
+                        alignedGroups++;
+                    }
+                }
+            });
+            drawDiagram();
+            updateTablesAndStats();
+            renderCrossPageModal();
+            autoSaveToLocalStorage();
+            showToast(`🎉 已成功對齊 ${alignedGroups} 組跨頁電線規格！`);
+        }
+
         function renderCrossPageModal() {
             const candidates = findCrossPageCandidates();
             
@@ -3462,22 +3921,46 @@
                 }
             });
 
+            const mismatchCount = countAllCrossPageMismatches();
+
             const countCandElem = document.getElementById('countCrossPageCandidates');
             if (countCandElem) countCandElem.innerText = candidates.length;
             const countMergedElem = document.getElementById('countCrossPageMerged');
-            if (countMergedElem) countMergedElem.innerText = mergedGroups.size;
+            if (countMergedElem) {
+                countMergedElem.innerHTML = mismatchCount > 0 
+                    ? `${mergedGroups.size} <span class="text-amber-300 font-bold text-[10px]">⚠️${mismatchCount}</span>` 
+                    : mergedGroups.size;
+            }
             const countIgnoredElem = document.getElementById('countCrossPageIgnored');
             const totalIgnoredCount = (state.ignoredRadarMarks ? state.ignoredRadarMarks.size : 0) + (state.dismissedRadarMarks ? state.dismissedRadarMarks.size : 0);
             if (countIgnoredElem) countIgnoredElem.innerText = totalIgnoredCount;
 
             const headerBadge = document.getElementById('crossPageHeaderBadge');
             if (headerBadge) {
-                headerBadge.innerText = candidates.length;
-                headerBadge.classList.toggle('hidden', candidates.length === 0);
+                if (mismatchCount > 0) {
+                    headerBadge.innerText = candidates.length > 0 ? `${candidates.length}+⚠️${mismatchCount}` : `⚠️${mismatchCount}`;
+                    headerBadge.className = 'absolute -top-1 -right-1.5 px-1.5 py-0.2 bg-amber-600 text-white rounded-full text-[10px] font-bold shadow animate-pulse';
+                    headerBadge.classList.remove('hidden');
+                } else {
+                    headerBadge.innerText = candidates.length;
+                    headerBadge.className = 'absolute -top-1 -right-1.5 px-1.5 py-0.2 bg-amber-500 text-slate-900 rounded-full text-[10px] font-bold shadow';
+                    headerBadge.classList.toggle('hidden', candidates.length === 0);
+                }
             }
             const sidebarBadge = document.getElementById('crossPagePendingBadge');
             if (sidebarBadge) {
-                sidebarBadge.innerText = `${candidates.length} 組`;
+                if (mismatchCount > 0) {
+                    sidebarBadge.innerText = `${candidates.length} 組 (⚠️${mismatchCount}衝突)`;
+                    sidebarBadge.className = 'px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300 text-[10px] font-bold border border-amber-500/50 animate-pulse';
+                } else {
+                    sidebarBadge.innerText = `${candidates.length} 組`;
+                    sidebarBadge.className = 'px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[10px] font-mono';
+                }
+            }
+
+            const btnBatchAlign = document.getElementById('btnBatchAlignAllCrossPage');
+            if (btnBatchAlign) {
+                btnBatchAlign.classList.toggle('hidden', currentCrossPageTab !== 'merged' || mismatchCount === 0);
             }
 
             // Panel 1: Candidates
@@ -3494,6 +3977,7 @@
                     `;
                 } else {
                     candidates.forEach((cand, idx) => {
+                        const hasSpecMismatch = cand.wire1.sq !== cand.wire2.sq || cand.wire1.color !== cand.wire2.color || (cand.wire1.isTerminal !== false) !== (cand.wire2.isTerminal !== false);
                         const card = document.createElement('div');
                         card.className = 'bg-slate-900/90 border border-slate-700 hover:border-indigo-500/80 rounded-lg p-2.5 space-y-2 transition shadow-sm';
                         card.innerHTML = `
@@ -3505,19 +3989,26 @@
                                     <span class="text-xs text-slate-300 font-medium">
                                         P.<strong class="text-indigo-400">${cand.wire1.page}</strong> ⇄ P.<strong class="text-indigo-400">${cand.wire2.page}</strong>
                                     </span>
+                                    ${hasSpecMismatch ? '<span class="px-1.5 py-0.2 rounded bg-amber-900/60 text-amber-300 text-[10px] font-bold border border-amber-600/50">規格不同</span>' : ''}
                                 </div>
                                 <span class="text-[10px] text-slate-400">候補 #${idx + 1}</span>
                             </div>
                             <div class="grid grid-cols-2 gap-2 text-[11px] bg-slate-950/60 p-1.5 rounded border border-slate-800">
                                 <div class="flex items-center justify-between pr-1">
-                                    <span class="text-slate-400">P.${cand.wire1.page}: ${cand.wire1.sq}SQ / ${COLOR_NAMES[cand.wire1.color]||'色'}</span>
+                                    <span class="text-slate-400">P.${cand.wire1.page}: <strong class="text-slate-200">${cand.wire1.sq}SQ</strong> / ${COLOR_NAMES[cand.wire1.color]||'色'}</span>
                                     <button type="button" onclick="inspectCrossPageWire('${cand.wire1.id}')" class="text-indigo-400 hover:text-indigo-300 underline text-[10px]">查看</button>
                                 </div>
                                 <div class="flex items-center justify-between pl-1 border-l border-slate-800">
-                                    <span class="text-slate-400">P.${cand.wire2.page}: ${cand.wire2.sq}SQ / ${COLOR_NAMES[cand.wire2.color]||'色'}</span>
+                                    <span class="text-slate-400">P.${cand.wire2.page}: <strong class="text-slate-200">${cand.wire2.sq}SQ</strong> / ${COLOR_NAMES[cand.wire2.color]||'色'}</span>
                                     <button type="button" onclick="inspectCrossPageWire('${cand.wire2.id}')" class="text-indigo-400 hover:text-indigo-300 underline text-[10px]">查看</button>
                                 </div>
                             </div>
+                            ${hasSpecMismatch ? `
+                                <div class="text-[10px] text-amber-400/90 flex items-center gap-1 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/40">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                    <span>兩端規格不同，一鍵合併時將自動統整對齊規格</span>
+                                </div>
+                            ` : ''}
                             <div class="flex items-center justify-between pt-1">
                                 <button type="button" onclick="ignoreRadarMarkFromModal('${cand.markText}')" class="text-[10px] text-slate-400 hover:text-red-300 underline" title="不再提醒此線號">
                                     免打擾此線號
@@ -3544,29 +4035,93 @@
                         </div>
                     `;
                 } else {
+                    if (mismatchCount > 0) {
+                        const topAlert = document.createElement('div');
+                        topAlert.className = 'bg-amber-950/80 border border-amber-500/80 rounded-lg p-2.5 flex items-center justify-between text-xs text-amber-200 shadow-md mb-2';
+                        topAlert.innerHTML = `
+                            <div class="flex items-center space-x-2">
+                                <i class="fa-solid fa-triangle-exclamation text-amber-400 text-base shrink-0 animate-pulse"></i>
+                                <div>
+                                    <div class="font-bold text-amber-300">發現 ${mismatchCount} 組跨頁電線規格不一致！</div>
+                                    <div class="text-[10px] text-amber-200/80">各頁電線規格（SQ或顏色）不同可能導致字管口徑統計錯誤，建議一鍵統一對齊。</div>
+                                </div>
+                            </div>
+                            <button type="button" onclick="alignAllCrossPageMismatches()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded text-xs transition flex items-center shadow shrink-0 ml-2">
+                                <i class="fa-solid fa-wand-magic-sparkles me-1.5"></i>一鍵全部對齊規格
+                            </button>
+                        `;
+                        pnlMerged.appendChild(topAlert);
+                    }
+
                     mergedGroups.forEach((wires, linkId) => {
                         const w1 = wires[0];
                         const otherPages = wires.slice(1).map(w => w.page).join(', ');
+                        const hasDiff = wires.some(w => w.sq !== w1.sq || w.color !== w1.color || (w.isTerminal !== false) !== (w1.isTerminal !== false));
                         const card = document.createElement('div');
-                        card.className = 'bg-slate-900/90 border border-indigo-900/60 rounded-lg p-2.5 flex items-center justify-between text-xs';
-                        card.innerHTML = `
-                            <div class="space-y-0.5">
-                                <div class="flex items-center space-x-2">
-                                    <span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono font-bold text-xs border border-indigo-500/40">
-                                        ${w1.markText}
-                                    </span>
-                                    <span class="text-white font-medium">
-                                        P.<strong class="text-indigo-400">${w1.page}</strong> ⇄ P.<strong class="text-indigo-400">${otherPages || w1.linkedPage}</strong>
-                                    </span>
+
+                        if (hasDiff) {
+                            card.className = 'bg-slate-900/95 border-2 border-amber-500/80 rounded-lg p-3 space-y-2 text-xs shadow-md';
+                            card.innerHTML = `
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold text-xs border border-amber-500/40">
+                                            ${w1.markText}
+                                        </span>
+                                        <span class="text-white font-semibold">
+                                            P.<strong class="text-indigo-400">${w1.page}</strong> ⇄ P.<strong class="text-indigo-400">${otherPages || w1.linkedPage}</strong>
+                                        </span>
+                                        <span class="px-1.5 py-0.5 rounded bg-amber-900/80 text-amber-200 text-[10px] font-bold border border-amber-600 animate-pulse">
+                                            ⚠️ 規格不一致
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center space-x-1.5">
+                                        <button type="button" onclick="unlinkCrossPageWire('${w1.id}')" class="px-2 py-1 bg-red-900/40 hover:bg-red-800/60 border border-red-700/60 text-red-200 rounded text-[11px] transition">
+                                            <i class="fa-solid fa-link-slash me-1"></i>解除
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="text-[10px] text-slate-400">已合併為 1 條邏輯電線 (2顆字管)</div>
-                            </div>
-                            <div class="flex items-center space-x-1.5">
-                                <button type="button" onclick="unlinkCrossPageWire('${w1.id}')" class="px-2 py-1 bg-red-900/40 hover:bg-red-800/60 border border-red-700/60 text-red-200 rounded text-[11px] transition">
-                                    <i class="fa-solid fa-link-slash me-1"></i>解除
-                                </button>
-                            </div>
-                        `;
+                                <div class="bg-slate-950/70 p-2 rounded border border-slate-800 space-y-1.5">
+                                    <div class="text-[11px] text-slate-300 font-medium">各頁面規格差異 (點選以該規格為準統一對齊)：</div>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        ${wires.map(w => `
+                                            <div class="bg-slate-900 p-1.5 rounded border border-slate-700 flex items-center justify-between text-[11px]">
+                                                <div>
+                                                    <span class="font-bold text-indigo-300">P.${w.page}：</span>
+                                                    <span class="font-mono text-amber-300 font-bold">${w.sq} SQ</span>
+                                                    <span class="text-slate-300 text-[10px] ml-1">${COLOR_NAMES[w.color]||'色'}</span>
+                                                </div>
+                                                <button type="button" onclick="alignCrossPageGroupSpecs('${linkId}', '${w.id}')" class="px-2 py-0.5 bg-amber-600 hover:bg-amber-500 text-white rounded text-[10px] font-bold transition flex items-center gap-1 shadow-sm">
+                                                    <i class="fa-solid fa-wand-magic-sparkles"></i>以此對齊
+                                                </button>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            card.className = 'bg-slate-900/90 border border-indigo-900/60 rounded-lg p-2.5 flex items-center justify-between text-xs';
+                            card.innerHTML = `
+                                <div class="space-y-0.5">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono font-bold text-xs border border-indigo-500/40">
+                                            ${w1.markText}
+                                        </span>
+                                        <span class="text-white font-medium">
+                                            P.<strong class="text-indigo-400">${w1.page}</strong> ⇄ P.<strong class="text-indigo-400">${otherPages || w1.linkedPage}</strong>
+                                        </span>
+                                        <span class="text-[10px] text-emerald-400 font-medium">
+                                            <i class="fa-solid fa-check me-0.5"></i>規格一致 (${w1.sq} SQ, ${COLOR_NAMES[w1.color]||'色'})
+                                        </span>
+                                    </div>
+                                    <div class="text-[10px] text-slate-400">已合併為 1 條邏輯電線 (2顆字管)</div>
+                                </div>
+                                <div class="flex items-center space-x-1.5">
+                                    <button type="button" onclick="unlinkCrossPageWire('${w1.id}')" class="px-2 py-1 bg-red-900/40 hover:bg-red-800/60 border border-red-700/60 text-red-200 rounded text-[11px] transition">
+                                        <i class="fa-solid fa-link-slash me-1"></i>解除
+                                    </button>
+                                </div>
+                            `;
+                        }
                         pnlMerged.appendChild(card);
                     });
                 }
@@ -3633,12 +4188,23 @@
             wire2.crossPageLinkId = linkId;
             wire2.linkedPage = wire1.page;
 
+            // Auto-sync specs: prioritize currently viewed page, otherwise wire1
+            let syncNotice = '';
+            if (wire1.sq !== wire2.sq || wire1.color !== wire2.color || (wire1.isTerminal !== false) !== (wire2.isTerminal !== false)) {
+                const src = state.currentPage === wire2.page ? wire2 : wire1;
+                const dst = src === wire1 ? wire2 : wire1;
+                dst.sq = src.sq;
+                dst.color = src.color;
+                dst.isTerminal = src.isTerminal;
+                syncNotice = ` (規格已自動統一為 ${src.sq} SQ / ${COLOR_NAMES[src.color]||'色'})`;
+            }
+
             dismissRadarCapsule();
             drawDiagram();
             updateTablesAndStats();
             renderCrossPageModal();
             autoSaveToLocalStorage();
-            showToast(`🔗 跨頁線「${wire1.markText}」(P.${wire1.page} ⇄ P.${wire2.page}) 已成功合併！`);
+            showToast(`🔗 跨頁線「${wire1.markText}」(P.${wire1.page} ⇄ P.${wire2.page}) 已成功合併！${syncNotice}`);
         }
 
         function batchMergeAllCrossPageCandidates() {
@@ -3655,6 +4221,15 @@
                 cand.wire1.linkedPage = cand.wire2.page;
                 cand.wire2.crossPageLinkId = linkId;
                 cand.wire2.linkedPage = cand.wire1.page;
+
+                // Auto-sync specs
+                if (cand.wire1.sq !== cand.wire2.sq || cand.wire1.color !== cand.wire2.color || (cand.wire1.isTerminal !== false) !== (cand.wire2.isTerminal !== false)) {
+                    const src = state.currentPage === cand.wire2.page ? cand.wire2 : cand.wire1;
+                    const dst = src === cand.wire1 ? cand.wire2 : cand.wire1;
+                    dst.sq = src.sq;
+                    dst.color = src.color;
+                    dst.isTerminal = src.isTerminal;
+                }
             });
 
             dismissRadarCapsule();
@@ -3725,37 +4300,64 @@
             if (typeof findCrossPageCandidates !== 'function') return;
             const candidates = findCrossPageCandidates();
             const count = candidates.length;
+            const mismatchCount = countAllCrossPageMismatches();
+
             const headerBadge = document.getElementById('crossPageHeaderBadge');
             if (headerBadge) {
-                headerBadge.innerText = count;
-                headerBadge.classList.toggle('hidden', count === 0);
+                if (mismatchCount > 0) {
+                    headerBadge.innerText = count > 0 ? `${count}+⚠️${mismatchCount}` : `⚠️${mismatchCount}`;
+                    headerBadge.className = 'absolute -top-1 -right-1.5 px-1.5 py-0.2 bg-amber-600 text-white rounded-full text-[10px] font-bold shadow animate-pulse';
+                    headerBadge.classList.remove('hidden');
+                } else {
+                    headerBadge.innerText = count;
+                    headerBadge.className = 'absolute -top-1 -right-1.5 px-1.5 py-0.2 bg-amber-500 text-slate-900 rounded-full text-[10px] font-bold shadow';
+                    headerBadge.classList.toggle('hidden', count === 0);
+                }
             }
             const sidebarBadge = document.getElementById('crossPagePendingBadge');
             if (sidebarBadge) {
-                sidebarBadge.innerText = `${count} 組`;
+                if (mismatchCount > 0) {
+                    sidebarBadge.innerText = `${count} 組 (⚠️${mismatchCount}衝突)`;
+                    sidebarBadge.className = 'px-1.5 py-0.5 rounded bg-amber-500/30 text-amber-300 text-[10px] font-bold border border-amber-500/50 animate-pulse';
+                } else {
+                    sidebarBadge.innerText = `${count} 組`;
+                    sidebarBadge.className = 'px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[10px] font-mono';
+                }
             }
             const countElem = document.getElementById('countCrossPageCandidates');
             if (countElem) countElem.innerText = count;
         }
 
-        function drawCrossPageBadge(x, y, linkedPage) {
+        function drawCrossPageBadge(x, y, linkedPage, mismatchSummary) {
             ctx.save();
-            const text = linkedPage ? `⇄ P.${linkedPage}` : '⇄ 跨頁';
+            const hasMismatch = !!mismatchSummary;
+            const text = hasMismatch 
+                ? `⚠️ ⇄ P.${linkedPage || '跨頁'} (${mismatchSummary})` 
+                : (linkedPage ? `⇄ P.${linkedPage}` : '⇄ 跨頁');
             ctx.font = 'bold 9px sans-serif';
-            const w = ctx.measureText(text).width + 8;
-            const h = 13;
+            const w = ctx.measureText(text).width + 10;
+            const h = 15;
             const badgeX = x;
-            const badgeY = y - 13;
+            const badgeY = y - 14;
 
             ctx.beginPath();
             ctx.roundRect(badgeX - w/2, badgeY - h/2, w, h, 3);
-            ctx.fillStyle = '#3730a3'; // indigo-800
-            ctx.fill();
-            ctx.strokeStyle = '#818cf8'; // indigo-400
-            ctx.lineWidth = 1;
-            ctx.stroke();
+            if (hasMismatch) {
+                ctx.fillStyle = '#78350f'; // amber-900
+                ctx.fill();
+                ctx.strokeStyle = '#f59e0b'; // amber-500
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.fillStyle = '#fef08a'; // yellow-200
+            } else {
+                ctx.fillStyle = '#3730a3'; // indigo-800
+                ctx.fill();
+                ctx.strokeStyle = '#818cf8'; // indigo-400
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.fillStyle = '#ffffff';
+            }
 
-            ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(text, badgeX, badgeY);
@@ -3908,24 +4510,25 @@
         }
 
         function updateWaypointAngleHint(e, wire, handle, point) {
+            const waypoints = wire.waypoints || [];
             if (handle.handleType === 'A') {
-                const next = wire.waypoints[0] || wire.pointB;
+                const next = waypoints[0] || wire.pointB;
                 const angle = getNearestAllowedAngle(point, next, ENDPOINT_SNAP_ANGLES);
                 showAngleHint(e, `A点: ${Math.round(angle.actual)}° → ${angle.snapped}°`, angle.isAllowed);
                 return;
             }
             if (handle.handleType === 'B') {
-                const previous = wire.waypoints[wire.waypoints.length - 1] || wire.pointA;
+                const previous = waypoints[waypoints.length - 1] || wire.pointA;
                 const angle = getNearestAllowedAngle(previous, point, ENDPOINT_SNAP_ANGLES);
                 showAngleHint(e, `B点: ${Math.round(angle.actual)}° → ${angle.snapped}°`, angle.isAllowed);
                 return;
             }
 
             const index = handle.index;
-            const previous = index === 0 ? wire.pointA : wire.waypoints[index - 1];
-            const next = index === wire.waypoints.length - 1 ? wire.pointB : wire.waypoints[index + 1];
+            const previous = index === 0 ? wire.pointA : (waypoints[index - 1] || wire.pointA);
+            const next = index === waypoints.length - 1 ? wire.pointB : (waypoints[index + 1] || wire.pointB);
             const previousAllowed = index === 0 ? ENDPOINT_SNAP_ANGLES : [0, 90];
-            const nextAllowed = index === wire.waypoints.length - 1 ? ENDPOINT_SNAP_ANGLES : [0, 90];
+            const nextAllowed = index === waypoints.length - 1 ? ENDPOINT_SNAP_ANGLES : [0, 90];
             const before = getNearestAllowedAngle(previous, point, previousAllowed);
             const after = getNearestAllowedAngle(point, next, nextAllowed);
             const text = `折点 前:${Math.round(before.actual)}°→${before.snapped}° / 後:${Math.round(after.actual)}°→${after.snapped}°`;
@@ -4205,7 +4808,7 @@
         }
 
         function getWireTagPosition(wire) {
-            const allPts = [wire.pointA, ...wire.waypoints, wire.pointB];
+            const allPts = [wire.pointA, ...(wire.waypoints || []), wire.pointB];
             if (allPts.length <= 2) {
                 return {
                     x: (wire.pointA.x + wire.pointB.x) / 2,
@@ -4317,7 +4920,7 @@
                     ctx.save();
                     ctx.beginPath();
                     ctx.moveTo(wire.pointA.x, wire.pointA.y);
-                    wire.waypoints.forEach(wp => ctx.lineTo(wp.x, wp.y));
+                    (wire.waypoints || []).forEach(wp => ctx.lineTo(wp.x, wp.y));
                     ctx.lineTo(wire.pointB.x, wire.pointB.y);
                     ctx.strokeStyle = '#38bdf8';
                     ctx.lineWidth = parseFloat(wire.sq) * 3 + 10;
@@ -4329,7 +4932,7 @@
 
                 ctx.beginPath();
                 ctx.moveTo(wire.pointA.x, wire.pointA.y);
-                wire.waypoints.forEach(wp => ctx.lineTo(wp.x, wp.y));
+                (wire.waypoints || []).forEach(wp => ctx.lineTo(wp.x, wp.y));
                 ctx.lineTo(wire.pointB.x, wire.pointB.y);
 
                 if (isSelected && !isExport) {
@@ -4357,13 +4960,14 @@
                 const tagPos = getWireTagPosition(wire);
                 drawMarkTubeTag(tagPos.x, tagPos.y, wire.markText, isSelected && !isExport, wire.isTerminal !== false, isSearchMatch);
                 if (wire.crossPageLinkId) {
-                    drawCrossPageBadge(tagPos.x, tagPos.y, wire.linkedPage);
+                    const mismatchSummary = getCrossPageMismatchSummary(wire);
+                    drawCrossPageBadge(tagPos.x, tagPos.y, wire.linkedPage, mismatchSummary);
                 }
 
                 if (!isExport && isSelected) {
                     drawHandleNode(wire.pointA.x, wire.pointA.y, 'A', isSelected);
                     drawHandleNode(wire.pointB.x, wire.pointB.y, 'B', isSelected);
-                    wire.waypoints.forEach((wp) => {
+                    (wire.waypoints || []).forEach((wp) => {
                         drawHandleNode(wp.x, wp.y, 'WP', isSelected);
                     });
                 }
@@ -4844,6 +5448,7 @@
             // 1. Delete waypoint if double-tapping existing node
             for (let wire of state.wires) {
                 if (wire.page !== state.currentPage) continue;
+                wire.waypoints = wire.waypoints || [];
                 for (let i = 0; i < wire.waypoints.length; i++) {
                     const wp = wire.waypoints[i];
                     if (Math.hypot(wp.x - pos.x, wp.y - pos.y) < 20) {
@@ -4867,6 +5472,7 @@
             let closest = null;
             for (let wire of state.wires) {
                 if (wire.page !== state.currentPage) continue;
+                wire.waypoints = wire.waypoints || [];
                 const fullPoints = [wire.pointA, ...wire.waypoints, wire.pointB];
                 for (let i = 0; i < fullPoints.length - 1; i++) {
                     const { dist } = distToSegment(pos.x, pos.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
@@ -4879,6 +5485,7 @@
             if (closest) {
                 saveHistoryState('Add-Waypoint');
                 const snappedWaypoint = snapToCircuitLine(pos) || pos;
+                closest.wire.waypoints = closest.wire.waypoints || [];
                 closest.wire.waypoints.splice(closest.segIndex, 0, snappedWaypoint);
                 state.selectedWireId = closest.wire.id;
                 state.lastWaypointAddTimestamp = Date.now();
@@ -4901,6 +5508,7 @@
                     let minDist = Infinity;
                     for (let wire of state.wires) {
                         if (wire.page !== state.currentPage) continue;
+                        wire.waypoints = wire.waypoints || [];
                         const fullPoints = [wire.pointA, ...wire.waypoints, wire.pointB];
                         for (let i = 0; i < fullPoints.length - 1; i++) {
                             const { dist } = distToSegment(snappedPoint.x, snappedPoint.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
@@ -4913,6 +5521,7 @@
                 }
                 if (targetWire) {
                     saveHistoryState('Add-Waypoint-BlackLine');
+                    targetWire.waypoints = targetWire.waypoints || [];
                     const fullPoints = [targetWire.pointA, ...targetWire.waypoints, targetWire.pointB];
                     let bestSegIndex = 0;
                     let minDist = Infinity;
@@ -4946,6 +5555,7 @@
             // 1. Delete waypoint if long-pressing existing waypoint node
             for (let wire of state.wires) {
                 if (wire.page !== state.currentPage) continue;
+                wire.waypoints = wire.waypoints || [];
                 for (let i = 0; i < wire.waypoints.length; i++) {
                     const wp = wire.waypoints[i];
                     if (Math.hypot(wp.x - pos.x, wp.y - pos.y) < 22) {
@@ -5469,8 +6079,9 @@
             if (Math.hypot(wire.pointB.x - pos.x, wire.pointB.y - pos.y) < 16) {
                 return { wireId: wire.id, handleType: 'B', index: -1 };
             }
-            for (let i = 0; i < wire.waypoints.length; i++) {
-                if (Math.hypot(wire.waypoints[i].x - pos.x, wire.waypoints[i].y - pos.y) < 16) {
+            const waypoints = wire.waypoints || [];
+            for (let i = 0; i < waypoints.length; i++) {
+                if (Math.hypot(waypoints[i].x - pos.x, waypoints[i].y - pos.y) < 16) {
                     return { wireId: wire.id, handleType: 'WP', index: i };
                 }
             }
@@ -5482,6 +6093,7 @@
             let minDist = Infinity;
             for (let wire of state.wires) {
                 if (wire.page !== state.currentPage) continue;
+                wire.waypoints = wire.waypoints || [];
                 const fullPoints = [wire.pointA, ...wire.waypoints, wire.pointB];
                 for (let i = 0; i < fullPoints.length - 1; i++) {
                     const { dist } = distToSegment(pos.x, pos.y, fullPoints[i].x, fullPoints[i].y, fullPoints[i + 1].x, fullPoints[i + 1].y);
@@ -5832,8 +6444,26 @@
                     wire.sq = sq;
                     wire.color = color;
                     wire.isTerminal = isTerminal;
+
+                    // Synchronize cross-page wires if checked
+                    const syncCheckbox = document.getElementById('modalSyncCrossPageWires');
+                    const shouldSync = wire.crossPageLinkId && (!syncCheckbox || syncCheckbox.checked);
+                    let syncPages = [];
+                    if (shouldSync) {
+                        state.wires.forEach(w => {
+                            if (w.crossPageLinkId === wire.crossPageLinkId && w.id !== wire.id) {
+                                w.markText = markText;
+                                w.sq = sq;
+                                w.color = color;
+                                w.isTerminal = isTerminal;
+                                syncPages.push('P.' + w.page);
+                            }
+                        });
+                    }
+
                     triggerCrossPageRadar(wire);
-                    showToast('配線パラメータを更新しました');
+                    const syncToast = syncPages.length > 0 ? `（已連動更新跨頁配線：${syncPages.join(', ')}）` : '';
+                    showToast(`配線パラメータを更新しました${syncToast}`);
                 }
             } else if (state.pendingWireData) {
                 const newWire = {
@@ -5910,7 +6540,38 @@
             const crossPageInfo = document.getElementById('modalCrossPageInfo');
             if (crossPageInfo) {
                 if (wire.crossPageLinkId) {
-                    document.getElementById('modalLinkedPageText').innerText = wire.linkedPage || '別頁';
+                    const partners = state.wires.filter(w => w.crossPageLinkId === wire.crossPageLinkId && w.id !== wire.id);
+                    const partnerPages = partners.map(p => p.page).join(', ') || wire.linkedPage || '別頁';
+                    document.getElementById('modalLinkedPageText').innerText = partnerPages;
+                    const syncText = document.getElementById('modalLinkedPageSyncText');
+                    if (syncText) syncText.innerText = partnerPages;
+
+                    const syncChk = document.getElementById('modalSyncCrossPageWires');
+                    if (syncChk) syncChk.checked = true;
+
+                    // Check mismatch
+                    const mismatchAlert = document.getElementById('modalCrossPageMismatchAlert');
+                    const mismatchText = document.getElementById('modalCrossPageMismatchText');
+                    const btnAlign = document.getElementById('btnModalAlignSpecs');
+                    const mismatchDetails = getCrossPageMismatchInfo(wire);
+
+                    if (mismatchDetails && mismatchAlert && mismatchText) {
+                        const lines = mismatchDetails.map(m => `• P.${m.otherWire.page} 目前為: <strong class="text-amber-300 font-mono">${m.otherWire.sq} SQ</strong> (${COLOR_NAMES[m.otherWire.color]||'色'}) [本頁為: ${wire.sq} SQ]`);
+                        mismatchText.innerHTML = lines.join('<br>');
+                        mismatchAlert.classList.remove('hidden');
+                        if (btnAlign) {
+                            btnAlign.onclick = () => {
+                                syncCrossPageWireSpecs(wire.id, { syncSq: true, syncColor: true, syncTerminal: true, syncMark: true });
+                                mismatchAlert.classList.add('hidden');
+                                drawDiagram();
+                                updateTablesAndStats();
+                                showToast(`已將 P.${partnerPages} 規格同步為 ${wire.sq} SQ (${COLOR_NAMES[wire.color]||'色'})`);
+                            };
+                        }
+                    } else if (mismatchAlert) {
+                        mismatchAlert.classList.add('hidden');
+                    }
+
                     crossPageInfo.classList.remove('hidden');
                 } else {
                     crossPageInfo.classList.add('hidden');
@@ -6268,14 +6929,17 @@
             return `"${String(value).replace(/"/g, '""')}"`;
         }
 
-        function createMarkTubeSummary(targetPages) {
-            const pageSet = new Set(targetPages);
+        function createMarkTubeSummary(targetPages, filterQuery = null) {
+            const validPages = Array.isArray(targetPages) ? targetPages : [state.currentPage];
+            const pageSet = new Set(validPages);
             const summaryByKey = new Map();
             let excludedWireCount = 0;
             const processedLinkIds = new Set();
+            const query = (filterQuery || '').trim().toLowerCase();
 
             state.wires
                 .filter(w => pageSet.has(w.page))
+                .filter(w => !query || (w.markText && w.markText.toLowerCase().includes(query)))
                 .forEach(wire => {
                     const tubeSize = MARK_TUBE_SIZE_BY_SQ[wire.sq];
                     if (!tubeSize) {
@@ -6320,6 +6984,7 @@
                 });
 
             const items = [...summaryByKey.values()]
+                .filter(item => item.quantity > 0)
                 .sort((a, b) => a.markText.localeCompare(b.markText, 'ja') || a.tubeSize.localeCompare(b.tubeSize))
                 .map(item => {
                     const pageList = [...item.pages].sort((a, b) => a - b).join(', ');
@@ -6344,10 +7009,12 @@
                 showToast('集計対象の配線データがありません');
                 return null;
             }
-            const targetPages = customPages || getSidebarTargetPages();
+            const targetPages = Array.isArray(customPages) ? customPages : getSidebarTargetPages();
             if (!targetPages || targetPages.length === 0) return null;
-            const summary = createMarkTubeSummary(targetPages);
-            return { ...summary, targetPages };
+
+            const filterQuery = (state.sidebarExportScope === 'filtered') ? state.searchQuery : null;
+            const summary = createMarkTubeSummary(targetPages, filterQuery);
+            return { ...summary, targetPages, filterQuery };
         }
 
         function exportExcel(customPages) {
@@ -6358,15 +7025,19 @@
             const data = getMarkTubeExportData(customPages);
             if (!data) return;
 
+            const totalTubeQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
             const totalTermPoints = data.items.reduce((sum, item) => sum + item.terminalPoints, 0);
 
+            // Data rows, followed by blank separator row, then summary total row
             const rows = [
                 ['マークチューブ印字', '端子台接続', 'マークチューブ尺寸', '対象電線サイズ(SQ)', '必要数(個)', '端子必要数(点)', '対象頁'],
                 ...data.items.map(item => [item.markText, item.isTerminalText, item.tubeSize, item.sqs, item.quantity, item.terminalPoints, item.pages]),
-                ['合計', '', '', '', '', totalTermPoints, '']
+                ['', '', '', '', '', '', ''],
+                ['合計', '', '', '', totalTubeQuantity, totalTermPoints, '']
             ];
             const worksheet = XLSX.utils.aoa_to_sheet(rows);
-            worksheet['!autofilter'] = { ref: `A1:G${Math.max(rows.length - 1, 2)}` };
+            // Autofilter covers only the data table rows (excluding blank row and totals), preventing totals from being filtered/sorted!
+            worksheet['!autofilter'] = { ref: `A1:G${Math.max(data.items.length + 1, 2)}` };
             worksheet['!cols'] = [
                 { wch: 22 }, { wch: 14 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 16 }, { wch: 16 }
             ];
@@ -6375,17 +7046,15 @@
 
             const isAll = (data.targetPages.length === state.totalPages && state.totalPages > 1);
             const isSingle = data.targetPages.length === 1;
-            const pageSuffix = isAll
-                ? '_AllPages'
-                : (isSingle ? `_Page${data.targetPages[0]}` : `_SelectedPages`);
+            let pageSuffix = data.filterQuery ? '_Filtered' : (isAll ? '_AllPages' : (isSingle ? `_Page${data.targetPages[0]}` : `_SelectedPages`));
             const dateStr = new Date().toISOString().slice(0, 10);
             const fileName = `MarkTube_Summary${pageSuffix}_${dateStr}.xlsx`;
 
             XLSX.writeFile(workbook, fileName);
 
-            const pageDesc = isAll
-                ? `全 ${data.targetPages.length} ページ`
-                : (isSingle ? `ページ ${data.targetPages[0]}` : `指定 ${data.targetPages.length} ページ`);
+            let pageDesc = data.filterQuery
+                ? `搜尋篩選「${data.filterQuery}」`
+                : (isAll ? `全 ${data.targetPages.length} ページ` : (isSingle ? `ページ ${data.targetPages[0]}` : `指定 ${data.targetPages.length} ページ`));
 
             showToast(data.excludedWireCount > 0
                 ? `${pageDesc}の集計Excelを出力しました（5.5 SQ以上 ${data.excludedWireCount} 本を除外）`
@@ -6396,27 +7065,29 @@
             const data = getMarkTubeExportData(customPages);
             if (!data) return;
 
+            const totalTubeQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
             const totalTermPoints = data.items.reduce((sum, item) => sum + item.terminalPoints, 0);
 
+            // Clean CSV formatting: Data rows first, followed by an empty line boundary before totals so Excel AutoFilter doesn't scramble totals
             let csvContent = "\uFEFFマークチューブ印字,端子台接続,マークチューブ尺寸,対象電線サイズ(SQ),必要数(個),端子必要数(点),対象頁\n";
             data.items.forEach(item => {
                 csvContent += [
                     escapeCSV(item.markText),
                     escapeCSV(item.isTerminalText),
-                    item.tubeSize,
+                    escapeCSV(item.tubeSize),
                     escapeCSV(item.sqs),
                     item.quantity,
                     item.terminalPoints,
                     escapeCSV(item.pages)
                 ].join(',') + '\n';
             });
-            csvContent += `合計,,,,,"${totalTermPoints}",\n`;
+            // Empty line acts as table boundary in Excel so user can freely click Data -> Filter without affecting totals
+            csvContent += '\n';
+            csvContent += `合計,,,,${totalTubeQuantity},${totalTermPoints},\n`;
 
             const isAll = (data.targetPages.length === state.totalPages && state.totalPages > 1);
             const isSingle = data.targetPages.length === 1;
-            const pageSuffix = isAll
-                ? '_AllPages'
-                : (isSingle ? `_Page${data.targetPages[0]}` : `_SelectedPages`);
+            let pageSuffix = data.filterQuery ? '_Filtered' : (isAll ? '_AllPages' : (isSingle ? `_Page${data.targetPages[0]}` : `_SelectedPages`));
             const dateStr = new Date().toISOString().slice(0, 10);
             const fileName = `MarkTube_Summary${pageSuffix}_${dateStr}.csv`;
 
@@ -6426,9 +7097,9 @@
             link.download = fileName;
             link.click();
 
-            const pageDesc = isAll
-                ? `全 ${data.targetPages.length} ページ`
-                : (isSingle ? `ページ ${data.targetPages[0]}` : `指定 ${data.targetPages.length} ページ`);
+            let pageDesc = data.filterQuery
+                ? `搜尋篩選「${data.filterQuery}」`
+                : (isAll ? `全 ${data.targetPages.length} ページ` : (isSingle ? `ページ ${data.targetPages[0]}` : `指定 ${data.targetPages.length} ページ`));
 
             showToast(data.excludedWireCount > 0
                 ? `${pageDesc}の集計CSVを出力しました（5.5 SQ以上 ${data.excludedWireCount} 本を除外）`
