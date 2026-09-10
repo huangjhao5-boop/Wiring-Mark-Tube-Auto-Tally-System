@@ -79,7 +79,7 @@
             <span class="font-bold text-white text-xs sm:text-sm tracking-tight flex items-center gap-1.5">
                 <span class="hidden sm:inline">ハード図面配線 & マークチューブ自動集計系統</span>
                 <span class="sm:hidden">配線集計</span>
-                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded tracking-normal">v2.9 (跨頁對接管理中心・精準輸入換頁版)</span>
+                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded tracking-normal">v3.0 (矩形框選圈取・線號批次置換與重新連番版)</span>
             </span>
         </div>
 
@@ -119,6 +119,11 @@
             </button>
             <button id="btnFitPage" class="px-1.5 py-0.5 text-[10px] font-medium bg-slate-700 hover:bg-slate-600 text-white rounded transition" title="全体表示">
                 <i class="fa-solid fa-expand"></i>
+            </button>
+            <div class="h-3 w-[1px] bg-slate-700 mx-0.5"></div>
+            <!-- Marquee Selection Toggle -->
+            <button id="btnToggleMarquee" onclick="toggleMarqueeMode()" class="px-1.5 py-0.5 text-[10px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition flex items-center" title="矩形框選模式 (按住Shift滑鼠拖曳圈選，或快捷鍵B)">
+                <i class="fa-solid fa-vector-square me-1 text-amber-400"></i><span class="hidden sm:inline">框選</span>
             </button>
         </div>
 
@@ -380,6 +385,20 @@
                 </button>
             </div>
 
+            <!-- Marquee Selection Floating Action Bar -->
+            <div id="marqueeActionBar" class="hidden absolute bottom-3 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur border border-amber-500/80 px-3 py-1.5 rounded-full shadow-2xl text-xs font-medium text-slate-200 flex items-center space-x-2 z-20 max-w-[95vw] animate-in fade-in slide-in-from-bottom-2 duration-150">
+                <span class="font-bold text-amber-300 font-mono flex items-center" id="marqueeBarCount">
+                    <i class="fa-solid fa-object-group me-1.5 text-amber-400"></i>已圈選 <span id="marqueeBarCountNum" class="mx-1 font-bold text-white">0</span> 條
+                </span>
+                <div class="h-3 w-[1px] bg-slate-600"></div>
+                <button onclick="openBatchEditFromSelection()" class="px-2.5 py-0.5 bg-amber-600 hover:bg-amber-500 text-white rounded-full text-[11px] font-bold shadow flex items-center transition" title="批次修改線號、顏色、線徑或重新連番 (快捷鍵: B)">
+                    <i class="fa-solid fa-pen-to-square me-1 text-[10px]"></i>統一編輯 / 連番 (B)
+                </button>
+                <button onclick="clearSelectedWires()" class="px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-full text-[11px] flex items-center transition" title="取消選取 (Esc)">
+                    <i class="fa-solid fa-xmark me-1 text-[10px]"></i>取消
+                </button>
+            </div>
+
             <!-- Confirmation / Editing Modal (Fixed, Zero-Jump, Zero-Scroll Mobile Optimized) -->
             <div id="wireModal" class="hidden fixed inset-0 h-[100dvh] w-full bg-slate-950/75 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
                 <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-sm flex flex-col p-3 animate-in fade-in zoom-in duration-150 my-auto pointer-events-auto">
@@ -479,12 +498,12 @@
                 </div>
             </div>
 
-            <!-- Batch Edit Modal Dialog (配線一括変更 - 支援直近連續・條件置換・同名) -->
+            <!-- Batch Edit Modal Dialog (配線一括変更 - 支援圈選、印字文字搜尋置換、重新連番、規格批量修改) -->
             <div id="batchEditModal" class="hidden fixed inset-0 h-[100dvh] w-full bg-slate-950/75 backdrop-blur-sm z-50 flex items-center justify-center p-3">
-                <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-sm flex flex-col p-3.5 my-auto pointer-events-auto animate-in fade-in zoom-in duration-150 max-h-[92dvh] overflow-hidden">
+                <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-lg md:max-w-xl flex flex-col p-3.5 my-auto pointer-events-auto animate-in fade-in zoom-in duration-150 max-h-[92dvh] overflow-hidden">
                     <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-2">
                         <h3 class="text-xs sm:text-sm font-bold text-white flex items-center">
-                            <i class="fa-solid fa-layer-group text-amber-400 me-2"></i>配線一括変更 (Batch Edit)
+                            <i class="fa-solid fa-layer-group text-amber-400 me-2"></i>配線統一編輯中心 (Batch Edit & Renumber)
                         </h3>
                         <button onclick="closeBatchEditModal()" class="p-1 text-slate-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
                     </div>
@@ -492,17 +511,30 @@
                     <div class="overflow-y-auto space-y-2.5 text-xs pr-1 flex-1">
                         <!-- Target Selection Mode Tabs -->
                         <div>
-                            <label class="block text-slate-300 font-semibold mb-1 text-[11px]">変更対象の選択方式</label>
-                            <div class="grid grid-cols-3 gap-1 bg-slate-900/80 p-1 rounded border border-slate-700 text-[10px]">
-                                <button type="button" id="tabBatchRecent" onclick="setBatchTargetTab('recent')" class="py-1 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400">直近配線 (連続)</button>
-                                <button type="button" id="tabBatchFilter" onclick="setBatchTargetTab('filter')" class="py-1 px-1 rounded bg-slate-800 text-slate-300 hover:text-white text-center border border-transparent">条件で置換</button>
-                                <button type="button" id="tabBatchMark" onclick="setBatchTargetTab('mark')" class="py-1 px-1 rounded bg-slate-800 text-slate-300 hover:text-white text-center border border-transparent">同名線号</button>
+                            <label class="block text-slate-300 font-semibold mb-1 text-[11px]">変更對象の選擇 (Target Scope)</label>
+                            <div class="grid grid-cols-4 gap-1 bg-slate-900/80 p-1 rounded border border-slate-700 text-[10px]">
+                                <button type="button" id="tabBatchSelected" onclick="setBatchTargetTab('selected')" class="py-1 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400">⬚ 圈選配線 (<span id="batchTabSelectedCount">0</span>)</button>
+                                <button type="button" id="tabBatchRecent" onclick="setBatchTargetTab('recent')" class="py-1 px-1 rounded bg-slate-800 text-slate-300 hover:text-white text-center border border-transparent">⏱ 直近配線</button>
+                                <button type="button" id="tabBatchFilter" onclick="setBatchTargetTab('filter')" class="py-1 px-1 rounded bg-slate-800 text-slate-300 hover:text-white text-center border border-transparent">🔍 條件篩選</button>
+                                <button type="button" id="tabBatchMark" onclick="setBatchTargetTab('mark')" class="py-1 px-1 rounded bg-slate-800 text-slate-300 hover:text-white text-center border border-transparent">🏷 同名線號</button>
                             </div>
                         </div>
 
                         <!-- Target Sub-panels -->
+                        <!-- Panel 0: Marquee Selected Wires (圈選配線) -->
+                        <div id="batchPanelSelected" class="bg-slate-900/60 p-2 rounded border border-slate-700/80 space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] text-slate-200 font-medium">畫面上框選或點選的多條配線</span>
+                                <span id="batchSelectedMatchBadge" class="text-[10px] text-amber-300 font-mono font-bold">0 本</span>
+                            </div>
+                            <!-- Selected Preview Chips -->
+                            <div id="batchSelectedChips" class="max-h-20 overflow-y-auto flex flex-wrap gap-1 p-1.5 bg-slate-950/50 rounded border border-slate-800 text-[10px] font-mono">
+                                <!-- Chips dynamically inserted here -->
+                            </div>
+                        </div>
+
                         <!-- Panel 1: Recent Wires (連續登錄) -->
-                        <div id="batchPanelRecent" class="bg-slate-900/60 p-2 rounded border border-slate-700/80 space-y-1.5">
+                        <div id="batchPanelRecent" class="hidden bg-slate-900/60 p-2 rounded border border-slate-700/80 space-y-1.5">
                             <div class="flex items-center justify-between">
                                 <span class="text-[11px] text-slate-200 font-medium">直近に作図した配線をまとめて選択</span>
                                 <span id="batchRecentMatchBadge" class="text-[10px] text-indigo-300 font-mono font-bold">0 本</span>
@@ -567,63 +599,155 @@
                             </div>
                         </div>
 
-                        <!-- Divider: New Parameters to Apply -->
+                        <!-- Operation Mode Sub-tabs -->
                         <div class="border-t border-slate-700/80 pt-2 space-y-2">
-                            <span class="block text-[11px] text-indigo-400 font-bold uppercase tracking-wider">変更後のパラメータ設定</span>
-
-                            <!-- Change SQ checkbox & select -->
-                            <div class="bg-slate-900/60 p-2 rounded border border-slate-700 space-y-1.5">
-                                <label class="flex items-center space-x-2 cursor-pointer">
-                                    <input type="checkbox" id="batchChangeSqChk" checked class="accent-indigo-500">
-                                    <span class="font-semibold text-slate-200">電線サイズ (SQ) を変更</span>
-                                </label>
-                                <select id="batchNewSqSelect" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white font-mono">
-                                    <option value="0.5">0.5 SQ</option>
-                                    <option value="0.75">0.75 SQ</option>
-                                    <option value="1.25" selected>1.25 SQ</option>
-                                    <option value="2.0">2.0 SQ</option>
-                                    <option value="3.5">3.5 SQ</option>
-                                    <option value="5.5">5.5 SQ</option>
-                                </select>
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] text-indigo-400 font-bold uppercase tracking-wider">統一編輯功能 (Edit Operations)</span>
+                                <span class="text-[10px] text-slate-400">當前對象: <span id="batchOperationTargetCount" class="font-bold text-amber-300">0</span> 本</span>
+                            </div>
+                            <div class="grid grid-cols-4 gap-1 bg-slate-900/80 p-1 rounded border border-slate-700 text-[10px]">
+                                <button type="button" id="subTabBatchReplace" onclick="setBatchOpTab('replace')" class="py-1 px-1 rounded bg-amber-600 text-white font-bold text-center border border-amber-400 shadow-sm">🔤 文字搜尋置換</button>
+                                <button type="button" id="subTabBatchRenumber" onclick="setBatchOpTab('renumber')" class="py-1 px-1 rounded bg-slate-800 text-slate-300 hover:text-white text-center border border-transparent">🔢 批次重新連番</button>
+                                <button type="button" id="subTabBatchDirect" onclick="setBatchOpTab('direct')" class="py-1 px-1 rounded bg-slate-800 text-slate-300 hover:text-white text-center border border-transparent">📝 逐筆快速修改</button>
+                                <button type="button" id="subTabBatchSpecs" onclick="setBatchOpTab('specs')" class="py-1 px-1 rounded bg-slate-800 text-slate-300 hover:text-white text-center border border-transparent">🎨 線種與規格</button>
                             </div>
 
-                            <!-- Change Color checkbox & palette -->
-                            <div class="bg-slate-900/60 p-2 rounded border border-slate-700 space-y-1.5">
-                                <label class="flex items-center space-x-2 cursor-pointer">
-                                    <input type="checkbox" id="batchChangeColorChk" checked class="accent-indigo-500">
-                                    <span class="font-semibold text-slate-200">電線色を変更</span>
-                                </label>
-                                <select id="batchNewColorSelect" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white">
-                                    <option value="#dc2626">赤</option>
-                                    <option value="#2563eb" selected>青</option>
-                                    <option value="#eab308">黄</option>
-                                    <option value="#16a34a">緑</option>
-                                    <option value="#18181b">黒</option>
-                                    <option value="#f8fafc">白</option>
-                                    <option value="#9333ea">紫</option>
-                                    <option value="#ea580c">橙</option>
-                                </select>
+                            <!-- Operation 1: Find & Replace Panel -->
+                            <div id="batchOpPanelReplace" class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-700 space-y-2">
+                                <div class="text-[11px] font-semibold text-slate-200 flex items-center justify-between">
+                                    <span><i class="fa-solid fa-magnifying-glass me-1 text-amber-400"></i>印字文字搜尋與置換 (Find & Replace)</span>
+                                    <span class="text-[10px] text-slate-400 font-normal">例: 尋找 X5 替換為 X05</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[10px] text-slate-400 mb-0.5">尋找文字 (Find)</label>
+                                        <input type="text" id="batchReplaceFind" oninput="updateBatchReplacePreview()" placeholder="例: X5" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white font-mono focus:border-amber-500 focus:outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] text-slate-400 mb-0.5">替換為 (Replace with)</label>
+                                        <input type="text" id="batchReplaceWith" oninput="updateBatchReplacePreview()" placeholder="例: X05" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white font-mono focus:border-amber-500 focus:outline-none">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-0.5">即時置換預覽 (Diff Preview)</label>
+                                    <div id="batchReplacePreviewList" class="max-h-28 overflow-y-auto p-1.5 bg-slate-950/70 rounded border border-slate-800 flex flex-wrap gap-1.5 text-[10px] font-mono">
+                                        <span class="text-slate-500 italic">請在上方輸入尋找與替換文字...</span>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="executeBatchMarkReplace()" class="w-full py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded text-xs font-bold shadow flex items-center justify-center transition">
+                                    <i class="fa-solid fa-bolt me-1.5"></i>一鍵置換印字文字 (<span id="batchReplaceCountBadge">0</span> 處變更)
+                                </button>
                             </div>
 
-                            <!-- Change Terminal checkbox & select -->
-                            <div class="bg-slate-900/60 p-2 rounded border border-slate-700 space-y-1.5">
-                                <label class="flex items-center space-x-2 cursor-pointer">
-                                    <input type="checkbox" id="batchChangeTerminalChk" class="accent-indigo-500">
-                                    <span class="font-semibold text-slate-200">端子台接続属性を変更</span>
-                                </label>
-                                <select id="batchNewTerminalSelect" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white">
-                                    <option value="true">端子台接続にする</option>
-                                    <option value="false">直結にする</option>
-                                </select>
+                            <!-- Operation 2: Batch Renumber Panel -->
+                            <div id="batchOpPanelRenumber" class="hidden bg-slate-900/60 p-2.5 rounded-lg border border-slate-700 space-y-2">
+                                <div class="text-[11px] font-semibold text-slate-200 flex items-center justify-between">
+                                    <span><i class="fa-solid fa-arrow-down-1-9 me-1 text-indigo-400"></i>批次重新連番 (Renumbering)</span>
+                                    <span class="text-[10px] text-indigo-300 font-normal">依指定順序重新連號</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[10px] text-slate-400 mb-0.5">起始線號 (Start Mark)</label>
+                                        <input type="text" id="batchRenumberStart" oninput="updateBatchRenumberPreview()" placeholder="例: X050" value="X050" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white font-mono focus:border-indigo-500 focus:outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] text-slate-400 mb-0.5">進制模式</label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <button type="button" id="btnBatchIncHex" onclick="setBatchRenumberMode('hex')" class="py-1 px-0.5 rounded bg-indigo-600 text-white text-[9px] font-bold text-center border border-indigo-400 shadow-sm">16進 PLC</button>
+                                            <button type="button" id="btnBatchIncDec" onclick="setBatchRenumberMode('dec')" class="py-1 px-0.5 rounded bg-slate-800 text-slate-300 text-[9px] text-center border border-slate-700">10進 DEC</button>
+                                            <button type="button" id="btnBatchIncAlpha" onclick="setBatchRenumberMode('alpha')" class="py-1 px-0.5 rounded bg-slate-800 text-slate-300 text-[9px] text-center border border-slate-700">字母 A~Z</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-0.5">排序依據 (幾何位置/順序)</label>
+                                    <div class="grid grid-cols-3 gap-1">
+                                        <button type="button" id="btnBatchSortY" onclick="setBatchRenumberSort('y')" class="py-1 px-1 rounded bg-indigo-600 text-white text-[10px] font-semibold text-center border border-indigo-400" title="梯形圖由上至下 (Y軸升序)">↓ 由上至下 (Y軸)</button>
+                                        <button type="button" id="btnBatchSortX" onclick="setBatchRenumberSort('x')" class="py-1 px-1 rounded bg-slate-800 text-slate-300 text-[10px] text-center border border-slate-700" title="由左至右 (X軸升序)">→ 由左至右 (X軸)</button>
+                                        <button type="button" id="btnBatchSortOriginal" onclick="setBatchRenumberSort('orig')" class="py-1 px-1 rounded bg-slate-800 text-slate-300 text-[10px] text-center border border-slate-700" title="原始建立順序">⏱ 建立順序</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-0.5">重新連番預覽清單</label>
+                                    <div id="batchRenumberPreviewList" class="max-h-28 overflow-y-auto p-1.5 bg-slate-950/70 rounded border border-slate-800 space-y-1 text-[10px] font-mono">
+                                        <!-- Renumber rows inserted dynamically -->
+                                    </div>
+                                </div>
+                                <button type="button" onclick="executeBatchRenumber()" class="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-bold shadow flex items-center justify-center transition">
+                                    <i class="fa-solid fa-arrow-down-1-9 me-1.5"></i>執行批次重新連番
+                                </button>
+                            </div>
+
+                            <!-- Operation 3: Direct Inline Edit Panel -->
+                            <div id="batchOpPanelDirect" class="hidden bg-slate-900/60 p-2.5 rounded-lg border border-slate-700 space-y-2">
+                                <div class="text-[11px] font-semibold text-slate-200 flex items-center justify-between">
+                                    <span><i class="fa-solid fa-list-ol me-1 text-emerald-400"></i>逐筆快速修改 (Direct Inline Edit)</span>
+                                    <span class="text-[10px] text-slate-400">可直接在此修改個別線號</span>
+                                </div>
+                                <div id="batchDirectEditContainer" class="max-h-40 overflow-y-auto p-1 bg-slate-950/70 rounded border border-slate-800 space-y-1.5">
+                                    <!-- Direct edit rows inserted dynamically -->
+                                </div>
+                                <button type="button" onclick="executeBatchDirectEdit()" class="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold shadow flex items-center justify-center transition">
+                                    <i class="fa-solid fa-floppy-disk me-1.5"></i>儲存逐筆修改內容
+                                </button>
+                            </div>
+
+                            <!-- Operation 4: Wire Specs Panel (SQ, Color, Terminal) -->
+                            <div id="batchOpPanelSpecs" class="hidden space-y-2">
+                                <!-- Change SQ checkbox & select -->
+                                <div class="bg-slate-900/60 p-2 rounded border border-slate-700 space-y-1.5">
+                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                        <input type="checkbox" id="batchChangeSqChk" checked class="accent-indigo-500">
+                                        <span class="font-semibold text-slate-200">電線サイズ (SQ) を変更</span>
+                                    </label>
+                                    <select id="batchNewSqSelect" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white font-mono">
+                                        <option value="0.5">0.5 SQ</option>
+                                        <option value="0.75">0.75 SQ</option>
+                                        <option value="1.25" selected>1.25 SQ</option>
+                                        <option value="2.0">2.0 SQ</option>
+                                        <option value="3.5">3.5 SQ</option>
+                                        <option value="5.5">5.5 SQ</option>
+                                    </select>
+                                </div>
+
+                                <!-- Change Color checkbox & palette -->
+                                <div class="bg-slate-900/60 p-2 rounded border border-slate-700 space-y-1.5">
+                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                        <input type="checkbox" id="batchChangeColorChk" checked class="accent-indigo-500">
+                                        <span class="font-semibold text-slate-200">電線色を変更</span>
+                                    </label>
+                                    <select id="batchNewColorSelect" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white">
+                                        <option value="#dc2626">赤</option>
+                                        <option value="#2563eb" selected>青</option>
+                                        <option value="#eab308">黄</option>
+                                        <option value="#16a34a">緑</option>
+                                        <option value="#18181b">黒</option>
+                                        <option value="#f8fafc">白</option>
+                                        <option value="#9333ea">紫</option>
+                                        <option value="#ea580c">橙</option>
+                                    </select>
+                                </div>
+
+                                <!-- Change Terminal checkbox & select -->
+                                <div class="bg-slate-900/60 p-2 rounded border border-slate-700 space-y-1.5">
+                                    <label class="flex items-center space-x-2 cursor-pointer">
+                                        <input type="checkbox" id="batchChangeTerminalChk" class="accent-indigo-500">
+                                        <span class="font-semibold text-slate-200">端子台接続属性を変更</span>
+                                    </label>
+                                    <select id="batchNewTerminalSelect" class="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-white">
+                                        <option value="true">端子台接続にする</option>
+                                        <option value="false">直結にする</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Footer Buttons -->
                     <div class="flex items-center space-x-2 pt-2.5 border-t border-slate-700 mt-2 shrink-0">
-                        <button onclick="closeBatchEditModal()" class="flex-1 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs font-medium transition">キャンセル</button>
-                        <button onclick="executeBatchEdit()" id="btnExecuteBatchEdit" class="flex-1 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded text-xs font-bold shadow transition flex items-center justify-center">
-                            <i class="fa-solid fa-check me-1.5"></i>一括適用 (<span id="batchTotalCountText">0本</span>)
+                        <button onclick="closeBatchEditModal()" class="flex-1 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs font-medium transition">關閉 (Cancel)</button>
+                        <button onclick="executeBatchEdit()" id="btnExecuteBatchEdit" class="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-bold shadow transition flex items-center justify-center">
+                            <i class="fa-solid fa-check me-1.5"></i>套用線種/規格變更 (<span id="batchTotalCountText">0本</span>)
                         </button>
                     </div>
                 </div>
@@ -977,7 +1101,14 @@
             selectedWireId: null,
             isMultiSelectMode: false,
             selectedWireIds: new Set(),
-            batchTargetTab: 'recent',
+            isMarqueeModeActive: false,
+            isMarqueeSelecting: false,
+            marqueeStart: null,
+            marqueeEnd: null,
+            batchTargetTab: 'selected',
+            batchOpTab: 'replace',
+            batchRenumberMode: 'hex',
+            batchRenumberSort: 'y',
             batchRecentCount: 3,
             draggingHandle: null,
             mobileAddWaypointPending: false,
@@ -1600,7 +1731,22 @@
                         redoAction();
                     }
                 } else if (e.key === 'Escape') {
-                    cancelActivePointA();
+                    if (state.selectedWireIds && state.selectedWireIds.size > 0) {
+                        clearSelectedWires();
+                    } else if (state.isMarqueeModeActive) {
+                        toggleMarqueeMode(false);
+                    } else {
+                        cancelActivePointA();
+                    }
+                } else if ((e.key === 'b' || e.key === 'B') && !e.ctrlKey && !e.metaKey) {
+                    if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA' && document.activeElement.tagName !== 'SELECT') {
+                        e.preventDefault();
+                        if (state.selectedWireIds && state.selectedWireIds.size > 0) {
+                            openBatchEditFromSelection();
+                        } else {
+                            toggleMarqueeMode();
+                        }
+                    }
                 } else if ((e.key === 'a' || e.key === 'A') && !e.ctrlKey && !e.metaKey) {
                     if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
                         e.preventDefault();
@@ -1831,6 +1977,114 @@
         }
 
         // ================= BATCH EDIT & MULTI-SELECT SYSTEM =================
+        // ================= MARQUEE SELECTION & BATCH EDIT SYSTEM =================
+        function pointInBox(p, box) {
+            return p.x >= box.minX && p.x <= box.maxX && p.y >= box.minY && p.y <= box.maxY;
+        }
+
+        function segmentsIntersect(A, B, C, D) {
+            function ccw(p1, p2, p3) {
+                return (p3.y - p1.y) * (p2.x - p1.x) > (p2.y - p1.y) * (p3.x - p1.x);
+            }
+            return (ccw(A, C, D) !== ccw(B, C, D)) && (ccw(A, B, C) !== ccw(A, B, D));
+        }
+
+        function wireIntersectsBox(wire, box) {
+            const pts = [wire.pointA, ...(wire.waypoints || []), wire.pointB];
+            // 1. Check if any vertex or tag is inside box
+            if (pts.some(p => pointInBox(p, box))) return true;
+            const tag = getWireTagPosition(wire);
+            if (tag && pointInBox(tag, box)) return true;
+
+            // 2. Check box edges
+            const pTopLeft = { x: box.minX, y: box.minY };
+            const pTopRight = { x: box.maxX, y: box.minY };
+            const pBottomLeft = { x: box.minX, y: box.maxY };
+            const pBottomRight = { x: box.maxX, y: box.maxY };
+            const boxEdges = [
+                [pTopLeft, pTopRight],
+                [pTopRight, pBottomRight],
+                [pBottomRight, pBottomLeft],
+                [pBottomLeft, pTopLeft]
+            ];
+
+            for (let i = 0; i < pts.length - 1; i++) {
+                const segA = pts[i];
+                const segB = pts[i + 1];
+                for (const [eA, eB] of boxEdges) {
+                    if (segmentsIntersect(segA, segB, eA, eB)) return true;
+                }
+            }
+            return false;
+        }
+
+        function countWiresInBox(box) {
+            return state.wires.filter(w => w.page === state.currentPage && wireIntersectsBox(w, box)).length;
+        }
+
+        function toggleMarqueeMode(force) {
+            state.isMarqueeModeActive = (force !== undefined) ? force : !state.isMarqueeModeActive;
+            const btn = document.getElementById('btnToggleMarquee');
+            if (btn) {
+                if (state.isMarqueeModeActive) {
+                    btn.className = 'px-1.5 py-0.5 text-[10px] font-bold bg-amber-600 hover:bg-amber-500 text-white rounded border border-amber-400 shadow-sm transition flex items-center';
+                    showToast('框選模式已開啟：請在畫面上拖曳圈選配線 (快捷鍵: B 或 Esc 取消)');
+                    canvasWrapper.classList.add('cursor-crosshair');
+                } else {
+                    btn.className = 'px-1.5 py-0.5 text-[10px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition flex items-center';
+                    canvasWrapper.classList.remove('cursor-crosshair');
+                }
+            }
+        }
+
+        function showMarqueeActionBar() {
+            const bar = document.getElementById('marqueeActionBar');
+            if (!bar) return;
+            const count = state.selectedWireIds ? state.selectedWireIds.size : 0;
+            if (count > 0) {
+                const countSpan = document.getElementById('marqueeBarCountNum');
+                if (countSpan) countSpan.innerText = count;
+                bar.classList.remove('hidden');
+                // Hide single wire action bar if visible
+                const singleBar = document.getElementById('wireActionBar');
+                if (singleBar) singleBar.classList.add('hidden');
+            } else {
+                bar.classList.add('hidden');
+            }
+        }
+
+        function hideMarqueeActionBar() {
+            const bar = document.getElementById('marqueeActionBar');
+            if (bar) bar.classList.add('hidden');
+        }
+
+        function clearSelectedWires() {
+            if (state.selectedWireIds) state.selectedWireIds.clear();
+            state.selectedWireId = null;
+            hideMarqueeActionBar();
+            updateMultiSelectUI();
+            drawDiagram();
+            updateTablesAndStats();
+            showToast('已取消選取配線');
+        }
+
+        function openBatchEditFromSelection() {
+            if (!state.selectedWireIds || state.selectedWireIds.size === 0) {
+                showToast('請先在畫面上框選或選取配線');
+                return;
+            }
+            state.batchTargetTab = 'selected';
+            openBatchEditModal();
+        }
+
+        function getNextIncrementedMarkTextWithMode(text, overrideMode) {
+            const originalMode = state.incrementMode;
+            if (overrideMode) state.incrementMode = overrideMode;
+            const result = getNextIncrementedMarkText(text);
+            state.incrementMode = originalMode;
+            return result;
+        }
+
         function openBatchEditModal() {
             if (state.wires.length === 0) {
                 showToast('一括変更できる配線データがありません');
@@ -1839,24 +2093,29 @@
 
             // Populate Unique Mark Dropdown
             const select = document.getElementById('batchTargetMarkTextSelect');
-            select.innerHTML = '';
-            const uniqueMarks = Array.from(new Set(state.wires.map(w => w.markText))).filter(Boolean);
-            uniqueMarks.forEach(mark => {
-                const count = state.wires.filter(w => w.markText === mark).length;
-                const opt = document.createElement('option');
-                opt.value = mark;
-                opt.innerText = `${mark} (${count} 本)`;
-                select.appendChild(opt);
-            });
+            if (select) {
+                select.innerHTML = '';
+                const uniqueMarks = Array.from(new Set(state.wires.map(w => w.markText))).filter(Boolean);
+                uniqueMarks.forEach(mark => {
+                    const count = state.wires.filter(w => w.markText === mark).length;
+                    const opt = document.createElement('option');
+                    opt.value = mark;
+                    opt.innerText = `${mark} (${count} 本)`;
+                    select.appendChild(opt);
+                });
+            }
 
-            // If user had multi-selected wires in sidebar, default recent count to that or 3
+            // If user has selected wires, default target tab to 'selected'
             if (state.selectedWireIds && state.selectedWireIds.size > 0) {
+                state.batchTargetTab = 'selected';
                 state.batchRecentCount = state.selectedWireIds.size;
-            } else if (!state.batchRecentCount) {
+            } else if (!state.batchTargetTab || state.batchTargetTab === 'selected') {
+                state.batchTargetTab = 'recent';
                 state.batchRecentCount = Math.min(3, state.wires.filter(w => w.page === state.currentPage).length || 1);
             }
 
-            setBatchTargetTab(state.batchTargetTab || 'recent');
+            setBatchTargetTab(state.batchTargetTab);
+            setBatchOpTab(state.batchOpTab || 'replace');
             document.getElementById('batchEditModal').classList.remove('hidden');
         }
 
@@ -1867,20 +2126,26 @@
         function setBatchTargetTab(tab) {
             state.batchTargetTab = tab;
             
+            const btnSelected = document.getElementById('tabBatchSelected');
             const btnRecent = document.getElementById('tabBatchRecent');
             const btnFilter = document.getElementById('tabBatchFilter');
             const btnMark = document.getElementById('tabBatchMark');
             
+            const pnlSelected = document.getElementById('batchPanelSelected');
             const pnlRecent = document.getElementById('batchPanelRecent');
             const pnlFilter = document.getElementById('batchPanelFilter');
             const pnlMark = document.getElementById('batchPanelMark');
 
-            [btnRecent, btnFilter, btnMark].forEach(b => {
+            [btnSelected, btnRecent, btnFilter, btnMark].forEach(b => {
                 if (b) b.className = 'py-1 px-1 rounded bg-slate-800 text-slate-300 hover:text-white text-center border border-transparent';
             });
-            [pnlRecent, pnlFilter, pnlMark].forEach(p => { if (p) p.classList.add('hidden'); });
+            [pnlSelected, pnlRecent, pnlFilter, pnlMark].forEach(p => { if (p) p.classList.add('hidden'); });
 
-            if (tab === 'recent') {
+            if (tab === 'selected') {
+                if (btnSelected) btnSelected.className = 'py-1 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm';
+                if (pnlSelected) pnlSelected.classList.remove('hidden');
+                updateBatchSelectedPreview();
+            } else if (tab === 'recent') {
                 if (btnRecent) btnRecent.className = 'py-1 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm';
                 if (pnlRecent) pnlRecent.classList.remove('hidden');
                 updateBatchRecentPreview();
@@ -1895,6 +2160,35 @@
             }
         }
 
+        function setBatchOpTab(op) {
+            state.batchOpTab = op;
+            const tabs = {
+                replace: { btn: document.getElementById('subTabBatchReplace'), pnl: document.getElementById('batchOpPanelReplace') },
+                renumber: { btn: document.getElementById('subTabBatchRenumber'), pnl: document.getElementById('batchOpPanelRenumber') },
+                direct: { btn: document.getElementById('subTabBatchDirect'), pnl: document.getElementById('batchOpPanelDirect') },
+                specs: { btn: document.getElementById('subTabBatchSpecs'), pnl: document.getElementById('batchOpPanelSpecs') }
+            };
+
+            Object.keys(tabs).forEach(k => {
+                const item = tabs[k];
+                if (item.btn) {
+                    item.btn.className = 'py-1 px-1 rounded bg-slate-800 text-slate-300 hover:text-white text-center border border-transparent';
+                }
+                if (item.pnl) item.pnl.classList.add('hidden');
+            });
+
+            if (tabs[op]) {
+                if (tabs[op].btn) {
+                    tabs[op].btn.className = 'py-1 px-1 rounded bg-amber-600 text-white font-bold text-center border border-amber-400 shadow-sm';
+                }
+                if (tabs[op].pnl) tabs[op].pnl.classList.remove('hidden');
+            }
+
+            if (op === 'replace') updateBatchReplacePreview();
+            else if (op === 'renumber') updateBatchRenumberPreview();
+            else if (op === 'direct') renderBatchDirectEditList();
+        }
+
         function setBatchRecentCount(cnt) {
             state.batchRecentCount = cnt;
             updateBatchRecentPreview();
@@ -1904,7 +2198,12 @@
             const pageWires = state.wires.filter(w => w.page === state.currentPage);
             const tab = state.batchTargetTab || 'recent';
 
-            if (tab === 'recent') {
+            if (tab === 'selected') {
+                if (state.selectedWireIds && state.selectedWireIds.size > 0) {
+                    return pageWires.filter(w => state.selectedWireIds.has(w.id));
+                }
+                return [];
+            } else if (tab === 'recent') {
                 if (state.batchRecentCount === 'all_page') {
                     return [...pageWires];
                 }
@@ -1923,6 +2222,39 @@
                 return state.wires.filter(w => w.markText === targetMark);
             }
             return [];
+        }
+
+        function updateBatchSelectedPreview() {
+            const targets = getBatchTargetWires();
+            const badge = document.getElementById('batchSelectedMatchBadge');
+            if (badge) badge.innerText = `${targets.length} 本`;
+
+            const tabBadge = document.getElementById('batchTabSelectedCount');
+            if (tabBadge) tabBadge.innerText = String(targets.length);
+
+            const chipsContainer = document.getElementById('batchSelectedChips');
+            if (chipsContainer) {
+                if (targets.length === 0) {
+                    chipsContainer.innerHTML = '<span class="text-slate-500 italic p-1">尚未圈選配線 (可在圖面上按住Shift拖曳圈選)</span>';
+                } else {
+                    chipsContainer.innerHTML = targets.map(w => {
+                        const colName = COLOR_NAMES[w.color] || '色';
+                        return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700">
+                            <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background-color: ${w.color}"></span>
+                            <span class="font-bold text-white">${w.markText}</span>
+                            <span class="text-[9px] text-slate-400">(${colName}, ${w.sq}SQ)</span>
+                        </span>`;
+                    }).join('');
+                }
+            }
+
+            updateBatchTotalCountText(targets.length);
+            const opTargetCount = document.getElementById('batchOperationTargetCount');
+            if (opTargetCount) opTargetCount.innerText = String(targets.length);
+
+            if (state.batchOpTab === 'replace') updateBatchReplacePreview();
+            else if (state.batchOpTab === 'renumber') updateBatchRenumberPreview();
+            else if (state.batchOpTab === 'direct') renderBatchDirectEditList();
         }
 
         function updateBatchRecentPreview() {
@@ -1958,6 +2290,12 @@
             });
 
             updateBatchTotalCountText(targets.length);
+            const opTargetCount = document.getElementById('batchOperationTargetCount');
+            if (opTargetCount) opTargetCount.innerText = String(targets.length);
+
+            if (state.batchOpTab === 'replace') updateBatchReplacePreview();
+            else if (state.batchOpTab === 'renumber') updateBatchRenumberPreview();
+            else if (state.batchOpTab === 'direct') renderBatchDirectEditList();
         }
 
         function updateBatchFilterPreview() {
@@ -1965,6 +2303,12 @@
             const badge = document.getElementById('batchFilterMatchBadge');
             if (badge) badge.innerText = `${targets.length} 本`;
             updateBatchTotalCountText(targets.length);
+            const opTargetCount = document.getElementById('batchOperationTargetCount');
+            if (opTargetCount) opTargetCount.innerText = String(targets.length);
+
+            if (state.batchOpTab === 'replace') updateBatchReplacePreview();
+            else if (state.batchOpTab === 'renumber') updateBatchRenumberPreview();
+            else if (state.batchOpTab === 'direct') renderBatchDirectEditList();
         }
 
         function updateBatchMarkPreview() {
@@ -1972,6 +2316,12 @@
             const badge = document.getElementById('batchMarkMatchBadge');
             if (badge) badge.innerText = `${targets.length} 本`;
             updateBatchTotalCountText(targets.length);
+            const opTargetCount = document.getElementById('batchOperationTargetCount');
+            if (opTargetCount) opTargetCount.innerText = String(targets.length);
+
+            if (state.batchOpTab === 'replace') updateBatchReplacePreview();
+            else if (state.batchOpTab === 'renumber') updateBatchRenumberPreview();
+            else if (state.batchOpTab === 'direct') renderBatchDirectEditList();
         }
 
         function updateBatchTotalCountText(count) {
@@ -1979,6 +2329,275 @@
             if (span) span.innerText = `${count}本`;
         }
 
+        // --- SUB-OPERATION 1: FIND & REPLACE ---
+        function updateBatchReplacePreview() {
+            const targets = getBatchTargetWires();
+            const findInput = document.getElementById('batchReplaceFind');
+            const replaceInput = document.getElementById('batchReplaceWith');
+            const previewList = document.getElementById('batchReplacePreviewList');
+            const badge = document.getElementById('batchReplaceCountBadge');
+
+            const findText = findInput ? findInput.value : '';
+            const replaceWith = replaceInput ? replaceInput.value : '';
+
+            if (!findText) {
+                if (previewList) previewList.innerHTML = '<span class="text-slate-500 italic p-1">請在上方輸入尋找與替換文字...</span>';
+                if (badge) badge.innerText = '0';
+                return;
+            }
+
+            let changeCount = 0;
+            const htmlParts = targets.map(w => {
+                const original = w.markText;
+                if (original.includes(findText)) {
+                    changeCount++;
+                    const replaced = original.split(findText).join(replaceWith);
+                    return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-500/60 text-amber-200">
+                        <span class="line-through text-slate-400">${original}</span>
+                        <i class="fa-solid fa-arrow-right text-[8px] text-amber-400"></i>
+                        <span class="font-bold text-white">${replaced}</span>
+                    </span>`;
+                } else {
+                    return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-400 opacity-60">
+                        <span>${original}</span>
+                        <span class="text-[9px]">(無符合)</span>
+                    </span>`;
+                }
+            });
+
+            if (previewList) {
+                previewList.innerHTML = htmlParts.join('') || '<span class="text-slate-500 italic p-1">無符合配線</span>';
+            }
+            if (badge) badge.innerText = String(changeCount);
+        }
+
+        function recordMarkTextUsage(text) {
+            if (typeof addMarkTextToHistory === 'function') {
+                addMarkTextToHistory(text);
+            }
+        }
+
+        function executeBatchMarkReplace() {
+            const targets = getBatchTargetWires();
+            const findInput = document.getElementById('batchReplaceFind');
+            const replaceInput = document.getElementById('batchReplaceWith');
+            const findText = findInput ? findInput.value : '';
+            const replaceWith = replaceInput ? replaceInput.value : '';
+
+            if (!findText) {
+                showToast('請輸入要尋找的文字 (例如: X5)');
+                return;
+            }
+
+            let modifiedCount = 0;
+            saveHistoryState('Batch-Replace-Mark');
+
+            targets.forEach(w => {
+                if (w.markText.includes(findText)) {
+                    const oldMark = w.markText;
+                    w.markText = oldMark.split(findText).join(replaceWith);
+                    recordMarkTextUsage(w.markText);
+                    modifiedCount++;
+                }
+            });
+
+            if (modifiedCount === 0) {
+                showToast('未找到包含該文字的配線');
+                return;
+            }
+
+            closeBatchEditModal();
+            drawDiagram();
+            updateTablesAndStats();
+            autoSaveToLocalStorage();
+            showToast(`成功置換 ${modifiedCount} 條配線印字文字`);
+        }
+
+        // --- SUB-OPERATION 2: BATCH RENUMBERING ---
+        function setBatchRenumberMode(mode) {
+            state.batchRenumberMode = mode;
+            ['hex', 'dec', 'alpha'].forEach(m => {
+                const id = m === 'hex' ? 'btnBatchIncHex' : (m === 'dec' ? 'btnBatchIncDec' : 'btnBatchIncAlpha');
+                const btn = document.getElementById(id);
+                if (btn) {
+                    if (m === mode) {
+                        btn.className = 'py-1 px-0.5 rounded bg-indigo-600 text-white text-[9px] font-bold text-center border border-indigo-400 shadow-sm';
+                    } else {
+                        btn.className = 'py-1 px-0.5 rounded bg-slate-800 text-slate-300 text-[9px] text-center border border-slate-700';
+                    }
+                }
+            });
+            updateBatchRenumberPreview();
+        }
+
+        function setBatchRenumberSort(sort) {
+            state.batchRenumberSort = sort;
+            ['y', 'x', 'orig'].forEach(s => {
+                const id = s === 'y' ? 'btnBatchSortY' : (s === 'x' ? 'btnBatchSortX' : 'btnBatchSortOriginal');
+                const btn = document.getElementById(id);
+                if (btn) {
+                    if (s === sort) {
+                        btn.className = 'py-1 px-1 rounded bg-indigo-600 text-white text-[10px] font-semibold text-center border border-indigo-400';
+                    } else {
+                        btn.className = 'py-1 px-1 rounded bg-slate-800 text-slate-300 text-[10px] text-center border border-slate-700';
+                    }
+                }
+            });
+            updateBatchRenumberPreview();
+        }
+
+        function getSortedBatchWires(targets) {
+            const sorted = [...targets];
+            const sort = state.batchRenumberSort || 'y';
+            if (sort === 'y') {
+                sorted.sort((a, b) => {
+                    const ya = Math.min(a.pointA.y, a.pointB.y);
+                    const yb = Math.min(b.pointA.y, b.pointB.y);
+                    if (Math.abs(ya - yb) > 4) return ya - yb;
+                    const xa = Math.min(a.pointA.x, a.pointB.x);
+                    const xb = Math.min(b.pointA.x, b.pointB.x);
+                    return xa - xb;
+                });
+            } else if (sort === 'x') {
+                sorted.sort((a, b) => {
+                    const xa = Math.min(a.pointA.x, a.pointB.x);
+                    const xb = Math.min(b.pointA.x, b.pointB.x);
+                    if (Math.abs(xa - xb) > 4) return xa - xb;
+                    const ya = Math.min(a.pointA.y, a.pointB.y);
+                    const yb = Math.min(b.pointA.y, b.pointB.y);
+                    return ya - yb;
+                });
+            }
+            return sorted;
+        }
+
+        function updateBatchRenumberPreview() {
+            const targets = getBatchTargetWires();
+            const sorted = getSortedBatchWires(targets);
+            const startInput = document.getElementById('batchRenumberStart');
+            const startMark = startInput ? startInput.value.trim() : '';
+            const mode = state.batchRenumberMode || 'hex';
+            const previewList = document.getElementById('batchRenumberPreviewList');
+
+            if (!startMark || sorted.length === 0) {
+                if (previewList) previewList.innerHTML = '<span class="text-slate-500 italic p-1">無配線或請輸入起始線號...</span>';
+                return;
+            }
+
+            const newMarks = [];
+            let cur = startMark;
+            for (let i = 0; i < sorted.length; i++) {
+                newMarks.push(cur);
+                cur = getNextIncrementedMarkTextWithMode(cur, mode);
+            }
+
+            if (previewList) {
+                previewList.innerHTML = sorted.map((w, idx) => {
+                    const targetNew = newMarks[idx];
+                    const isDiff = w.markText !== targetNew;
+                    const ya = Math.round(Math.min(w.pointA.y, w.pointB.y));
+                    return `<div class="flex items-center justify-between px-2 py-1 rounded bg-slate-900 border ${isDiff ? 'border-indigo-500/50' : 'border-slate-800'}">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-4 text-center text-slate-500 font-bold text-[9px]">${idx + 1}</span>
+                            <span class="text-[9px] text-slate-400 font-mono">Y:${ya}</span>
+                            <span class="text-slate-300 font-bold">${w.markText}</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <i class="fa-solid fa-arrow-right text-[9px] text-indigo-400"></i>
+                            <span class="font-bold text-indigo-300 bg-indigo-950 px-1.5 py-0.5 rounded border border-indigo-600/40">${targetNew}</span>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+        }
+
+        function executeBatchRenumber() {
+            const targets = getBatchTargetWires();
+            const sorted = getSortedBatchWires(targets);
+            const startInput = document.getElementById('batchRenumberStart');
+            const startMark = startInput ? startInput.value.trim() : '';
+            const mode = state.batchRenumberMode || 'hex';
+
+            if (!startMark) {
+                showToast('請輸入起始線號 (例如: X050)');
+                return;
+            }
+
+            if (sorted.length === 0) {
+                showToast('無選取配線');
+                return;
+            }
+
+            saveHistoryState('Batch-Renumber');
+
+            let cur = startMark;
+            sorted.forEach(w => {
+                w.markText = cur;
+                recordMarkTextUsage(cur);
+                cur = getNextIncrementedMarkTextWithMode(cur, mode);
+            });
+
+            closeBatchEditModal();
+            drawDiagram();
+            updateTablesAndStats();
+            autoSaveToLocalStorage();
+            showToast(`成功重新連番 ${sorted.length} 條配線 (${startMark} ~ ${sorted[sorted.length - 1].markText})`);
+        }
+
+        // --- SUB-OPERATION 3: DIRECT INLINE EDIT ---
+        function renderBatchDirectEditList() {
+            const targets = getBatchTargetWires();
+            const container = document.getElementById('batchDirectEditContainer');
+            if (!container) return;
+
+            if (targets.length === 0) {
+                container.innerHTML = '<span class="text-slate-500 italic p-2 block text-center">目前無符合條件的配線</span>';
+                return;
+            }
+
+            container.innerHTML = targets.map((w, idx) => {
+                const colName = COLOR_NAMES[w.color] || '色';
+                return `<div class="flex items-center justify-between gap-2 p-1.5 rounded bg-slate-900 border border-slate-800 text-[11px] font-mono">
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <span class="text-slate-500 font-bold w-4 text-center">${idx + 1}</span>
+                        <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: ${w.color}" title="${colName}"></span>
+                        <span class="text-[10px] text-slate-400">${w.sq}SQ</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-1">
+                        <span class="text-slate-400 text-[10px] line-through shrink-0">${w.markText}</span>
+                        <i class="fa-solid fa-arrow-right text-[8px] text-slate-500 shrink-0"></i>
+                        <input type="text" data-wire-id="${w.id}" value="${w.markText}" class="batch-direct-input flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-0.5 text-xs text-white font-bold font-mono focus:border-emerald-500 focus:outline-none">
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function executeBatchDirectEdit() {
+            const inputs = document.querySelectorAll('#batchDirectEditContainer .batch-direct-input');
+            if (inputs.length === 0) return;
+
+            saveHistoryState('Batch-Direct-Edit');
+            let count = 0;
+
+            inputs.forEach(inp => {
+                const id = inp.dataset.wireId;
+                const newText = inp.value.trim();
+                const wire = state.wires.find(w => w.id === id);
+                if (wire && newText && wire.markText !== newText) {
+                    wire.markText = newText;
+                    recordMarkTextUsage(newText);
+                    count++;
+                }
+            });
+
+            closeBatchEditModal();
+            drawDiagram();
+            updateTablesAndStats();
+            autoSaveToLocalStorage();
+            showToast(`已儲存修改，共變更 ${count} 條配線印字`);
+        }
+
+        // --- SUB-OPERATION 4: SPECS EDIT ---
         function executeBatchEdit() {
             const targetWires = getBatchTargetWires();
             if (targetWires.length === 0) {
@@ -3688,6 +4307,44 @@
                 state.activeWaypoints.forEach(wp => drawHandleNode(wp.x, wp.y, 'WP', true));
                 drawHandleNode(state.activePointA.x, state.activePointA.y, 'A', true);
             }
+
+            // Draw Marquee Selection Box
+            if (state.isMarqueeSelecting && state.marqueeStart && state.marqueeEnd && !isExport) {
+                const x = Math.min(state.marqueeStart.x, state.marqueeEnd.x);
+                const y = Math.min(state.marqueeStart.y, state.marqueeEnd.y);
+                const w = Math.abs(state.marqueeStart.x - state.marqueeEnd.x);
+                const h = Math.abs(state.marqueeStart.y - state.marqueeEnd.y);
+
+                ctx.save();
+                ctx.fillStyle = 'rgba(99, 102, 241, 0.18)';
+                ctx.fillRect(x, y, w, h);
+
+                ctx.strokeStyle = '#6366f1';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([5, 3]);
+                ctx.strokeRect(x, y, w, h);
+
+                const box = { minX: x, minY: y, maxX: x + w, maxY: y + h };
+                const count = countWiresInBox(box);
+                if (w > 24 && h > 16) {
+                    const badgeText = `圈選: ${count} 本`;
+                    ctx.font = 'bold 11px sans-serif';
+                    const tw = ctx.measureText(badgeText).width;
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+                    ctx.beginPath();
+                    ctx.roundRect(x + 4, y + 4, tw + 12, 20, 4);
+                    ctx.fill();
+                    ctx.strokeStyle = '#818cf8';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.fillStyle = '#a5b4fc';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(badgeText, x + 10, y + 14);
+                }
+                ctx.restore();
+            }
         }
 
         function drawMarkTubeTag(x, y, text, isSelected, isTerminal = true, isSearchMatch = false) {
@@ -4296,9 +4953,17 @@
                 return;
             }
 
+            // Marquee Box Selection: initiate if Shift key is down or Marquee mode is active, and not routing Point A
+            if ((e.shiftKey || state.isMarqueeModeActive) && !state.activePointA) {
+                state.marqueeStart = pos;
+                state.marqueeEnd = pos;
+                state.isMarqueeSelecting = false;
+                return;
+            }
+
             clearTimeout(state.longPressTimer);
             state.longPressTimer = setTimeout(() => {
-                if (e.buttons === 1) {
+                if (e.buttons === 1 && !state.isMarqueeSelecting) {
                     state.isLongPress = true;
                     state.isPanning = true;
                     state.panStartX = e.clientX - state.panX;
@@ -4318,7 +4983,23 @@
                 return;
             }
 
-            if (state.mouseDownPos && !state.draggingHandle && !state.isPanning && e.buttons === 1) {
+            const pos = getCanvasCoords(e);
+            state.activeMousePos = pos;
+
+            // Handle Marquee Selection Drag
+            if (state.marqueeStart && e.buttons === 1) {
+                const dist = Math.hypot(e.clientX - state.mouseDownPos.x, e.clientY - state.mouseDownPos.y);
+                if (dist > 4 || state.isMarqueeSelecting) {
+                    state.isMarqueeSelecting = true;
+                    state.marqueeEnd = pos;
+                    clearTimeout(state.longPressTimer);
+                    state.isPanning = false;
+                    drawDiagram();
+                    return;
+                }
+            }
+
+            if (state.mouseDownPos && !state.draggingHandle && !state.isPanning && !state.isMarqueeSelecting && e.buttons === 1) {
                 const dist = Math.hypot(e.clientX - state.mouseDownPos.x, e.clientY - state.mouseDownPos.y);
                 if (dist > 10) {
                     clearTimeout(state.longPressTimer);
@@ -4330,9 +5011,6 @@
                     return;
                 }
             }
-
-            const pos = getCanvasCoords(e);
-            state.activeMousePos = pos;
 
             if (state.draggingHandle) {
                 const wire = state.wires.find(w => w.id === state.draggingHandle.wireId);
@@ -4362,6 +5040,52 @@
         function handleCanvasMouseUp(e) {
             if (Date.now() - lastTouchTimestamp < 800) return;
             clearTimeout(state.longPressTimer);
+
+            // Handle Marquee Selection Completion
+            if (state.isMarqueeSelecting && state.marqueeStart && state.marqueeEnd) {
+                const minX = Math.min(state.marqueeStart.x, state.marqueeEnd.x);
+                const minY = Math.min(state.marqueeStart.y, state.marqueeEnd.y);
+                const maxX = Math.max(state.marqueeStart.x, state.marqueeEnd.x);
+                const maxY = Math.max(state.marqueeStart.y, state.marqueeEnd.y);
+                const box = { minX, minY, maxX, maxY };
+
+                const matchedWires = state.wires.filter(w => w.page === state.currentPage && wireIntersectsBox(w, box));
+
+                if (!state.selectedWireIds) state.selectedWireIds = new Set();
+                
+                if (!e.ctrlKey && !e.metaKey) {
+                    state.selectedWireIds.clear();
+                }
+
+                matchedWires.forEach(w => state.selectedWireIds.add(w.id));
+
+                state.isMarqueeSelecting = false;
+                state.marqueeStart = null;
+                state.marqueeEnd = null;
+
+                if (state.selectedWireIds.size > 0) {
+                    state.isMultiSelectMode = true;
+                    state.selectedWireId = null;
+                    updateMultiSelectUI();
+                    showMarqueeActionBar();
+                    showToast(`已圈選 ${matchedWires.length} 條配線 (快捷鍵 B 或點擊下方按鈕進行統一編輯)`);
+                } else {
+                    hideMarqueeActionBar();
+                }
+
+                drawDiagram();
+                updateTablesAndStats();
+
+                state.mouseDownPos = null;
+                state.pendingClickPos = null;
+                state.pendingClickAddWaypoint = false;
+                state.isLongPress = false;
+                return;
+            }
+
+            state.marqueeStart = null;
+            state.marqueeEnd = null;
+            state.isMarqueeSelecting = false;
 
             const wasPanning = state.isPanning || state.isLongPress;
 
