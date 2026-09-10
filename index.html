@@ -142,6 +142,9 @@
             <button id="toggleRightSidebar" class="px-2 py-1 text-[11px] bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition border border-slate-600" title="明細パネルを開閉">
                 <i class="fa-solid fa-list-check sm:me-1"></i><span class="hidden sm:inline">明細</span>
             </button>
+            <button id="btnOpenHelpModal" onclick="openHelpModal()" class="px-2 py-1 text-[11px] bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition border border-slate-600 flex items-center" title="操作說明與快捷鍵總覽 (按 ? 鍵隨時開啟)">
+                <i class="fa-solid fa-circle-question sm:me-1 text-sky-400"></i><span class="hidden sm:inline">指南</span>
+            </button>
             <button id="btnOpenCrossPageHeader" onclick="openCrossPageModal()" class="px-2 py-1 text-[11px] bg-indigo-950/70 hover:bg-indigo-900 text-indigo-300 rounded transition border border-indigo-500/50 flex items-center relative" title="跨頁電線對接管理中心">
                 <i class="fa-solid fa-arrows-split-up-and-left sm:me-1 text-amber-400"></i><span class="hidden sm:inline">跨頁對接</span>
                 <span id="crossPageHeaderBadge" class="hidden absolute -top-1.5 -right-1.5 bg-amber-500 text-slate-900 font-bold text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow">0</span>
@@ -319,84 +322,55 @@
                 </div>
             </div>
 
-            <!-- Comprehensive Shortcut Guide Box for PC & Touch/Stylus -->
-            <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-700 text-[10px] sm:text-[11px] text-slate-400 space-y-2 mt-2 shrink-0">
-                <div class="font-bold text-slate-200 border-b border-slate-700 pb-1 flex items-center justify-between">
-                    <span><i class="fa-solid fa-keyboard me-1 text-indigo-400"></i>操作方法ガイド・快捷鍵指南</span>
-                    <span class="text-[9px] text-indigo-400 font-mono">v3.2</span>
+            <!-- Compact Quick Shortcut Bar & Collapsible Guide -->
+            <div class="mt-2 pt-2 border-t border-slate-700/60 shrink-0 space-y-1.5">
+                <!-- Quick Access Header with Full Guide Button -->
+                <div class="flex items-center justify-between text-[10px] bg-slate-900/80 px-2 py-1.5 rounded-lg border border-slate-700/60">
+                    <span class="text-slate-300 flex items-center gap-1 font-semibold text-[11px]">
+                        <i class="fa-solid fa-keyboard text-indigo-400"></i>操作快捷鍵
+                    </span>
+                    <button type="button" onclick="openHelpModal()" class="text-[10px] text-indigo-300 hover:text-white bg-indigo-950/80 hover:bg-indigo-900 px-2 py-0.5 rounded border border-indigo-500/40 transition flex items-center gap-1 font-medium" title="開啟完整操作指南與快捷鍵對話框 (按 ? 鍵隨時開啟)">
+                        <i class="fa-solid fa-circle-question text-sky-400"></i>完整說明
+                    </button>
                 </div>
 
-                <!-- Mode Switching Shortcuts (模式切換快捷鍵) -->
-                <div class="space-y-1 border-b border-slate-700/60 pb-1.5">
-                    <div class="text-amber-300 font-bold text-[10px] flex items-center justify-between">
-                        <span>【模式切換快捷鍵】</span>
-                        <span class="text-[9px] text-slate-500 font-normal">單鍵快速切換</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px]">
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-amber-300 font-mono text-[9px]">B</kbd> 矩形框選</span>
-                            <span class="text-slate-500">/統一編輯</span>
+                <!-- Collapsible Quick Reference (<details>) -->
+                <details id="sidebarHelpDetails" class="bg-slate-900/60 rounded-lg border border-slate-700/60 text-[10px] text-slate-400 group">
+                    <summary class="px-2 py-1.5 text-[10px] text-slate-400 hover:text-slate-200 cursor-pointer select-none flex items-center justify-between">
+                        <span class="flex items-center gap-1 text-slate-300">
+                            <span class="font-mono text-[9px] text-amber-300 bg-slate-800 px-1 rounded border border-slate-700">B</span>框選
+                            <span class="font-mono text-[9px] text-indigo-300 bg-slate-800 px-1 rounded border border-slate-700 ms-0.5">W/A</span>連續
+                            <span class="font-mono text-[9px] text-red-400 bg-slate-800 px-1 rounded border border-slate-700 ms-0.5">Del</span>刪除
+                        </span>
+                        <div class="flex items-center gap-1 text-[9px] text-slate-500">
+                            <span class="group-open:hidden text-indigo-400">速查</span>
+                            <i class="fa-solid fa-chevron-down text-[9px] transition-transform group-open:rotate-180"></i>
                         </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-indigo-300 font-mono text-[9px]">W</kbd> 渡り配線</span>
-                            <span class="text-slate-500">交點接續</span>
+                    </summary>
+                    <div class="px-2 pb-2 pt-1 space-y-1.5 border-t border-slate-800 text-[10px] max-h-48 overflow-y-auto">
+                        <div class="text-amber-300 font-bold text-[9px] pt-0.5">【單鍵模式切換】</div>
+                        <div class="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[9px]">
+                            <div><kbd class="px-1 bg-slate-800 text-amber-300 rounded font-mono">B</kbd> 矩形框選</div>
+                            <div><kbd class="px-1 bg-slate-800 text-indigo-300 rounded font-mono">W</kbd> 渡り配線</div>
+                            <div><kbd class="px-1 bg-slate-800 text-indigo-300 rounded font-mono">A</kbd> 同點固定</div>
+                            <div><kbd class="px-1 bg-slate-800 text-emerald-300 rounded font-mono">C</kbd> 連續作圖</div>
+                            <div><kbd class="px-1 bg-slate-800 text-indigo-300 rounded font-mono">I</kbd> 連番加1</div>
+                            <div><kbd class="px-1 bg-slate-800 text-indigo-300 rounded font-mono">M</kbd> 進制切換</div>
+                            <div><kbd class="px-1 bg-slate-800 text-amber-300 rounded font-mono">T</kbd> 端子台接続</div>
+                            <div><kbd class="px-1 bg-slate-800 text-sky-300 rounded font-mono">D</kbd> CAD深色</div>
                         </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-indigo-300 font-mono text-[9px]">A</kbd> 同點固定</span>
-                            <span class="text-slate-500">放射固定</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-emerald-300 font-mono text-[9px]">C</kbd> 連續作圖</span>
-                            <span class="text-slate-500">ON/OFF</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-indigo-300 font-mono text-[9px]">I</kbd> 連番開關</span>
-                            <span class="text-slate-500">ON/OFF</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-indigo-300 font-mono text-[9px]">M</kbd> 進制切換</span>
-                            <span class="text-slate-500">16/10/英</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-amber-300 font-mono text-[9px]">T</kbd> 端子台接続</span>
-                            <span class="text-slate-500">黃框/直結</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-sky-300 font-mono text-[9px]">D</kbd> CAD深色</span>
-                            <span class="text-slate-500">反轉底圖</span>
+                        <div class="border-t border-slate-800 pt-1 text-[9px] space-y-0.5 text-slate-400">
+                            <div><kbd class="px-1 bg-slate-800 text-amber-300 rounded font-mono">Shift</kbd>+拖曳 : 快速框選</div>
+                            <div><kbd class="px-1 bg-slate-800 text-slate-300 rounded font-mono">ESC</kbd> : 取消 / A點解除</div>
+                            <div><kbd class="px-1 bg-slate-800 text-slate-300 rounded font-mono">Ctrl+Z/Y</kbd> : 復原 / 重做</div>
+                            <div><kbd class="px-1 bg-slate-800 text-slate-300 rounded font-mono">[/]</kbd> : 上下一頁</div>
+                            <div><span class="text-emerald-300 font-semibold">iPad:</span> 長按/雙擊追加折點</div>
                         </div>
                     </div>
-                </div>
-
-                <!-- PC Operations -->
-                <div class="space-y-1 border-b border-slate-700/60 pb-1.5">
-                    <div class="text-indigo-300 font-bold text-[10px] flex items-center justify-between">
-                        <span>【作圖與常用快捷鍵】</span>
-                    </div>
-                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-amber-300 font-mono text-[9px]">Shift</kbd> + 拖曳</span><span class="text-slate-400 font-medium">⬚ 快速矩形框選</span></div>
-                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-slate-300 font-mono text-[9px]">ESC</kbd> 鍵</span><span class="text-slate-400">取消圈選 / A點解除 / 關閉</span></div>
-                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-red-400 font-mono text-[9px]">Del</kbd> / <kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-red-400 font-mono text-[9px]">BS</kbd></span><span class="text-slate-400">刪除選取配線</span></div>
-                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-slate-300 font-mono text-[9px]">[</kbd> / <kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-slate-300 font-mono text-[9px]">]</kbd> 或 PgUp/Dn</span><span class="text-slate-400">上一頁 / 下一頁</span></div>
-                    <div class="flex items-center justify-between"><span class="text-slate-300">左鍵點擊</span><span class="text-slate-400">始點 A / 終點 B 設置</span></div>
-                    <div class="flex items-center justify-between"><span class="text-slate-300">左鍵雙擊</span><span class="text-slate-400">折點追加 / 刪除折點</span></div>
-                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-slate-300 font-mono text-[9px]">Ctrl+Z</kbd> / <kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-slate-300 font-mono text-[9px]">Y</kbd></span><span class="text-slate-400">復原 / 重做</span></div>
-                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-slate-300 font-mono text-[9px]">Space</kbd>+拖曳 / 中鍵</span><span class="text-slate-400">畫面平移</span></div>
-                    <div class="flex items-center justify-between"><span class="text-slate-300">滑鼠滾輪</span><span class="text-slate-400">畫面縮放 (平滑)</span></div>
-                </div>
-                <!-- Touch & Stylus Pen Operations -->
-                <div class="space-y-0.5 pt-0.5">
-                    <div class="text-emerald-300 font-bold text-[10px]">【iPad / 觸控筆操作】</div>
-                    <div><span class="text-slate-200 font-semibold">ペン/指タップ:</span> A点 / B点 設置 (即時)</div>
-                    <div><span class="text-indigo-300 font-semibold">🔗 連続ボタン:</span> 渡り配線 / 同点固定 切替</div>
-                    <div><span class="text-amber-300 font-semibold">長押し (0.5秒):</span> 📍 折点追加 / 削除</div>
-                    <div><span class="text-amber-300 font-semibold">ダブルタップ:</span> 📍 折点追加 / 削除</div>
-                    <div><span class="text-amber-300 font-semibold">指ホールド + ペン:</span> 📍 折点追加</div>
-                    <div><span class="text-slate-200 font-semibold">2本指タップ:</span> A点解除</div>
-                    <div><span class="text-slate-200 font-semibold">2本指ピンチ/移動:</span> 縮放 & 平移</div>
-                </div>
+                </details>
 
                 <!-- Author & Copyright Credit -->
-                <div class="pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-[9px] text-slate-500 font-mono">
+                <div class="flex items-center justify-between text-[9px] text-slate-500 font-mono px-1">
                     <span>Author: <strong class="text-slate-400">M.K(TW)</strong></span>
                     <span>v3.2</span>
                 </div>
@@ -1138,6 +1112,184 @@
                         關閉
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard & Stylus Shortcuts Help Modal Dialog -->
+    <div id="helpModal" class="hidden fixed inset-0 h-[100dvh] w-full bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3" onclick="if(event.target === this) closeHelpModal();">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-2xl flex flex-col p-4 my-auto pointer-events-auto animate-in fade-in zoom-in duration-150 max-h-[90dvh] overflow-hidden">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-slate-700 pb-2.5 mb-3">
+                <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-circle-question text-sky-400"></i>
+                    <span>操作指南・快捷鍵總覽</span>
+                    <span class="text-[10px] text-indigo-400 font-mono bg-indigo-950 px-1.5 py-0.5 rounded border border-indigo-500/40">v3.2</span>
+                </h3>
+                <button onclick="closeHelpModal()" class="p-1 text-slate-400 hover:text-white text-xs" title="關閉"><i class="fa-solid fa-xmark text-sm"></i></button>
+            </div>
+
+            <!-- Modal Content - 3 Categorized Cards -->
+            <div class="overflow-y-auto space-y-3 pr-1 flex-1 text-xs">
+                <!-- Section 1: Mode Switching Shortcuts (Single Key) -->
+                <div class="bg-slate-900/90 rounded-lg p-3 border border-slate-700/80">
+                    <div class="text-amber-300 font-bold text-xs mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-bolt text-amber-400"></i>【模式快速切換 (單鍵)】</span>
+                        <span class="text-[10px] text-slate-500 font-normal">輸入文字時不觸發</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div class="bg-slate-800/80 p-2 rounded border border-slate-700/60 flex items-center justify-between">
+                            <div>
+                                <div class="font-bold text-slate-200">矩形框選</div>
+                                <div class="text-[10px] text-slate-400">圈選多線/批量編輯</div>
+                            </div>
+                            <kbd class="px-2 py-0.5 bg-slate-950 border border-amber-500/50 rounded text-amber-300 font-mono font-bold text-xs">B</kbd>
+                        </div>
+                        <div class="bg-slate-800/80 p-2 rounded border border-slate-700/60 flex items-center justify-between">
+                            <div>
+                                <div class="font-bold text-slate-200">渡り配線</div>
+                                <div class="text-[10px] text-slate-400">交點接續模式</div>
+                            </div>
+                            <kbd class="px-2 py-0.5 bg-slate-950 border border-indigo-500/50 rounded text-indigo-300 font-mono font-bold text-xs">W</kbd>
+                        </div>
+                        <div class="bg-slate-800/80 p-2 rounded border border-slate-700/60 flex items-center justify-between">
+                            <div>
+                                <div class="font-bold text-slate-200">同點固定</div>
+                                <div class="text-[10px] text-slate-400">放射固定模式</div>
+                            </div>
+                            <kbd class="px-2 py-0.5 bg-slate-950 border border-indigo-500/50 rounded text-indigo-300 font-mono font-bold text-xs">A</kbd>
+                        </div>
+                        <div class="bg-slate-800/80 p-2 rounded border border-slate-700/60 flex items-center justify-between">
+                            <div>
+                                <div class="font-bold text-slate-200">連續作圖</div>
+                                <div class="text-[10px] text-slate-400">ON / OFF 切換</div>
+                            </div>
+                            <kbd class="px-2 py-0.5 bg-slate-950 border border-emerald-500/50 rounded text-emerald-300 font-mono font-bold text-xs">C</kbd>
+                        </div>
+                        <div class="bg-slate-800/80 p-2 rounded border border-slate-700/60 flex items-center justify-between">
+                            <div>
+                                <div class="font-bold text-slate-200">連番自動加1</div>
+                                <div class="text-[10px] text-slate-400">自動進號開關</div>
+                            </div>
+                            <kbd class="px-2 py-0.5 bg-slate-950 border border-indigo-500/50 rounded text-indigo-300 font-mono font-bold text-xs">I</kbd>
+                        </div>
+                        <div class="bg-slate-800/80 p-2 rounded border border-slate-700/60 flex items-center justify-between">
+                            <div>
+                                <div class="font-bold text-slate-200">進制切換</div>
+                                <div class="text-[10px] text-slate-400">16進 / 10進 / 英字</div>
+                            </div>
+                            <kbd class="px-2 py-0.5 bg-slate-950 border border-indigo-500/50 rounded text-indigo-300 font-mono font-bold text-xs">M</kbd>
+                        </div>
+                        <div class="bg-slate-800/80 p-2 rounded border border-slate-700/60 flex items-center justify-between">
+                            <div>
+                                <div class="font-bold text-slate-200">端子台接続</div>
+                                <div class="text-[10px] text-slate-400">黃框直結切換</div>
+                            </div>
+                            <kbd class="px-2 py-0.5 bg-slate-950 border border-amber-500/50 rounded text-amber-300 font-mono font-bold text-xs">T</kbd>
+                        </div>
+                        <div class="bg-slate-800/80 p-2 rounded border border-slate-700/60 flex items-center justify-between">
+                            <div>
+                                <div class="font-bold text-slate-200">CAD深色模式</div>
+                                <div class="text-[10px] text-slate-400">白黑反轉底圖</div>
+                            </div>
+                            <kbd class="px-2 py-0.5 bg-slate-950 border border-sky-500/50 rounded text-sky-300 font-mono font-bold text-xs">D</kbd>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Drawing & Canvas Operations -->
+                <div class="bg-slate-900/90 rounded-lg p-3 border border-slate-700/80">
+                    <div class="text-indigo-300 font-bold text-xs mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-computer-mouse text-indigo-400"></i>【電腦作圖與畫布快捷鍵】</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                        <div class="flex items-center justify-between bg-slate-800/60 px-2.5 py-1.5 rounded">
+                            <span class="text-slate-300"><kbd class="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-amber-300 font-mono">Shift</kbd> + 拖曳</span>
+                            <span class="text-slate-400">快速矩形框選配線</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-slate-800/60 px-2.5 py-1.5 rounded">
+                            <span class="text-slate-300"><kbd class="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-slate-300 font-mono">ESC</kbd> 鍵</span>
+                            <span class="text-slate-400">取消圈選 / A點解除 / 關閉彈窗</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-slate-800/60 px-2.5 py-1.5 rounded">
+                            <span class="text-slate-300"><kbd class="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-red-400 font-mono">Del</kbd> / <kbd class="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-red-400 font-mono">Backspace</kbd></span>
+                            <span class="text-slate-400">刪除目前選取的配線</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-slate-800/60 px-2.5 py-1.5 rounded">
+                            <span class="text-slate-300"><kbd class="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-slate-300 font-mono">[</kbd> / <kbd class="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-slate-300 font-mono">]</kbd> 或 PgUp/PgDn</span>
+                            <span class="text-slate-400">切換 上一頁 / 下一頁</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-slate-800/60 px-2.5 py-1.5 rounded">
+                            <span class="text-slate-300"><kbd class="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-slate-300 font-mono">Ctrl+Z</kbd> / <kbd class="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-slate-300 font-mono">Ctrl+Y</kbd></span>
+                            <span class="text-slate-400">復原 (Undo) / 重做 (Redo)</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-slate-800/60 px-2.5 py-1.5 rounded">
+                            <span class="text-slate-300"><kbd class="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-slate-300 font-mono">Space</kbd> + 拖曳 / 滑鼠中鍵</span>
+                            <span class="text-slate-400">平移畫面</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-slate-800/60 px-2.5 py-1.5 rounded">
+                            <span class="text-slate-300">左鍵單擊點擊</span>
+                            <span class="text-slate-400">指定始點 A / 終點 B</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-slate-800/60 px-2.5 py-1.5 rounded">
+                            <span class="text-slate-300">左鍵雙擊點擊</span>
+                            <span class="text-slate-400">追加折點 / 刪除折點</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-slate-800/60 px-2.5 py-1.5 rounded">
+                            <span class="text-slate-300">滑鼠滾輪</span>
+                            <span class="text-slate-400">平滑縮放圖紙</span>
+                        </div>
+                        <div class="flex items-center justify-between bg-slate-800/60 px-2.5 py-1.5 rounded">
+                            <span class="text-slate-300"><kbd class="px-1.5 py-0.5 bg-slate-950 border border-slate-700 rounded text-sky-300 font-mono">?</kbd> 鍵</span>
+                            <span class="text-slate-400">隨時開啟此操作指南</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: iPad & Stylus Pen Operations -->
+                <div class="bg-slate-900/90 rounded-lg p-3 border border-slate-700/80">
+                    <div class="text-emerald-300 font-bold text-xs mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i class="fa-solid fa-tablet-screen-button text-emerald-400"></i>【iPad / Apple Pencil / 觸控筆操作】</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                        <div class="bg-slate-800/60 px-2.5 py-1.5 rounded flex items-center justify-between">
+                            <span class="text-slate-200 font-semibold">觸控筆 / 手指點擊</span>
+                            <span class="text-slate-400">A點 / B點 即時設置</span>
+                        </div>
+                        <div class="bg-slate-800/60 px-2.5 py-1.5 rounded flex items-center justify-between">
+                            <span class="text-indigo-300 font-semibold">🔗 浮動列連續按鈕</span>
+                            <span class="text-slate-400">渡り配線 / 同點固定 切換</span>
+                        </div>
+                        <div class="bg-slate-800/60 px-2.5 py-1.5 rounded flex items-center justify-between">
+                            <span class="text-amber-300 font-semibold">長按 (0.5秒)</span>
+                            <span class="text-slate-400">📍 折點追加 / 刪除</span>
+                        </div>
+                        <div class="bg-slate-800/60 px-2.5 py-1.5 rounded flex items-center justify-between">
+                            <span class="text-amber-300 font-semibold">快速雙擊</span>
+                            <span class="text-slate-400">📍 折點追加 / 刪除</span>
+                        </div>
+                        <div class="bg-slate-800/60 px-2.5 py-1.5 rounded flex items-center justify-between">
+                            <span class="text-amber-300 font-semibold">手指按住 + 觸控筆點擊</span>
+                            <span class="text-slate-400">📍 折點追加</span>
+                        </div>
+                        <div class="bg-slate-800/60 px-2.5 py-1.5 rounded flex items-center justify-between">
+                            <span class="text-slate-200 font-semibold">兩指點擊 (Two-finger tap)</span>
+                            <span class="text-slate-400">解除 A點</span>
+                        </div>
+                        <div class="bg-slate-800/60 px-2.5 py-1.5 rounded flex items-center justify-between">
+                            <span class="text-slate-200 font-semibold">兩指捏合 / 兩指滑動</span>
+                            <span class="text-slate-400">圖紙縮放 & 平移</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex items-center justify-between pt-3 border-t border-slate-700 mt-3 text-xs">
+                <span class="text-[11px] text-slate-500 font-mono">Author: <strong class="text-slate-400">M.K(TW)</strong> ｜ v3.2</span>
+                <button type="button" onclick="closeHelpModal()" class="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-semibold transition shadow">
+                    關閉 (ESC)
+                </button>
             </div>
         </div>
     </div>
@@ -2004,6 +2156,8 @@
                         closeBatchEditModal();
                     } else if (document.getElementById('crossPageModal') && !document.getElementById('crossPageModal').classList.contains('hidden')) {
                         closeCrossPageModal();
+                    } else if (document.getElementById('helpModal') && !document.getElementById('helpModal').classList.contains('hidden')) {
+                        closeHelpModal();
                     } else if (state.selectedWireIds && state.selectedWireIds.size > 0) {
                         clearSelectedWires();
                     } else if (state.isMarqueeModeActive) {
@@ -2013,7 +2167,15 @@
                     }
                 } else if (!isInput && !e.ctrlKey && !e.metaKey && !e.altKey) {
                     // MODE SWITCH & SHORTCUT KEYS (Only when not in input)
-                    if (e.key === 'b' || e.key === 'B') {
+                    if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+                        e.preventDefault();
+                        const helpModal = document.getElementById('helpModal');
+                        if (helpModal && !helpModal.classList.contains('hidden')) {
+                            closeHelpModal();
+                        } else {
+                            openHelpModal();
+                        }
+                    } else if (e.key === 'b' || e.key === 'B') {
                         e.preventDefault();
                         if (state.selectedWireIds && state.selectedWireIds.size > 0) {
                             openBatchEditFromSelection();
@@ -3721,6 +3883,16 @@
 
         function closeCrossPageModal() {
             const modal = document.getElementById('crossPageModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function openHelpModal() {
+            const modal = document.getElementById('helpModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeHelpModal() {
+            const modal = document.getElementById('helpModal');
             if (modal) modal.classList.add('hidden');
         }
 
