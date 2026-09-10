@@ -79,7 +79,7 @@
             <span class="font-bold text-white text-xs sm:text-sm tracking-tight flex items-center gap-1.5">
                 <span class="hidden sm:inline">ハード図面配線 & マークチューブ自動集計系統</span>
                 <span class="sm:hidden">配線集計</span>
-                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded tracking-normal">v2.8 (跨頁配線雷達感應・智慧合併版)</span>
+                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded tracking-normal">v2.9 (跨頁對接管理中心・精準輸入換頁版)</span>
             </span>
         </div>
 
@@ -94,11 +94,16 @@
             </button>
             <div class="h-3 w-[1px] bg-slate-700 mx-0.5"></div>
 
-            <!-- Page Nav -->
+            <!-- Page Nav (Direct page input & Prev/Next) -->
             <button id="btnPrevPage" class="p-1 text-slate-300 hover:text-white rounded transition disabled:opacity-40" title="前ページ">
                 <i class="fa-solid fa-chevron-left text-[10px]"></i>
             </button>
-            <span id="pageIndicator" class="text-[10px] font-semibold px-1 text-slate-300 font-mono">1/1</span>
+            <div class="flex items-center space-x-0.5 px-1 text-[10px] font-mono text-slate-300">
+                <input type="number" id="inputPageNumber" min="1" max="1" value="1" class="w-10 text-center bg-slate-950 border border-slate-700 hover:border-indigo-500 rounded px-1 py-0.5 text-[10px] font-bold text-indigo-300 focus:border-indigo-400 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" title="ページ番号を直接入力してEnterで移動">
+                <span class="text-slate-500">/</span>
+                <span id="pageTotalIndicator" class="text-slate-400 font-mono">1</span>
+                <span id="pageIndicator" class="hidden">1/1</span>
+            </div>
             <button id="btnNextPage" class="p-1 text-slate-300 hover:text-white rounded transition disabled:opacity-40" title="次ページ">
                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
             </button>
@@ -131,6 +136,10 @@
             </button>
             <button id="toggleRightSidebar" class="px-2 py-1 text-[11px] bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition border border-slate-600" title="明細パネルを開閉">
                 <i class="fa-solid fa-list-check sm:me-1"></i><span class="hidden sm:inline">明細</span>
+            </button>
+            <button id="btnOpenCrossPageHeader" onclick="openCrossPageModal()" class="px-2 py-1 text-[11px] bg-indigo-950/70 hover:bg-indigo-900 text-indigo-300 rounded transition border border-indigo-500/50 flex items-center relative" title="跨頁電線對接管理中心">
+                <i class="fa-solid fa-arrows-split-up-and-left sm:me-1 text-amber-400"></i><span class="hidden sm:inline">跨頁對接</span>
+                <span id="crossPageHeaderBadge" class="hidden absolute -top-1.5 -right-1.5 bg-amber-500 text-slate-900 font-bold text-[9px] w-4 h-4 rounded-full flex items-center justify-center shadow">0</span>
             </button>
             <button id="btnOpenExportModal" class="px-2 py-1 text-[11px] bg-indigo-600 hover:bg-indigo-500 text-white rounded shadow transition flex items-center" title="出力設定 (PDF/PNG)">
                 <i class="fa-solid fa-file-export sm:me-1"></i><span>出力</span>
@@ -753,6 +762,14 @@
                         <span>端子必要点:</span>
                         <span id="totalTerminalCount" class="font-bold text-amber-400">0 点</span>
                     </div>
+
+                    <!-- Cross-Page Link Manager Button -->
+                    <button type="button" onclick="openCrossPageModal()" class="w-full py-1.5 px-2 bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/60 rounded text-xs text-indigo-200 flex items-center justify-between transition shadow-sm">
+                        <span class="flex items-center">
+                            <i class="fa-solid fa-arrows-split-up-and-left text-amber-400 me-1.5 text-xs"></i>跨頁電線對接管理
+                        </span>
+                        <span id="crossPagePendingBadge" class="bg-indigo-600 text-white font-mono text-[10px] px-1.5 py-0.2 rounded-full font-bold">0 組</span>
+                    </button>
                     <!-- Page Scope Selector for CSV & Excel -->
                     <div class="pt-2 border-t border-slate-800 space-y-1">
                         <div class="flex items-center justify-between text-[11px] text-slate-300">
@@ -786,12 +803,15 @@
         <i class="fa-solid fa-satellite-dish text-indigo-400 animate-pulse text-sm"></i>
         <span>發現「<strong id="radarMarkText" class="font-mono text-amber-300">Y070</strong>」在 P.<span id="radarPageText" class="font-mono text-indigo-400">16</span> 已存在</span>
         <button id="btnRadarMerge" onclick="mergeRadarCrossPageWire()" class="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-bold text-[11px] shadow transition flex items-center">
-            <i class="fa-solid fa-link me-1"></i>一鍵合併跨頁線
+            <i class="fa-solid fa-link me-1"></i>一鍵合併
         </button>
         <button id="btnRadarJump" onclick="jumpToRadarTargetPage()" class="px-2 py-1 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-[11px] transition flex items-center">
             <i class="fa-solid fa-eye me-1"></i>查看 P.<span id="radarJumpPageText">16</span>
         </button>
-        <button id="btnRadarIgnoreMark" onclick="ignoreRadarCurrentMark()" class="text-[10px] text-slate-400 hover:text-red-300 underline" title="此專案不再提醒此線號">不再提醒</button>
+        <button onclick="openCrossPageModal()" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-indigo-300 hover:text-white rounded text-[11px] transition flex items-center">
+            <i class="fa-solid fa-arrows-split-up-and-left me-1 text-amber-400"></i>管理視窗
+        </button>
+        <button id="btnRadarIgnoreMark" onclick="ignoreRadarCurrentMark()" class="text-[10px] text-slate-400 hover:text-red-300 underline ml-1" title="此專案不再提醒此線號">不再提醒</button>
         <button id="btnRadarDismiss" onclick="dismissRadarCapsule()" class="p-1 text-slate-400 hover:text-white text-xs ml-1" title="關閉"><i class="fa-solid fa-xmark"></i></button>
     </div>
 
@@ -803,6 +823,60 @@
             ↩ 返回 P.<span id="radarReturnPageNum">30</span>
         </button>
         <button id="btnRadarReturnClose" onclick="document.getElementById('radarReturnBar').classList.add('hidden')" class="p-0.5 text-indigo-300 hover:text-white"><i class="fa-solid fa-xmark text-[11px]"></i></button>
+    </div>
+
+    <!-- Cross-Page Linking & Confirmation Modal Dialog -->
+    <div id="crossPageModal" class="hidden fixed inset-0 h-[100dvh] w-full bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-lg flex flex-col p-4 my-auto pointer-events-auto animate-in fade-in zoom-in duration-150 max-h-[90dvh] overflow-hidden">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-slate-700 pb-2.5 mb-3">
+                <h3 class="text-sm font-bold text-white flex items-center">
+                    <i class="fa-solid fa-arrows-split-up-and-left text-amber-400 me-2"></i>跨頁電線對接管理中心
+                </h3>
+                <button onclick="closeCrossPageModal()" class="p-1 text-slate-400 hover:text-white text-xs"><i class="fa-solid fa-xmark text-sm"></i></button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="grid grid-cols-3 gap-1.5 bg-slate-900/80 p-1 rounded-lg border border-slate-700 text-xs mb-3">
+                <button type="button" id="tabCrossPageCandidates" onclick="switchCrossPageTab('candidates')" class="py-1.5 px-1.5 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm transition">
+                    待對接候補 (<span id="countCrossPageCandidates">0</span>)
+                </button>
+                <button type="button" id="tabCrossPageMerged" onclick="switchCrossPageTab('merged')" class="py-1.5 px-1.5 rounded bg-slate-800 text-slate-300 hover:text-white text-center border border-transparent transition">
+                    已合併跨頁 (<span id="countCrossPageMerged">0</span>)
+                </button>
+                <button type="button" id="tabCrossPageIgnored" onclick="switchCrossPageTab('ignored')" class="py-1.5 px-1.5 rounded bg-slate-800 text-slate-300 hover:text-white text-center border border-transparent transition">
+                    免打擾電源線 (<span id="countCrossPageIgnored">0</span>)
+                </button>
+            </div>
+
+            <!-- Panel 1: Candidates List -->
+            <div id="panelCrossPageCandidates" class="overflow-y-auto space-y-2 pr-1 flex-1 min-h-[160px] max-h-[380px]">
+                <!-- Dynamically filled -->
+            </div>
+
+            <!-- Panel 2: Merged List -->
+            <div id="panelCrossPageMerged" class="hidden overflow-y-auto space-y-2 pr-1 flex-1 min-h-[160px] max-h-[380px]">
+                <!-- Dynamically filled -->
+            </div>
+
+            <!-- Panel 3: Ignored List -->
+            <div id="panelCrossPageIgnored" class="hidden overflow-y-auto space-y-2 pr-1 flex-1 min-h-[160px] max-h-[380px]">
+                <!-- Dynamically filled -->
+            </div>
+
+            <!-- Footer -->
+            <div class="flex items-center justify-between pt-3 border-t border-slate-700 mt-3 text-xs">
+                <span class="text-[11px] text-slate-400">💡 跨頁合併後自動算為 1 條線、2 顆字管</span>
+                <div class="flex items-center space-x-2">
+                    <button id="btnBatchMergeAllCandidates" onclick="batchMergeAllCrossPageCandidates()" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded text-xs transition flex items-center shadow">
+                        <i class="fa-solid fa-check-double me-1.5"></i>一鍵全部合併
+                    </button>
+                    <button onclick="closeCrossPageModal()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-xs font-medium transition">
+                        關閉
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Toast Notification Banner -->
@@ -1355,6 +1429,31 @@
             // Page Navigation
             document.getElementById('btnPrevPage').onclick = () => changePdfPage(-1);
             document.getElementById('btnNextPage').onclick = () => changePdfPage(1);
+
+            const inputPage = document.getElementById('inputPageNumber');
+            if (inputPage) {
+                const commitPageJump = () => {
+                    const target = parseInt(inputPage.value, 10);
+                    const maxPage = state.totalPages || 1;
+                    if (isNaN(target) || target < 1 || target > maxPage) {
+                        inputPage.value = state.currentPage;
+                        showToast(`請輸入 1 ～ ${maxPage} 的有效頁數`);
+                        return;
+                    }
+                    if (target !== state.currentPage) {
+                        goToPdfPage(target);
+                        showToast(`已跳轉至第 ${target} 頁`);
+                    }
+                };
+                inputPage.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        commitPageJump();
+                        inputPage.blur();
+                    }
+                });
+                inputPage.addEventListener('blur', commitPageJump);
+            }
 
             // Zoom & View
             document.getElementById('btnZoomIn').onclick = () => adjustZoom(1.08);
@@ -2412,10 +2511,11 @@
                 document.getElementById('radarJumpPageText').innerText = targetWire.page;
                 capsule.classList.remove('hidden');
 
-                if (radarDismissTimer) clearTimeout(radarDismissTimer);
-                radarDismissTimer = setTimeout(() => {
-                    capsule.classList.add('hidden');
-                }, 10000);
+                if (radarDismissTimer) {
+                    clearTimeout(radarDismissTimer);
+                    radarDismissTimer = null;
+                }
+                // 不自動消失：保留提示直到使用者點選確認或關閉，避免畫完後看不及點選
             }
         }
 
@@ -2435,6 +2535,7 @@
             dismissRadarCapsule();
             drawDiagram();
             updateTablesAndStats();
+            renderCrossPageModal();
             autoSaveToLocalStorage();
             showToast(`🔗 跨頁線「${markText}」(P.${sourceWire.page} ⇄ P.${targetWire.page}) 已成功合併！`);
         }
@@ -2480,15 +2581,368 @@
         function dismissRadarCapsule() {
             const capsule = document.getElementById('radarCapsule');
             if (capsule) capsule.classList.add('hidden');
-            if (radarDismissTimer) clearTimeout(radarDismissTimer);
+            if (radarDismissTimer) {
+                clearTimeout(radarDismissTimer);
+                radarDismissTimer = null;
+            }
         }
 
         function ignoreRadarCurrentMark() {
             if (!state.radarCandidate) return;
             const mark = state.radarCandidate.markText;
+            if (!state.dismissedRadarMarks) state.dismissedRadarMarks = new Set();
             state.dismissedRadarMarks.add(mark.toUpperCase());
             dismissRadarCapsule();
+            updateTablesAndStats();
+            renderCrossPageModal();
             showToast(`線號「${mark}」已加入免打擾名單，不再提示`);
+        }
+
+        // ================= 跨頁電線對接管理中心 (Modal Manager) =================
+        let currentCrossPageTab = 'candidates';
+
+        function findCrossPageCandidates() {
+            if (!state.wires || state.wires.length === 0) return [];
+
+            const mapByMark = new Map();
+            state.wires.forEach(wire => {
+                if (wire.crossPageLinkId) return;
+                const mark = (wire.markText || '').trim();
+                if (!mark) return;
+                if (isIgnoredRadarMark(mark)) return;
+
+                const upper = mark.toUpperCase();
+                if (!mapByMark.has(upper)) {
+                    mapByMark.set(upper, []);
+                }
+                mapByMark.get(upper).push(wire);
+            });
+
+            const candidatePairs = [];
+            mapByMark.forEach((wires, markKey) => {
+                const pages = new Set(wires.map(w => w.page));
+                if (pages.size < 2) return;
+
+                wires.sort((a, b) => a.page - b.page);
+                const usedWireIds = new Set();
+
+                for (let i = 0; i < wires.length; i++) {
+                    const w1 = wires[i];
+                    if (usedWireIds.has(w1.id)) continue;
+
+                    for (let j = i + 1; j < wires.length; j++) {
+                        const w2 = wires[j];
+                        if (usedWireIds.has(w2.id)) continue;
+                        if (w1.page !== w2.page) {
+                            candidatePairs.push({
+                                markText: w1.markText,
+                                wire1: w1,
+                                wire2: w2
+                            });
+                            usedWireIds.add(w1.id);
+                            usedWireIds.add(w2.id);
+                            break;
+                        }
+                    }
+                }
+            });
+
+            return candidatePairs;
+        }
+
+        function openCrossPageModal() {
+            const modal = document.getElementById('crossPageModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                switchCrossPageTab(currentCrossPageTab || 'candidates');
+            }
+        }
+
+        function closeCrossPageModal() {
+            const modal = document.getElementById('crossPageModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function switchCrossPageTab(tab) {
+            currentCrossPageTab = tab;
+            const btnCand = document.getElementById('tabCrossPageCandidates');
+            const btnMerged = document.getElementById('tabCrossPageMerged');
+            const btnIgnored = document.getElementById('tabCrossPageIgnored');
+
+            const pnlCand = document.getElementById('panelCrossPageCandidates');
+            const pnlMerged = document.getElementById('panelCrossPageMerged');
+            const pnlIgnored = document.getElementById('panelCrossPageIgnored');
+
+            [btnCand, btnMerged, btnIgnored].forEach(b => {
+                if (b) b.className = 'py-1.5 px-1.5 rounded bg-slate-800 text-slate-300 hover:text-white text-center border border-transparent transition';
+            });
+            [pnlCand, pnlMerged, pnlIgnored].forEach(p => { if (p) p.classList.add('hidden'); });
+
+            if (tab === 'candidates') {
+                if (btnCand) btnCand.className = 'py-1.5 px-1.5 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm transition';
+                if (pnlCand) pnlCand.classList.remove('hidden');
+            } else if (tab === 'merged') {
+                if (btnMerged) btnMerged.className = 'py-1.5 px-1.5 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm transition';
+                if (pnlMerged) pnlMerged.classList.remove('hidden');
+            } else if (tab === 'ignored') {
+                if (btnIgnored) btnIgnored.className = 'py-1.5 px-1.5 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm transition';
+                if (pnlIgnored) pnlIgnored.classList.remove('hidden');
+            }
+            renderCrossPageModal();
+        }
+
+        function renderCrossPageModal() {
+            const candidates = findCrossPageCandidates();
+            
+            const mergedGroups = new Map();
+            state.wires.forEach(w => {
+                if (w.crossPageLinkId) {
+                    if (!mergedGroups.has(w.crossPageLinkId)) {
+                        mergedGroups.set(w.crossPageLinkId, []);
+                    }
+                    mergedGroups.get(w.crossPageLinkId).push(w);
+                }
+            });
+
+            const countCandElem = document.getElementById('countCrossPageCandidates');
+            if (countCandElem) countCandElem.innerText = candidates.length;
+            const countMergedElem = document.getElementById('countCrossPageMerged');
+            if (countMergedElem) countMergedElem.innerText = mergedGroups.size;
+            const countIgnoredElem = document.getElementById('countCrossPageIgnored');
+            const totalIgnoredCount = (state.ignoredRadarMarks ? state.ignoredRadarMarks.size : 0) + (state.dismissedRadarMarks ? state.dismissedRadarMarks.size : 0);
+            if (countIgnoredElem) countIgnoredElem.innerText = totalIgnoredCount;
+
+            const headerBadge = document.getElementById('crossPageHeaderBadge');
+            if (headerBadge) {
+                headerBadge.innerText = candidates.length;
+                headerBadge.classList.toggle('hidden', candidates.length === 0);
+            }
+            const sidebarBadge = document.getElementById('crossPagePendingBadge');
+            if (sidebarBadge) {
+                sidebarBadge.innerText = `${candidates.length} 組`;
+            }
+
+            // Panel 1: Candidates
+            const pnlCand = document.getElementById('panelCrossPageCandidates');
+            if (pnlCand) {
+                pnlCand.innerHTML = '';
+                if (candidates.length === 0) {
+                    pnlCand.innerHTML = `
+                        <div class="text-center py-10 text-slate-400 text-xs">
+                            <i class="fa-solid fa-circle-check text-2xl mb-2 text-emerald-400 block"></i>
+                            目前無待對接的跨頁電線候補<br>
+                            <span class="text-[11px] text-slate-500">（不同頁面畫出相同線號時，系統將自動彙整至此）</span>
+                        </div>
+                    `;
+                } else {
+                    candidates.forEach((cand, idx) => {
+                        const card = document.createElement('div');
+                        card.className = 'bg-slate-900/90 border border-slate-700 hover:border-indigo-500/80 rounded-lg p-2.5 space-y-2 transition shadow-sm';
+                        card.innerHTML = `
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono font-bold text-xs border border-amber-500/40">
+                                        ${cand.markText}
+                                    </span>
+                                    <span class="text-xs text-slate-300 font-medium">
+                                        P.<strong class="text-indigo-400">${cand.wire1.page}</strong> ⇄ P.<strong class="text-indigo-400">${cand.wire2.page}</strong>
+                                    </span>
+                                </div>
+                                <span class="text-[10px] text-slate-400">候補 #${idx + 1}</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 text-[11px] bg-slate-950/60 p-1.5 rounded border border-slate-800">
+                                <div class="flex items-center justify-between pr-1">
+                                    <span class="text-slate-400">P.${cand.wire1.page}: ${cand.wire1.sq}SQ / ${COLOR_NAMES[cand.wire1.color]||'色'}</span>
+                                    <button type="button" onclick="inspectCrossPageWire('${cand.wire1.id}')" class="text-indigo-400 hover:text-indigo-300 underline text-[10px]">查看</button>
+                                </div>
+                                <div class="flex items-center justify-between pl-1 border-l border-slate-800">
+                                    <span class="text-slate-400">P.${cand.wire2.page}: ${cand.wire2.sq}SQ / ${COLOR_NAMES[cand.wire2.color]||'色'}</span>
+                                    <button type="button" onclick="inspectCrossPageWire('${cand.wire2.id}')" class="text-indigo-400 hover:text-indigo-300 underline text-[10px]">查看</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between pt-1">
+                                <button type="button" onclick="ignoreRadarMarkFromModal('${cand.markText}')" class="text-[10px] text-slate-400 hover:text-red-300 underline" title="不再提醒此線號">
+                                    免打擾此線號
+                                </button>
+                                <button type="button" onclick="mergeCandidatePair('${cand.wire1.id}', '${cand.wire2.id}')" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded text-xs transition flex items-center shadow-sm">
+                                    <i class="fa-solid fa-link me-1"></i>一鍵合併
+                                </button>
+                            </div>
+                        `;
+                        pnlCand.appendChild(card);
+                    });
+                }
+            }
+
+            // Panel 2: Merged
+            const pnlMerged = document.getElementById('panelCrossPageMerged');
+            if (pnlMerged) {
+                pnlMerged.innerHTML = '';
+                if (mergedGroups.size === 0) {
+                    pnlMerged.innerHTML = `
+                        <div class="text-center py-10 text-slate-400 text-xs">
+                            <i class="fa-solid fa-link-slash text-2xl mb-2 text-slate-600 block"></i>
+                            目前無已合併的跨頁電線
+                        </div>
+                    `;
+                } else {
+                    mergedGroups.forEach((wires, linkId) => {
+                        const w1 = wires[0];
+                        const otherPages = wires.slice(1).map(w => w.page).join(', ');
+                        const card = document.createElement('div');
+                        card.className = 'bg-slate-900/90 border border-indigo-900/60 rounded-lg p-2.5 flex items-center justify-between text-xs';
+                        card.innerHTML = `
+                            <div class="space-y-0.5">
+                                <div class="flex items-center space-x-2">
+                                    <span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono font-bold text-xs border border-indigo-500/40">
+                                        ${w1.markText}
+                                    </span>
+                                    <span class="text-white font-medium">
+                                        P.<strong class="text-indigo-400">${w1.page}</strong> ⇄ P.<strong class="text-indigo-400">${otherPages || w1.linkedPage}</strong>
+                                    </span>
+                                </div>
+                                <div class="text-[10px] text-slate-400">已合併為 1 條邏輯電線 (2顆字管)</div>
+                            </div>
+                            <div class="flex items-center space-x-1.5">
+                                <button type="button" onclick="unlinkCrossPageWire('${w1.id}')" class="px-2 py-1 bg-red-900/40 hover:bg-red-800/60 border border-red-700/60 text-red-200 rounded text-[11px] transition">
+                                    <i class="fa-solid fa-link-slash me-1"></i>解除
+                                </button>
+                            </div>
+                        `;
+                        pnlMerged.appendChild(card);
+                    });
+                }
+            }
+
+            // Panel 3: Ignored
+            const pnlIgnored = document.getElementById('panelCrossPageIgnored');
+            if (pnlIgnored) {
+                pnlIgnored.innerHTML = '';
+                const ignoredContainer = document.createElement('div');
+                ignoredContainer.className = 'space-y-3';
+
+                const userDismissed = Array.from(state.dismissedRadarMarks || []);
+                const userSec = document.createElement('div');
+                userSec.className = 'space-y-1';
+                userSec.innerHTML = `<span class="text-[11px] font-bold text-amber-300 block">使用者自訂免打擾 (${userDismissed.length}):</span>`;
+                
+                if (userDismissed.length === 0) {
+                    userSec.innerHTML += `<div class="text-slate-500 text-[11px] italic p-1">尚未手動加入免打擾線號</div>`;
+                } else {
+                    const tagBox = document.createElement('div');
+                    tagBox.className = 'flex flex-wrap gap-1.5';
+                    userDismissed.forEach(mark => {
+                        const tag = document.createElement('span');
+                        tag.className = 'inline-flex items-center space-x-1 bg-slate-900 border border-slate-700 px-2 py-0.5 rounded text-[11px] font-mono text-slate-300';
+                        tag.innerHTML = `
+                            <span>${mark}</span>
+                            <button type="button" onclick="unignoreRadarMark('${mark}')" class="text-slate-400 hover:text-red-400 ml-1" title="恢復提醒"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+                        `;
+                        tagBox.appendChild(tag);
+                    });
+                    userSec.appendChild(tagBox);
+                }
+                ignoredContainer.appendChild(userSec);
+
+                const defaultIgnored = Array.from(state.ignoredRadarMarks || []);
+                const defaultSec = document.createElement('div');
+                defaultSec.className = 'space-y-1 border-t border-slate-800 pt-2';
+                defaultSec.innerHTML = `<span class="text-[11px] font-bold text-slate-400 block">系統預設免打擾電源與接地軌 (${defaultIgnored.length}):</span>`;
+                const defTagBox = document.createElement('div');
+                defTagBox.className = 'flex flex-wrap gap-1 opacity-70';
+                defaultIgnored.forEach(mark => {
+                    const tag = document.createElement('span');
+                    tag.className = 'bg-slate-950 border border-slate-800 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400';
+                    tag.innerText = mark;
+                    defTagBox.appendChild(tag);
+                });
+                defaultSec.appendChild(defTagBox);
+                ignoredContainer.appendChild(defaultSec);
+
+                pnlIgnored.appendChild(ignoredContainer);
+            }
+        }
+
+        function mergeCandidatePair(id1, id2) {
+            const wire1 = state.wires.find(w => w.id === id1);
+            const wire2 = state.wires.find(w => w.id === id2);
+            if (!wire1 || !wire2) return;
+
+            saveHistoryState('Merge-CrossPage-Wire');
+            const linkId = 'cplink_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+            wire1.crossPageLinkId = linkId;
+            wire1.linkedPage = wire2.page;
+            wire2.crossPageLinkId = linkId;
+            wire2.linkedPage = wire1.page;
+
+            dismissRadarCapsule();
+            drawDiagram();
+            updateTablesAndStats();
+            renderCrossPageModal();
+            autoSaveToLocalStorage();
+            showToast(`🔗 跨頁線「${wire1.markText}」(P.${wire1.page} ⇄ P.${wire2.page}) 已成功合併！`);
+        }
+
+        function batchMergeAllCrossPageCandidates() {
+            const candidates = findCrossPageCandidates();
+            if (candidates.length === 0) {
+                showToast('目前沒有待合併的跨頁候補');
+                return;
+            }
+
+            saveHistoryState('Batch-Merge-CrossPage');
+            candidates.forEach((cand, idx) => {
+                const linkId = 'cplink_' + (Date.now() + idx) + '_' + Math.random().toString(36).substr(2, 4);
+                cand.wire1.crossPageLinkId = linkId;
+                cand.wire1.linkedPage = cand.wire2.page;
+                cand.wire2.crossPageLinkId = linkId;
+                cand.wire2.linkedPage = cand.wire1.page;
+            });
+
+            dismissRadarCapsule();
+            drawDiagram();
+            updateTablesAndStats();
+            renderCrossPageModal();
+            autoSaveToLocalStorage();
+            showToast(`🎉 已成功一鍵全部合併 ${candidates.length} 組跨頁電線！`);
+        }
+
+        function inspectCrossPageWire(wireId) {
+            const wire = state.wires.find(w => w.id === wireId);
+            if (!wire) return;
+            closeCrossPageModal();
+            if (wire.page !== state.currentPage) {
+                goToPdfPage(wire.page);
+            }
+            state.selectedWireId = wire.id;
+            const midX = (wire.pointA.x + wire.pointB.x) / 2;
+            const midY = (wire.pointA.y + wire.pointB.y) / 2;
+            const rect = canvasWrapper.getBoundingClientRect();
+            state.panX = rect.width / 2 - midX * state.scale;
+            state.panY = rect.height / 2 - midY * state.scale;
+            applyCanvasTransform();
+            drawDiagram();
+            updateSelectedWireActionBar();
+            showToast(`已跳至第 ${wire.page} 頁並聚焦該電線`);
+        }
+
+        function ignoreRadarMarkFromModal(mark) {
+            if (!mark) return;
+            if (!state.dismissedRadarMarks) state.dismissedRadarMarks = new Set();
+            state.dismissedRadarMarks.add(mark.toUpperCase());
+            renderCrossPageModal();
+            updateTablesAndStats();
+            showToast(`線號「${mark}」已加入免打擾名單`);
+        }
+
+        function unignoreRadarMark(mark) {
+            if (!mark) return;
+            if (state.dismissedRadarMarks) {
+                state.dismissedRadarMarks.delete(mark.toUpperCase());
+            }
+            renderCrossPageModal();
+            updateTablesAndStats();
+            showToast(`線號「${mark}」已移出免打擾名單，恢復提醒`);
         }
 
         function unlinkCrossPageWire(wireId) {
@@ -2504,8 +2958,26 @@
             });
             drawDiagram();
             updateTablesAndStats();
-            closeModal();
+            renderCrossPageModal();
+            if (typeof closeModal === 'function') closeModal();
             showToast('已解除跨頁電線關聯');
+        }
+
+        function updateCrossPageBadges() {
+            if (typeof findCrossPageCandidates !== 'function') return;
+            const candidates = findCrossPageCandidates();
+            const count = candidates.length;
+            const headerBadge = document.getElementById('crossPageHeaderBadge');
+            if (headerBadge) {
+                headerBadge.innerText = count;
+                headerBadge.classList.toggle('hidden', count === 0);
+            }
+            const sidebarBadge = document.getElementById('crossPagePendingBadge');
+            if (sidebarBadge) {
+                sidebarBadge.innerText = `${count} 組`;
+            }
+            const countElem = document.getElementById('countCrossPageCandidates');
+            if (countElem) countElem.innerText = count;
         }
 
         function drawCrossPageBadge(x, y, linkedPage) {
@@ -4611,6 +5083,7 @@
             document.getElementById('totalTerminalCount').innerText = `${totalTerminalPoints} 点`;
             updateMultiSelectUI();
             updateSidebarExportButtonsText();
+            updateCrossPageBadges();
         }
 
         function selectWireFromList(wireId) {
@@ -4659,8 +5132,19 @@
         }
 
         function updateUIState() {
-            document.getElementById('zoomIndicator').innerText = `${Math.round(state.scale * 100)}%`;
-            document.getElementById('pageIndicator').innerText = `${state.currentPage}/${state.totalPages}`;
+            const zoomInd = document.getElementById('zoomIndicator');
+            if (zoomInd) zoomInd.innerText = `${Math.round(state.scale * 100)}%`;
+
+            const inputPage = document.getElementById('inputPageNumber');
+            if (inputPage && document.activeElement !== inputPage) {
+                inputPage.value = state.currentPage;
+                inputPage.max = state.totalPages || 1;
+            }
+            const totalInd = document.getElementById('pageTotalIndicator');
+            if (totalInd) totalInd.innerText = state.totalPages || 1;
+            const legacyInd = document.getElementById('pageIndicator');
+            if (legacyInd) legacyInd.innerText = `${state.currentPage}/${state.totalPages}`;
+
             applyCanvasTransform();
             updateQuickPresetHighlights();
             updateLockPointAUI();
