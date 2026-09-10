@@ -848,7 +848,7 @@
 
             <!-- Export Modal Dialog (Universal for Mobile & Desktop) -->
             <div id="exportModal" class="hidden fixed inset-0 h-[100dvh] w-full bg-slate-950/75 backdrop-blur-sm z-50 flex items-center justify-center p-3">
-                <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-xs flex flex-col p-3.5 my-auto pointer-events-auto animate-in fade-in zoom-in duration-150">
+                <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl w-full max-w-sm sm:max-w-md flex flex-col p-4 my-auto pointer-events-auto animate-in fade-in zoom-in duration-150">
                     <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-3">
                         <h3 class="text-xs sm:text-sm font-bold text-white flex items-center">
                             <i class="fa-solid fa-file-export text-indigo-400 me-2"></i>図面・集計出力設定
@@ -880,17 +880,42 @@
                         <div>
                             <label class="block text-slate-300 font-semibold mb-1">出力対象ページ</label>
                             <div class="space-y-1.5">
-                                <label class="flex items-center space-x-2 bg-slate-900/60 p-2 rounded border border-slate-700 cursor-pointer">
-                                    <input type="radio" name="exportModeRadio" value="current" class="accent-indigo-500 cursor-pointer" checked onchange="handleExportRadioChange()">
-                                    <span class="text-slate-200 text-xs">現在のページのみ (<span id="exportCurPageText" class="font-mono text-indigo-400">P.1</span>)</span>
+                                <label class="flex items-center space-x-2 bg-slate-900/60 p-2 rounded border border-slate-700 hover:border-slate-600 transition cursor-pointer">
+                                    <input type="radio" name="exportModeRadio" value="edited" class="accent-indigo-500 cursor-pointer" onchange="handleExportRadioChange()">
+                                    <span class="text-slate-200 text-xs flex items-center justify-between flex-1">
+                                        <span class="font-medium text-white flex items-center gap-1.5">
+                                            <i class="fa-solid fa-pen-to-square text-indigo-400 text-[11px]"></i>
+                                            <span>編集済みページのみ (全有編輯頁)</span>
+                                        </span>
+                                        <span id="exportEditedPagesText" class="font-mono text-indigo-400 text-[11px]">共 0 頁</span>
+                                    </span>
                                 </label>
-                                <label class="flex items-center space-x-2 bg-slate-900/60 p-2 rounded border border-slate-700 cursor-pointer">
+                                <label class="flex items-center space-x-2 bg-slate-900/60 p-2 rounded border border-slate-700 hover:border-slate-600 transition cursor-pointer">
                                     <input type="radio" name="exportModeRadio" value="all" class="accent-indigo-500 cursor-pointer" onchange="handleExportRadioChange()">
-                                    <span class="text-slate-200 text-xs">全ページ一括出力 (<span id="exportAllPagesText" class="font-mono text-indigo-400">全 1 頁</span>)</span>
+                                    <span class="text-slate-200 text-xs flex items-center justify-between flex-1">
+                                        <span class="flex items-center gap-1.5">
+                                            <i class="fa-solid fa-layer-group text-slate-400 text-[11px]"></i>
+                                            <span>全ページ一括出力</span>
+                                        </span>
+                                        <span id="exportAllPagesText" class="font-mono text-indigo-400 text-[11px]">全 1 頁</span>
+                                    </span>
                                 </label>
-                                <label class="flex items-center space-x-2 bg-slate-900/60 p-2 rounded border border-slate-700 cursor-pointer">
+                                <label class="flex items-center space-x-2 bg-slate-900/60 p-2 rounded border border-slate-700 hover:border-slate-600 transition cursor-pointer">
+                                    <input type="radio" name="exportModeRadio" value="current" class="accent-indigo-500 cursor-pointer" checked onchange="handleExportRadioChange()">
+                                    <span class="text-slate-200 text-xs flex items-center justify-between flex-1">
+                                        <span class="flex items-center gap-1.5">
+                                            <i class="fa-solid fa-file text-slate-400 text-[11px]"></i>
+                                            <span>現在のページのみ</span>
+                                        </span>
+                                        <span id="exportCurPageText" class="font-mono text-indigo-400 text-[11px]">P.1</span>
+                                    </span>
+                                </label>
+                                <label class="flex items-center space-x-2 bg-slate-900/60 p-2 rounded border border-slate-700 hover:border-slate-600 transition cursor-pointer">
                                     <input type="radio" name="exportModeRadio" value="selected" class="accent-indigo-500 cursor-pointer" onchange="handleExportRadioChange()">
-                                    <span class="text-slate-200 text-xs">ページ番号を指定</span>
+                                    <span class="text-slate-200 text-xs flex items-center gap-1.5">
+                                        <i class="fa-solid fa-list-ol text-slate-400 text-[11px]"></i>
+                                        <span>ページ番号を指定</span>
+                                    </span>
                                 </label>
                                 <input type="text" id="exportPageRangeInput" placeholder="例: 1, 3, 5-7" class="hidden w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white font-mono focus:border-indigo-500 focus:outline-none mt-1">
                             </div>
@@ -1028,6 +1053,7 @@
                             </label>
                             <select id="sidebarExportScopeSelect" onchange="handleSidebarExportScopeChange(this.value)" class="bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-[11px] text-white focus:outline-none focus:border-indigo-500 font-sans">
                                 <option value="all">全ページ一括集計</option>
+                                <option value="edited" id="optSidebarScopeEdited">編集済みページのみ (0頁)</option>
                                 <option value="current">現在のページのみ</option>
                                 <option value="filtered" id="optSidebarScopeFiltered" class="hidden">🔍 搜尋篩選結果</option>
                                 <option value="custom">ページ指定...</option>
@@ -3511,18 +3537,42 @@
         }
 
         function openExportModal() {
-            document.getElementById('exportCurPageText').innerText = `P.${state.currentPage}`;
-            document.getElementById('exportAllPagesText').innerText = `全 ${state.totalPages} 頁`;
+            const curPageEl = document.getElementById('exportCurPageText');
+            if (curPageEl) curPageEl.innerText = `P.${state.currentPage}`;
 
-            // Default to 'all' if multiple pages, else sync with state.exportPageMode
-            const mode = state.exportPageMode || (state.totalPages > 1 ? 'all' : 'current');
+            const allPagesEl = document.getElementById('exportAllPagesText');
+            if (allPagesEl) allPagesEl.innerText = `全 ${state.totalPages} 頁`;
+
+            const editedPages = getEditedPages();
+            const editedPagesEl = document.getElementById('exportEditedPagesText');
+            if (editedPagesEl) {
+                if (editedPages.length === 0) {
+                    editedPagesEl.innerText = '無編輯頁';
+                    editedPagesEl.className = 'font-mono text-slate-500 text-[11px]';
+                } else {
+                    const pageListStr = editedPages.length <= 3 
+                        ? `P.${editedPages.join(', P.')}`
+                        : `共 ${editedPages.length} 頁 (P.${editedPages.slice(0, 3).join(', ')}...)`;
+                    editedPagesEl.innerText = pageListStr;
+                    editedPagesEl.className = 'font-mono text-indigo-400 text-[11px]';
+                }
+            }
+
+            // Default to 'edited' if edited pages exist, else 'all' or 'current'
+            let defaultMode = 'all';
+            if (editedPages.length > 0) {
+                defaultMode = 'edited';
+            } else if (state.totalPages === 1) {
+                defaultMode = 'current';
+            }
+            const mode = state.exportPageMode || defaultMode;
             const targetRadio = document.querySelector(`input[name="exportModeRadio"][value="${mode}"]`);
             if (targetRadio) {
                 targetRadio.checked = true;
                 handleExportRadioChange();
             }
 
-            selectExportFormat(state.exportSelectedFormat || 'csv');
+            selectExportFormat(state.exportSelectedFormat || 'pdf');
             document.getElementById('exportModal').classList.remove('hidden');
         }
 
@@ -3619,6 +3669,13 @@
             if (scope === 'filtered') {
                 const maxP = Math.max(1, state.totalPages || 1);
                 return Array.from({ length: maxP }, (_, i) => i + 1);
+            } else if (scope === 'edited') {
+                const edited = getEditedPages();
+                if (!edited || edited.length === 0) {
+                    showToast('編集済み（配線あり）のページがありません');
+                    return null;
+                }
+                return edited;
             } else if (scope === 'current') {
                 return [state.currentPage];
             } else if (scope === 'all') {
@@ -3641,6 +3698,9 @@
             let scopeLabel = '';
             if (scope === 'filtered') {
                 scopeLabel = state.searchQuery ? ` (搜尋: ${state.searchQuery})` : ' (篩選結果)';
+            } else if (scope === 'edited') {
+                const count = getEditedPages().length;
+                scopeLabel = ` (編集済${count}頁)`;
             } else if (scope === 'all') {
                 scopeLabel = state.totalPages > 1 ? ` (全${state.totalPages}頁)` : '';
             } else if (scope === 'current') {
@@ -3653,6 +3713,12 @@
             if (excelText) excelText.innerText = `集計Excelダウンロード${scopeLabel}`;
             const csvText = document.getElementById('btnExportCsvText');
             if (csvText) csvText.innerText = `CSVダウンロード${scopeLabel}`;
+
+            const optEdited = document.getElementById('optSidebarScopeEdited');
+            if (optEdited) {
+                const count = getEditedPages().length;
+                optEdited.innerText = `編集済みページのみ (${count}頁)`;
+            }
         }
 
         function updateSelectedWireActionBar() {
@@ -7101,8 +7167,26 @@
             updateLockPointAUI();
         }
 
+        function getEditedPages() {
+            const pageSet = new Set();
+            state.wires.forEach(w => {
+                if (typeof w.page === 'number') {
+                    pageSet.add(w.page);
+                }
+            });
+            return [...pageSet].sort((a, b) => a - b);
+        }
+
         function getTargetPages() {
             if (state.exportPageMode === 'current') return [state.currentPage];
+            if (state.exportPageMode === 'edited') {
+                const edited = getEditedPages();
+                if (!edited || edited.length === 0) {
+                    showToast('編集済み（配線あり）のページがありません');
+                    return null;
+                }
+                return edited;
+            }
             if (state.exportPageMode === 'all') {
                 return Array.from({ length: Math.max(1, state.totalPages || 1) }, (_, i) => i + 1);
             }
@@ -7129,8 +7213,13 @@
 
             const originalPage = state.currentPage;
             const targetPages = customPages || getTargetPages();
-            if (!targetPages) return;
+            if (!targetPages || targetPages.length === 0) return;
             const exportMultiplePages = state.pdfDoc && targetPages.length > 1;
+
+            const isAll = (targetPages.length === state.totalPages && state.totalPages > 1);
+            const isSingle = targetPages.length === 1;
+            const isEdited = (state.exportPageMode === 'edited' || state.sidebarExportScope === 'edited');
+            let fileSuffix = isEdited ? `_EditedPages_${targetPages.length}p` : (isAll ? '_AllPages' : (isSingle ? `_Page${targetPages[0]}` : '_SelectedPages'));
 
             try {
                 if (!exportMultiplePages) {
@@ -7166,10 +7255,10 @@
                 const link = document.createElement('a');
                 const url = URL.createObjectURL(blob);
                 link.href = url;
-                link.download = 'HARD_Wiring_Diagram_SelectedPages_PNG.zip';
+                link.download = `HARD_Wiring_Diagram${fileSuffix}_PNG.zip`;
                 link.click();
                 URL.revokeObjectURL(url);
-                showToast('指定ページPNG（ZIP）を出力しました');
+                showToast(`指定ページPNG（ZIP・${targetPages.length}頁）を出力しました`);
             } catch (err) {
                 console.error('PNG 出力エラー:', err);
                 showToast('PNG 出力中にエラーが発生しました');
@@ -7200,7 +7289,7 @@
 
             try {
                 const targetPages = customPages || getTargetPages();
-                if (!targetPages) return;
+                if (!targetPages || targetPages.length === 0) return;
 
                 let pdf = null;
 
@@ -7228,12 +7317,15 @@
                     pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
                 }
 
-                const fileName = targetPages.length > 1
-                    ? `HARD_Wiring_Diagram_SelectedPages.pdf`
-                    : `HARD_Wiring_Diagram_Page${targetPages[0]}.pdf`;
+                const isAll = (targetPages.length === state.totalPages && state.totalPages > 1);
+                const isSingle = targetPages.length === 1;
+                const isEdited = (state.exportPageMode === 'edited' || state.sidebarExportScope === 'edited');
+                let fileSuffix = isEdited ? `_EditedPages_${targetPages.length}p` : (isAll ? '_AllPages' : (isSingle ? `_Page${targetPages[0]}` : '_SelectedPages'));
+
+                const fileName = `HARD_Wiring_Diagram${fileSuffix}.pdf`;
                     
                 pdf.save(fileName);
-                showToast('PDFファイルを出力しました');
+                showToast(`PDFを出力しました (${targetPages.length} ページ)`);
             } catch (err) {
                 console.error('PDF 出力エラー:', err);
                 showToast('PDF 出力中にエラーが発生しました');
@@ -7452,7 +7544,8 @@
 
             const isAll = (data.targetPages.length === state.totalPages && state.totalPages > 1);
             const isSingle = data.targetPages.length === 1;
-            let pageSuffix = data.filterQuery ? '_Filtered' : (isAll ? '_AllPages' : (isSingle ? `_Page${data.targetPages[0]}` : `_SelectedPages`));
+            const isEdited = (state.exportPageMode === 'edited' || state.sidebarExportScope === 'edited');
+            let pageSuffix = data.filterQuery ? '_Filtered' : (isEdited ? `_EditedPages_${data.targetPages.length}p` : (isAll ? '_AllPages' : (isSingle ? `_Page${data.targetPages[0]}` : `_SelectedPages`)));
             const dateStr = new Date().toISOString().slice(0, 10);
             const fileName = `MarkTube_Summary${pageSuffix}_${dateStr}.xlsx`;
 
@@ -7460,7 +7553,7 @@
 
             let pageDesc = data.filterQuery
                 ? `搜尋篩選「${data.filterQuery}」`
-                : (isAll ? `全 ${data.targetPages.length} ページ` : (isSingle ? `ページ ${data.targetPages[0]}` : `指定 ${data.targetPages.length} ページ`));
+                : (isEdited ? `編集済み ${data.targetPages.length} ページ (P.${data.targetPages.join(', ')})` : (isAll ? `全 ${data.targetPages.length} ページ` : (isSingle ? `ページ ${data.targetPages[0]}` : `指定 ${data.targetPages.length} ページ`)));
 
             showToast(data.excludedWireCount > 0
                 ? `${pageDesc}の集計Excelを出力しました（5.5 SQ以上 ${data.excludedWireCount} 本を除外）`
@@ -7528,7 +7621,8 @@
 
             const isAll = (data.targetPages.length === state.totalPages && state.totalPages > 1);
             const isSingle = data.targetPages.length === 1;
-            let pageSuffix = data.filterQuery ? '_Filtered' : (isAll ? '_AllPages' : (isSingle ? `_Page${data.targetPages[0]}` : `_SelectedPages`));
+            const isEdited = (state.exportPageMode === 'edited' || state.sidebarExportScope === 'edited');
+            let pageSuffix = data.filterQuery ? '_Filtered' : (isEdited ? `_EditedPages_${data.targetPages.length}p` : (isAll ? '_AllPages' : (isSingle ? `_Page${data.targetPages[0]}` : `_SelectedPages`)));
             const dateStr = new Date().toISOString().slice(0, 10);
             const fileName = `MarkTube_Summary${pageSuffix}_${dateStr}.csv`;
 
@@ -7540,7 +7634,7 @@
 
             let pageDesc = data.filterQuery
                 ? `搜尋篩選「${data.filterQuery}」`
-                : (isAll ? `全 ${data.targetPages.length} ページ` : (isSingle ? `ページ ${data.targetPages[0]}` : `指定 ${data.targetPages.length} ページ`));
+                : (isEdited ? `編集済み ${data.targetPages.length} ページ (P.${data.targetPages.join(', ')})` : (isAll ? `全 ${data.targetPages.length} ページ` : (isSingle ? `ページ ${data.targetPages[0]}` : `指定 ${data.targetPages.length} ページ`)));
 
             showToast(data.excludedWireCount > 0
                 ? `${pageDesc}の集計CSVを出力しました（5.5 SQ以上 ${data.excludedWireCount} 本を除外）`
