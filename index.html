@@ -79,7 +79,7 @@
             <span class="font-bold text-white text-xs sm:text-sm tracking-tight flex items-center gap-1.5">
                 <span class="hidden sm:inline">ハード図面配線 & マークチューブ自動集計系統</span>
                 <span class="sm:hidden">配線集計</span>
-                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded tracking-normal">v3.0 (矩形框選圈取・線號批次置換與重新連番版)</span>
+                <span class="px-1.5 py-0.5 text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded tracking-normal">v3.1 (含中間數連番 Y90A➔Y91A・快捷鍵導覽增強版)</span>
             </span>
         </div>
 
@@ -122,8 +122,8 @@
             </button>
             <div class="h-3 w-[1px] bg-slate-700 mx-0.5"></div>
             <!-- Marquee Selection Toggle -->
-            <button id="btnToggleMarquee" onclick="toggleMarqueeMode()" class="px-1.5 py-0.5 text-[10px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition flex items-center" title="矩形框選模式 (按住Shift滑鼠拖曳圈選，或快捷鍵B)">
-                <i class="fa-solid fa-vector-square me-1 text-amber-400"></i><span class="hidden sm:inline">框選</span>
+            <button id="btnToggleMarquee" onclick="toggleMarqueeMode()" class="px-1.5 py-0.5 text-[10px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition flex items-center" title="矩形框選模式 (快捷鍵 B 或按住 Shift 鍵滑鼠拖曳圈選)">
+                <i class="fa-solid fa-vector-square me-1 text-amber-400"></i><span class="hidden sm:inline">框選</span><span class="hidden md:inline text-[9px] text-amber-300 font-mono font-bold bg-slate-900 px-1 py-0.2 rounded ms-1 border border-amber-500/30">B</span>
             </button>
         </div>
 
@@ -310,18 +310,23 @@
             <!-- Comprehensive Shortcut Guide Box for PC & Touch/Stylus -->
             <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-700 text-[10px] sm:text-[11px] text-slate-400 space-y-1.5 mt-2 shrink-0">
                 <div class="font-bold text-slate-200 border-b border-slate-700 pb-1 flex items-center justify-between">
-                    <span><i class="fa-solid fa-keyboard me-1 text-indigo-400"></i>操作方法ガイド</span>
+                    <span><i class="fa-solid fa-keyboard me-1 text-indigo-400"></i>操作方法ガイド・快捷鍵指南</span>
+                    <span class="text-[9px] text-indigo-400 font-mono">v3.1</span>
                 </div>
                 <!-- PC Operations -->
-                <div class="space-y-0.5 border-b border-slate-700/60 pb-1">
-                    <div class="text-indigo-300 font-bold text-[10px]">【パソコン操作】</div>
-                    <div><span class="text-slate-200 font-semibold">クリック:</span> A点 / B点 設置</div>
-                    <div><span class="text-indigo-300 font-semibold">W / Aキー:</span> 🔗 渡り配線 (串接) / 📌 同点固定</div>
-                    <div><span class="text-slate-200 font-semibold">ダブルクリック:</span> 折点の追加 / 削除</div>
-                    <div><span class="text-slate-200 font-semibold">Ctrl+Z / Ctrl+Y:</span> 復原 / 重做</div>
-                    <div><span class="text-slate-200 font-semibold">右クリック / ESC:</span> A点解除</div>
-                    <div><span class="text-slate-200 font-semibold">Space + 拖曳 / 中鍵:</span> 畫面平移</div>
-                    <div><span class="text-slate-200 font-semibold">滾輪:</span> 畫面縮放 (平滑)</div>
+                <div class="space-y-1 border-b border-slate-700/60 pb-1.5">
+                    <div class="text-indigo-300 font-bold text-[10px] flex items-center justify-between">
+                        <span>【パソコン / 鍵盤滑鼠操作】</span>
+                    </div>
+                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-amber-300 font-mono text-[9px]">Shift</kbd> + 拖曳</span><span class="text-slate-400 font-medium">⬚ 矩形框選圈取多線</span></div>
+                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-amber-300 font-mono text-[9px]">B</kbd> 鍵</span><span class="text-slate-400 font-medium">框選開關 / 圈選後開啟編輯</span></div>
+                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-slate-300 font-mono text-[9px]">ESC</kbd> 鍵</span><span class="text-slate-400">取消圈選 / A點解除</span></div>
+                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-indigo-300 font-mono text-[9px]">W</kbd> / <kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-indigo-300 font-mono text-[9px]">A</kbd> 鍵</span><span class="text-slate-400">🔗 渡り配線 / 📌 同點固定</span></div>
+                    <div class="flex items-center justify-between"><span class="text-slate-300">左鍵點擊</span><span class="text-slate-400">始點 A / 終點 B 設置</span></div>
+                    <div class="flex items-center justify-between"><span class="text-slate-300">左鍵雙擊</span><span class="text-slate-400">折點追加 / 刪除折點</span></div>
+                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-slate-300 font-mono text-[9px]">Ctrl+Z</kbd> / <kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-slate-300 font-mono text-[9px]">Y</kbd></span><span class="text-slate-400">復原 / 重做</span></div>
+                    <div class="flex items-center justify-between"><span class="text-slate-300"><kbd class="px-1 py-0.2 bg-slate-800 border border-slate-600 rounded text-slate-300 font-mono text-[9px]">Space</kbd>+拖曳 / 中鍵</span><span class="text-slate-400">畫面平移</span></div>
+                    <div class="flex items-center justify-between"><span class="text-slate-300">滑鼠滾輪</span><span class="text-slate-400">畫面縮放 (平滑)</span></div>
                 </div>
                 <!-- Touch & Stylus Pen Operations -->
                 <div class="space-y-0.5 pt-0.5">
@@ -338,7 +343,7 @@
                 <!-- Author & Copyright Credit -->
                 <div class="pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-[9px] text-slate-500 font-mono">
                     <span>Author: <strong class="text-slate-400">M.K(TW)</strong></span>
-                    <span>v2.1.0</span>
+                    <span>v3.1</span>
                 </div>
             </div>
         </aside>
@@ -353,7 +358,7 @@
             <!-- Floating Prompt / Action Bar (When Point A is active) -->
             <div id="statusBar" class="absolute top-2 sm:top-3 left-1/2 -translate-x-1/2 bg-slate-800/95 backdrop-blur border border-slate-700 px-3 sm:px-4 py-1.5 rounded-full shadow-lg text-[11px] sm:text-xs font-medium text-slate-200 flex items-center space-x-2 z-20 max-w-[95vw]">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
-                <span id="statusText" class="truncate">始点 (A点) を導線上タップして指定してください</span>
+                <span id="statusText" class="truncate">📍 始點 (A點) 指定 ｜ <kbd class="px-1 py-0.2 bg-slate-700 border border-slate-600 rounded text-amber-300 font-mono text-[10px]">Shift+拖曳</kbd> / <kbd class="px-1 py-0.2 bg-slate-700 border border-slate-600 rounded text-amber-300 font-mono text-[10px]">B</kbd>: 框選 ｜ <kbd class="px-1 py-0.2 bg-slate-700 border border-slate-600 rounded text-indigo-300 font-mono text-[10px]">W/A</kbd>: 連續配線</span>
                 <div id="statusActions" class="hidden items-center space-x-1.5 pl-1 shrink-0">
                     <button id="btnLockPointA" type="button" class="px-2 py-0.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded text-[10px] sm:text-xs font-semibold shadow transition flex items-center" title="連続配線モードの切替 (W/Aキー: 渡り配線 / 同点固定 / OFF)">
                         <i id="btnLockPointAIcon" class="fa-solid fa-link me-1 text-[9px] text-indigo-400"></i><span id="btnLockPointAText">連続配線: OFF</span>
@@ -460,6 +465,15 @@
                                 <button type="button" data-mode="hex" onclick="setModalIncrementMode('hex')" id="btnModalIncHex" class="py-0.5 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm transition">16進 (PLC)</button>
                                 <button type="button" data-mode="dec" onclick="setModalIncrementMode('dec')" id="btnModalIncDec" class="py-0.5 px-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-center border border-slate-700 transition">10進 (DEC)</button>
                                 <button type="button" data-mode="alpha" onclick="setModalIncrementMode('alpha')" id="btnModalIncAlpha" class="py-0.5 px-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-center border border-slate-700 transition">A~Z 連番</button>
+                            </div>
+                            <!-- Target Part Group (for marks like Y90A, TB1-01A) -->
+                            <div id="modalIncrementTargetGroup" class="flex items-center justify-between pt-1 border-t border-indigo-500/20 text-[9px]">
+                                <span class="text-slate-400">連番部位:</span>
+                                <div class="flex items-center gap-1">
+                                    <button type="button" data-target="auto" onclick="setModalIncrementTarget('auto')" id="btnModalIncTargetAuto" class="py-0.5 px-1.5 rounded bg-indigo-600 text-white font-bold border border-indigo-400">⚡ 智慧</button>
+                                    <button type="button" data-target="middle" onclick="setModalIncrementTarget('middle')" id="btnModalIncTargetMiddle" class="py-0.5 px-1.5 rounded bg-slate-900 text-slate-300 border border-slate-700 hover:bg-slate-800" title="針對 Y90A 遞增為 Y91A">🔢 中間數 (Y91A)</button>
+                                    <button type="button" data-target="suffix" onclick="setModalIncrementTarget('suffix')" id="btnModalIncTargetSuffix" class="py-0.5 px-1.5 rounded bg-slate-900 text-slate-300 border border-slate-700 hover:bg-slate-800" title="針對 Y90A 遞增為 Y90B">🔤 尾字母 (Y90B)</button>
+                                </div>
                             </div>
                         </div>
 
@@ -657,6 +671,14 @@
                                             <button type="button" id="btnBatchIncDec" onclick="setBatchRenumberMode('dec')" class="py-1 px-0.5 rounded bg-slate-800 text-slate-300 text-[9px] text-center border border-slate-700">10進 DEC</button>
                                             <button type="button" id="btnBatchIncAlpha" onclick="setBatchRenumberMode('alpha')" class="py-1 px-0.5 rounded bg-slate-800 text-slate-300 text-[9px] text-center border border-slate-700">字母 A~Z</button>
                                         </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 mb-0.5">連番目標部位 (針對含有前後英數之線號，例如 Y90A ➔ Y91A / Y90B)</label>
+                                    <div class="grid grid-cols-3 gap-1">
+                                        <button type="button" id="btnBatchTargetAuto" onclick="setBatchRenumberTarget('auto')" class="py-1 px-1 rounded bg-indigo-600 text-white text-[10px] font-semibold text-center border border-indigo-400" title="自動判定 (中間有數字則遞增中間數字，如 Y90A ➔ Y91A)">⚡ 智慧判斷</button>
+                                        <button type="button" id="btnBatchTargetMiddle" onclick="setBatchRenumberTarget('middle')" class="py-1 px-1 rounded bg-slate-800 text-slate-300 text-[10px] text-center border border-slate-700" title="遞增中間數字 (如 Y90A ➔ Y91A ➔ Y92A)">🔢 中間數字 (Y91A)</button>
+                                        <button type="button" id="btnBatchTargetSuffix" onclick="setBatchRenumberTarget('suffix')" class="py-1 px-1 rounded bg-slate-800 text-slate-300 text-[10px] text-center border border-slate-700" title="遞增末尾字母 (如 Y90A ➔ Y90B ➔ Y90C)">🔤 尾部字母 (Y90B)</button>
                                     </div>
                                 </div>
                                 <div>
@@ -1073,6 +1095,7 @@
             lockPointAMode: 'chain', // 'chain' (渡り配線・前線交点接續), 'same' (同点固定・放射状)
             isAutoIncrement: false,
             incrementMode: 'hex', // 'hex' (16進 PLC), 'dec' (10進 DEC), 'alpha' (A~Z 連番)
+            incrementTarget: 'auto', // 'auto', 'middle', 'suffix'
             lastWaypointDeleteTimestamp: 0,
             lastWaypointDeletedPos: null,
 
@@ -1109,6 +1132,7 @@
             batchOpTab: 'replace',
             batchRenumberMode: 'hex',
             batchRenumberSort: 'y',
+            batchRenumberTarget: 'auto', // 'auto', 'middle', 'suffix'
             batchRecentCount: 3,
             draggingHandle: null,
             mobileAddWaypointPending: false,
@@ -1289,12 +1313,60 @@
             return isUpper ? res : res.toLowerCase();
         }
 
-        function getNextIncrementedMarkText(text) {
+        function getNextIncrementedMarkText(text, targetPart = null) {
             if (!text || typeof text !== 'string') return '';
             const trimmed = text.trim();
             if (!trimmed) return '';
 
             const mode = state.incrementMode || 'hex';
+            const target = targetPart || state.incrementTarget || 'auto';
+
+            // Check if mark has a middle number followed by letters/suffix:
+            // e.g., "Y90A", "TB1-01A", "COM12_A", "X50-A"
+            const middleNumMatch = trimmed.match(/^(.*?)(0*(\d+))([a-zA-Z_\-]+)$/);
+
+            // If target is explicitly 'suffix', or mode is 'alpha':
+            if (target === 'suffix' || mode === 'alpha') {
+                if (middleNumMatch) {
+                    const prefix = middleNumMatch[1] + middleNumMatch[2];
+                    const suffix = middleNumMatch[4];
+                    return prefix + incrementAlphabetString(suffix);
+                }
+                const letterMatch = trimmed.match(/^(.*?)([a-zA-Z]+)$/);
+                if (letterMatch) {
+                    return letterMatch[1] + incrementAlphabetString(letterMatch[2]);
+                }
+            }
+
+            // If mark contains a middle number (e.g. Y90A, TB1-01A):
+            // Determine if middle number should be incremented:
+            // - Always if target is explicitly 'middle'
+            // - In 'auto' mode: if mode is 'dec', or middle number has >= 2 digits (e.g. 90 in Y90A), or prefix contains separator (e.g. TB1-01A)
+            const hasDelimiter = middleNumMatch && /[\-_]/.test(middleNumMatch[1]);
+            const isMultiDigit = middleNumMatch && middleNumMatch[2].length >= 2;
+            const shouldIncMiddle = middleNumMatch && (target === 'middle' || (target === 'auto' && (mode === 'dec' || isMultiDigit || hasDelimiter)));
+
+            if (shouldIncMiddle) {
+                const prefix = middleNumMatch[1];
+                const numStr = middleNumMatch[2];
+                const suffix = middleNumMatch[4];
+
+                if (mode === 'hex') {
+                    const numVal = parseInt(numStr, 16) + 1;
+                    const isAllLower = (numStr === numStr.toLowerCase()) && /[a-f]/.test(numStr);
+                    const hexValStr = numVal.toString(16);
+                    let formattedHex = isAllLower ? hexValStr.toLowerCase() : hexValStr.toUpperCase();
+                    if (formattedHex.length < numStr.length) {
+                        formattedHex = formattedHex.padStart(numStr.length, '0');
+                    }
+                    return prefix + formattedHex + suffix;
+                } else {
+                    // 'dec' mode
+                    const numVal = parseInt(numStr, 10) + 1;
+                    const paddedNum = String(numVal).padStart(numStr.length, '0');
+                    return prefix + paddedNum + suffix;
+                }
+            }
 
             if (mode === 'hex') {
                 // 16進 (HEX / PLC) mode: 0..9, A..F (109 -> 10A -> 10B ... 10F -> 110)
@@ -2077,11 +2149,14 @@
             openBatchEditModal();
         }
 
-        function getNextIncrementedMarkTextWithMode(text, overrideMode) {
+        function getNextIncrementedMarkTextWithMode(text, overrideMode, overrideTarget = null) {
             const originalMode = state.incrementMode;
+            const originalTarget = state.incrementTarget;
             if (overrideMode) state.incrementMode = overrideMode;
+            if (overrideTarget) state.incrementTarget = overrideTarget;
             const result = getNextIncrementedMarkText(text);
             state.incrementMode = originalMode;
+            state.incrementTarget = originalTarget;
             return result;
         }
 
@@ -2116,6 +2191,9 @@
 
             setBatchTargetTab(state.batchTargetTab);
             setBatchOpTab(state.batchOpTab || 'replace');
+            setBatchRenumberMode(state.batchRenumberMode || 'hex');
+            setBatchRenumberTarget(state.batchRenumberTarget || 'auto');
+            setBatchRenumberSort(state.batchRenumberSort || 'y');
             document.getElementById('batchEditModal').classList.remove('hidden');
         }
 
@@ -2187,6 +2265,11 @@
             if (op === 'replace') updateBatchReplacePreview();
             else if (op === 'renumber') updateBatchRenumberPreview();
             else if (op === 'direct') renderBatchDirectEditList();
+
+            const btnExecute = document.getElementById('btnExecuteBatchEdit');
+            if (btnExecute) {
+                btnExecute.classList.toggle('hidden', op !== 'specs');
+            }
         }
 
         function setBatchRecentCount(cnt) {
@@ -2430,6 +2513,22 @@
             updateBatchRenumberPreview();
         }
 
+        function setBatchRenumberTarget(target) {
+            state.batchRenumberTarget = target || 'auto';
+            ['auto', 'middle', 'suffix'].forEach(t => {
+                const id = t === 'auto' ? 'btnBatchTargetAuto' : (t === 'middle' ? 'btnBatchTargetMiddle' : 'btnBatchTargetSuffix');
+                const btn = document.getElementById(id);
+                if (btn) {
+                    if (t === state.batchRenumberTarget) {
+                        btn.className = 'py-1 px-1 rounded bg-indigo-600 text-white text-[10px] font-semibold text-center border border-indigo-400';
+                    } else {
+                        btn.className = 'py-1 px-1 rounded bg-slate-800 text-slate-300 text-[10px] text-center border border-slate-700';
+                    }
+                }
+            });
+            updateBatchRenumberPreview();
+        }
+
         function setBatchRenumberSort(sort) {
             state.batchRenumberSort = sort;
             ['y', 'x', 'orig'].forEach(s => {
@@ -2477,6 +2576,7 @@
             const startInput = document.getElementById('batchRenumberStart');
             const startMark = startInput ? startInput.value.trim() : '';
             const mode = state.batchRenumberMode || 'hex';
+            const target = state.batchRenumberTarget || 'auto';
             const previewList = document.getElementById('batchRenumberPreviewList');
 
             if (!startMark || sorted.length === 0) {
@@ -2488,7 +2588,7 @@
             let cur = startMark;
             for (let i = 0; i < sorted.length; i++) {
                 newMarks.push(cur);
-                cur = getNextIncrementedMarkTextWithMode(cur, mode);
+                cur = getNextIncrementedMarkTextWithMode(cur, mode, target);
             }
 
             if (previewList) {
@@ -2517,6 +2617,7 @@
             const startInput = document.getElementById('batchRenumberStart');
             const startMark = startInput ? startInput.value.trim() : '';
             const mode = state.batchRenumberMode || 'hex';
+            const target = state.batchRenumberTarget || 'auto';
 
             if (!startMark) {
                 showToast('請輸入起始線號 (例如: X050)');
@@ -2534,7 +2635,7 @@
             sorted.forEach(w => {
                 w.markText = cur;
                 recordMarkTextUsage(cur);
-                cur = getNextIncrementedMarkTextWithMode(cur, mode);
+                cur = getNextIncrementedMarkTextWithMode(cur, mode, target);
             });
 
             closeBatchEditModal();
@@ -5255,12 +5356,7 @@
                         state.activeWaypoints = [];
                         state.mobileAddWaypointPending = false;
                         document.getElementById('angleHint').classList.add('hidden');
-                        document.getElementById('statusText').innerText = '始点 (A点) を導線上タップして指定してください';
-                        const statusActions = document.getElementById('statusActions');
-                        if (statusActions) {
-                            statusActions.classList.add('hidden');
-                            statusActions.classList.remove('flex');
-                        }
+                        setStatusIdle();
                         drawDiagram();
                         updateTablesAndStats();
                         showToast('配線を追加しました');
@@ -5389,12 +5485,7 @@
             state.activeWaypoints = [];
             state.mobileAddWaypointPending = false;
             document.getElementById('angleHint').classList.add('hidden');
-            document.getElementById('statusText').innerText = '始点 (A点) を導線上タップして指定してください';
-            const statusActions = document.getElementById('statusActions');
-            if (statusActions) {
-                statusActions.classList.add('hidden');
-                statusActions.classList.remove('flex');
-            }
+            setStatusIdle();
             drawDiagram();
             showToast('A点を解除しました');
         }
@@ -5532,12 +5623,34 @@
         }
 
         // ================= MODAL AUTO-INCREMENT CONTROLLER =================
+        function setStatusIdle() {
+            const el = document.getElementById('statusText');
+            if (el) el.innerHTML = '📍 始點 (A點) 指定 ｜ <kbd class="px-1 py-0.2 bg-slate-700 border border-slate-600 rounded text-amber-300 font-mono text-[10px]">Shift+拖曳</kbd> / <kbd class="px-1 py-0.2 bg-slate-700 border border-slate-600 rounded text-amber-300 font-mono text-[10px]">B</kbd>: 框選 ｜ <kbd class="px-1 py-0.2 bg-slate-700 border border-slate-600 rounded text-indigo-300 font-mono text-[10px]">W/A</kbd>: 連續配線';
+            const statusActions = document.getElementById('statusActions');
+            if (statusActions) {
+                statusActions.classList.add('hidden');
+                statusActions.classList.remove('flex');
+            }
+        }
+
         function updateModalIncrementPreview() {
             const input = document.getElementById('modalMarkText');
             const preview = document.getElementById('modalIncrementPreview');
             const chk = document.getElementById('modalAutoIncrement');
+            const targetGroup = document.getElementById('modalIncrementTargetGroup');
             if (!preview) return;
             const currentText = input ? input.value.trim() : '';
+
+            // If text contains a middle number followed by letters (e.g. Y90A), show targetGroup clearly
+            if (targetGroup) {
+                const hasMiddleNum = /^(.*?)(0*(\d+))([a-zA-Z_\-]+)$/.test(currentText);
+                if (hasMiddleNum) {
+                    targetGroup.classList.remove('opacity-40');
+                } else {
+                    targetGroup.classList.add('opacity-40');
+                }
+            }
+
             if (!chk || !chk.checked || !currentText) {
                 preview.innerText = '次回: --';
                 preview.className = 'text-[9px] text-slate-500 font-mono';
@@ -5586,6 +5699,22 @@
             updateModalIncrementPreview();
         }
 
+        function setModalIncrementTarget(target) {
+            state.incrementTarget = target || 'auto';
+            ['auto', 'middle', 'suffix'].forEach(t => {
+                const id = t === 'auto' ? 'btnModalIncTargetAuto' : (t === 'middle' ? 'btnModalIncTargetMiddle' : 'btnModalIncTargetSuffix');
+                const btn = document.getElementById(id);
+                if (btn) {
+                    if (t === state.incrementTarget) {
+                        btn.className = 'py-0.5 px-1.5 rounded bg-indigo-600 text-white font-bold border border-indigo-400';
+                    } else {
+                        btn.className = 'py-0.5 px-1.5 rounded bg-slate-900 text-slate-300 border border-slate-700 hover:bg-slate-800';
+                    }
+                }
+            });
+            updateModalIncrementPreview();
+        }
+
         function updateMarkTextSuggestions() {
             const datalist = document.getElementById('markTextSuggestions');
             if (!datalist) return;
@@ -5612,6 +5741,7 @@
             const chkModalInc = document.getElementById('modalAutoIncrement');
             if (chkModalInc) chkModalInc.checked = !!state.isAutoIncrement;
             setModalIncrementMode(state.incrementMode || 'hex', false);
+            setModalIncrementTarget(state.incrementTarget || 'auto');
             updateModalIncrementPreview();
 
             renderMarkTextHistory();
@@ -5726,12 +5856,7 @@
                     state.activeWaypoints = [];
                     state.mobileAddWaypointPending = false;
                     document.getElementById('angleHint').classList.add('hidden');
-                    document.getElementById('statusText').innerText = '始点 (A点) を導線上タップして指定してください';
-                    const statusActions = document.getElementById('statusActions');
-                    if (statusActions) {
-                        statusActions.classList.add('hidden');
-                        statusActions.classList.remove('flex');
-                    }
+                    setStatusIdle();
                     showToast('配線を追加しました');
                 }
             }
