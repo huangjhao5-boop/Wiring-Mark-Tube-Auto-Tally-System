@@ -1321,12 +1321,9 @@
             const mode = state.incrementMode || 'hex';
             const target = targetPart || state.incrementTarget || 'auto';
 
-            // Check if mark has a middle number followed by letters/suffix:
-            // e.g., "Y90A", "TB1-01A", "COM12_A", "X50-A"
-            const middleNumMatch = trimmed.match(/^(.*?)(0*(\d+))([a-zA-Z_\-]+)$/);
-
-            // If target is explicitly 'suffix', or mode is 'alpha':
+            // 1. Explicit suffix increment or alpha mode
             if (target === 'suffix' || mode === 'alpha') {
+                const middleNumMatch = trimmed.match(/^(.*?)(0*(\d+))([a-zA-Z_\-]+)$/);
                 if (middleNumMatch) {
                     const prefix = middleNumMatch[1] + middleNumMatch[2];
                     const suffix = middleNumMatch[4];
@@ -1338,10 +1335,27 @@
                 }
             }
 
-            // If mark contains a middle number (e.g. Y90A, TB1-01A):
-            // Determine if middle number should be incremented:
-            // - Always if target is explicitly 'middle'
-            // - In 'auto' mode: if mode is 'dec', or middle number has >= 2 digits (e.g. 90 in Y90A), or prefix contains separator (e.g. TB1-01A)
+            // 2. Multi-letter hex suffix in HEX mode (e.g. Y09AA -> Y09BA, Y9AA -> Y9BA, Y0AA -> Y0BA)
+            // Matches when text ends with a hex letter [A-Fa-f] followed by a suffix letter [a-zA-Z], preceded by digits
+            // e.g. Y09AA -> hexStr='09A', suffix='A' -> Y09BA
+            // e.g. Y09BA -> hexStr='09B', suffix='A' -> Y09CA
+            const multiLetterHexSuffix = trimmed.match(/^(.*?)([0-9A-Fa-f]*[0-9][0-9A-Fa-f]*[A-Fa-f])([a-zA-Z])$/);
+            if (mode === 'hex' && multiLetterHexSuffix && (target === 'auto' || target === 'middle')) {
+                const prefix = multiLetterHexSuffix[1];
+                const hexStr = multiLetterHexSuffix[2];
+                const suffix = multiLetterHexSuffix[3];
+                const numVal = parseInt(hexStr, 16) + 1;
+                const isAllLower = (hexStr === hexStr.toLowerCase()) && /[a-f]/.test(hexStr);
+                const hexValStr = numVal.toString(16);
+                let formattedHex = isAllLower ? hexValStr.toLowerCase() : hexValStr.toUpperCase();
+                if (formattedHex.length < hexStr.length) {
+                    formattedHex = formattedHex.padStart(hexStr.length, '0');
+                }
+                return prefix + formattedHex + suffix;
+            }
+
+            // 3. Middle decimal number with trailing letter suffix (e.g. Y90A -> Y91A, TB1-01A -> TB1-02A)
+            const middleNumMatch = trimmed.match(/^(.*?)(0*(\d+))([a-zA-Z_\-]+)$/);
             const hasDelimiter = middleNumMatch && /[\-_]/.test(middleNumMatch[1]);
             const isMultiDigit = middleNumMatch && middleNumMatch[2].length >= 2;
             const shouldIncMiddle = middleNumMatch && (target === 'middle' || (target === 'auto' && (mode === 'dec' || isMultiDigit || hasDelimiter)));
