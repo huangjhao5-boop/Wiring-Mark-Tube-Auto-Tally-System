@@ -428,6 +428,22 @@
                             <span class="text-[9px] text-amber-400">(黃框標記 & 積算+1點)</span>
                         </label>
 
+                        <!-- Auto-Increment Switch & Mode in Modal (連番・自動インクリメント) -->
+                        <div class="bg-indigo-950/40 p-2 rounded border border-indigo-500/50 space-y-1.5">
+                            <div class="flex items-center justify-between cursor-pointer" onclick="toggleModalAutoIncrement()">
+                                <div class="flex items-center gap-1.5">
+                                    <input type="checkbox" id="modalAutoIncrement" class="w-3.5 h-3.5 accent-indigo-500 cursor-pointer shrink-0" onclick="event.stopPropagation(); updateModalIncrementUI();">
+                                    <span class="text-indigo-200 font-semibold text-[11px]">連番自動インクリメント</span>
+                                </div>
+                                <span id="modalIncrementPreview" class="text-[10px] text-indigo-300 font-mono font-bold bg-indigo-900/60 px-1.5 py-0.5 rounded border border-indigo-500/40">次回: --</span>
+                            </div>
+                            <div id="modalIncrementModeGroup" class="grid grid-cols-3 gap-1 pt-1 border-t border-indigo-500/30 text-[10px]">
+                                <button type="button" data-mode="hex" onclick="setModalIncrementMode('hex')" id="btnModalIncHex" class="py-0.5 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm transition">16進 (PLC)</button>
+                                <button type="button" data-mode="dec" onclick="setModalIncrementMode('dec')" id="btnModalIncDec" class="py-0.5 px-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-center border border-slate-700 transition">10進 (DEC)</button>
+                                <button type="button" data-mode="alpha" onclick="setModalIncrementMode('alpha')" id="btnModalIncAlpha" class="py-0.5 px-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-center border border-slate-700 transition">A~Z 連番</button>
+                            </div>
+                        </div>
+
                         <!-- Wire Color Selection (Compact 1 Row of 8 Buttons) -->
                         <div>
                             <label class="block text-slate-300 mb-1 font-medium text-[11px]">電線色</label>
@@ -1699,6 +1715,14 @@
                     handleModalConfirm();
                 }
             });
+
+            // Modal Mark Text Live Increment Preview
+            const modalMarkInput = document.getElementById('modalMarkText');
+            if (modalMarkInput) {
+                modalMarkInput.addEventListener('input', () => {
+                    updateModalIncrementPreview();
+                });
+            }
 
             // Modal SQ/Color button grids
             document.getElementById('modalSqButtons').onclick = (e) => {
@@ -4777,9 +4801,65 @@
                     input.value = item.text;
                     input.focus();
                     input.select();
+                    updateModalIncrementPreview();
                 };
                 container.appendChild(btn);
             });
+        }
+
+        // ================= MODAL AUTO-INCREMENT CONTROLLER =================
+        function updateModalIncrementPreview() {
+            const input = document.getElementById('modalMarkText');
+            const preview = document.getElementById('modalIncrementPreview');
+            const chk = document.getElementById('modalAutoIncrement');
+            if (!preview) return;
+            const currentText = input ? input.value.trim() : '';
+            if (!chk || !chk.checked || !currentText) {
+                preview.innerText = '次回: --';
+                preview.className = 'text-[9px] text-slate-500 font-mono';
+                return;
+            }
+            const nextText = getNextIncrementedMarkText(currentText);
+            preview.innerText = `次回: ${nextText}`;
+            preview.className = 'text-[10px] text-amber-300 font-mono font-bold bg-indigo-900/60 px-1.5 py-0.5 rounded border border-indigo-500/40';
+        }
+
+        function updateModalIncrementUI() {
+            const chk = document.getElementById('modalAutoIncrement');
+            if (!chk) return;
+            state.isAutoIncrement = chk.checked;
+            const chkSidebar = document.getElementById('chkAutoIncrement');
+            if (chkSidebar) chkSidebar.checked = state.isAutoIncrement;
+            updateModalIncrementPreview();
+        }
+
+        function toggleModalAutoIncrement() {
+            const chk = document.getElementById('modalAutoIncrement');
+            if (!chk) return;
+            chk.checked = !chk.checked;
+            updateModalIncrementUI();
+        }
+
+        function setModalIncrementMode(mode, syncGlobal = true) {
+            if (syncGlobal) {
+                setIncrementMode(mode);
+            }
+            const currentMode = mode || state.incrementMode || 'hex';
+            const btnHex = document.getElementById('btnModalIncHex');
+            const btnDec = document.getElementById('btnModalIncDec');
+            const btnAlpha = document.getElementById('btnModalIncAlpha');
+            
+            [btnHex, btnDec, btnAlpha].forEach(b => {
+                if (b) {
+                    const match = b.getAttribute('data-mode') === currentMode;
+                    if (match) {
+                        b.className = 'py-0.5 px-1 rounded bg-indigo-600 text-white font-bold text-center border border-indigo-400 shadow-sm transition';
+                    } else {
+                        b.className = 'py-0.5 px-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 text-center border border-slate-700 transition';
+                    }
+                }
+            });
+            updateModalIncrementPreview();
         }
 
         function updateMarkTextSuggestions() {
@@ -4804,6 +4884,11 @@
             modalTempSq = state.defaultSq;
             modalTempColor = state.defaultColor;
             syncModalButtonHighlights();
+
+            const chkModalInc = document.getElementById('modalAutoIncrement');
+            if (chkModalInc) chkModalInc.checked = !!state.isAutoIncrement;
+            setModalIncrementMode(state.incrementMode || 'hex', false);
+            updateModalIncrementPreview();
 
             renderMarkTextHistory();
             updateMarkTextSuggestions();
@@ -4850,6 +4935,14 @@
             const sq = modalTempSq;
             const color = modalTempColor;
             const isTerminal = document.getElementById('modalTerminalConnection').checked;
+
+            // Sync Auto-Increment setting from modal
+            const modalAutoInc = document.getElementById('modalAutoIncrement');
+            if (modalAutoInc) {
+                state.isAutoIncrement = modalAutoInc.checked;
+                const chkSidebar = document.getElementById('chkAutoIncrement');
+                if (chkSidebar) chkSidebar.checked = state.isAutoIncrement;
+            }
 
             saveHistoryState(state.editingWireId ? 'Edit-Wire' : 'Add-Wire');
 
@@ -4917,16 +5010,14 @@
                     }
                     showToast('配線を追加しました');
                 }
-
-                // Auto-Increment
-                if (state.isAutoIncrement) {
-                    state.defaultMarkText = getNextIncrementedMarkText(markText);
-                }
-                document.getElementById('sidebarMarkText').value = state.defaultMarkText;
-                updateQuickPresetHighlights();
-
-                showToast('配線を追加しました');
             }
+
+            // Auto-Increment calculation for next wire
+            if (state.isAutoIncrement) {
+                state.defaultMarkText = getNextIncrementedMarkText(markText);
+            }
+            document.getElementById('sidebarMarkText').value = state.defaultMarkText;
+            updateQuickPresetHighlights();
 
             closeModal();
             drawDiagram();
@@ -4944,6 +5035,11 @@
             modalTempSq = wire.sq;
             modalTempColor = wire.color;
             syncModalButtonHighlights();
+
+            const chkModalInc = document.getElementById('modalAutoIncrement');
+            if (chkModalInc) chkModalInc.checked = !!state.isAutoIncrement;
+            setModalIncrementMode(state.incrementMode || 'hex', false);
+            updateModalIncrementPreview();
 
             renderMarkTextHistory();
             updateMarkTextSuggestions();
